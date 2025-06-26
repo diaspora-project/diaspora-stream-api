@@ -1,0 +1,45 @@
+/*
+ * (C) 2023 The University of Chicago
+ *
+ * See COPYRIGHT in top-level directory.
+ */
+#ifndef MOFKA_API_FORWARD_DECL_HPP
+#define MOFKA_API_FORWARD_DECL_HPP
+
+namespace mofka {
+
+class Archive;
+struct BatchSize;
+struct BufferWrapperOutputArchive;
+struct BufferWrapperInputArchive;
+template<typename T>
+struct Cerealized;
+class Consumer;
+class DataView;
+class DataDescriptor;
+class Event;
+struct StopEventProcessor;
+class Exception;
+template<typename ResultType, typename WaitFn, typename TestFn> class Future;
+class Metadata;
+struct NumEvents;
+class Producer;
+class Provider;
+class SerializerInterface;
+class Serializer;
+class PartitionInfo;
+class PartitionSelectorInterface;
+class PartitionSelector;
+struct ThreadCount;
+class ThreadPoolInterface;
+class ThreadPool;
+struct TopicBackendConfig;
+class TopicHandle;
+class PartitionManager;
+class InvalidMetadata;
+class ValidatorInterface;
+class Validator;
+
+}
+
+#endif

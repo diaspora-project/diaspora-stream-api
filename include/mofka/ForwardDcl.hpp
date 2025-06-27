@@ -34,6 +34,7 @@ class Serializer;
 class PartitionInfo;
 class PartitionSelectorInterface;
 class PartitionSelector;
+struct PythonBindingHelper;
 struct ThreadCount;
 class ThreadPoolInterface;
 class ThreadPool;

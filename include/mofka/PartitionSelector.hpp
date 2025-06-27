@@ -79,6 +79,8 @@ class PartitionSelectorInterface {
 
 class PartitionSelector {
 
+    friend struct PythonBindingHelper;
+
     public:
 
     /**

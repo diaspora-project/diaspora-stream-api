@@ -67,6 +67,8 @@ class ThreadPoolInterface {
 class ThreadPool {
 
     friend class Consumer;
+    friend class Producer;
+    friend class TopicHandle;
 
     public:
 

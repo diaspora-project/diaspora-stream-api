@@ -52,12 +52,12 @@ class ProducerInterface {
     /**
      * @brief Returns the ThreadPool associated with the Producer.
      */
-    virtual ThreadPool threadPool() const = 0;
+    virtual std::shared_ptr<ThreadPoolInterface> threadPool() const = 0;
 
     /**
      * @brief Returns the TopicHandle this producer has been created from.
      */
-    virtual TopicHandle topic() const = 0;
+    virtual std::shared_ptr<TopicHandleInterface> topic() const = 0;
 
     /**
      * @brief Pushes an event into the producer's underlying topic,

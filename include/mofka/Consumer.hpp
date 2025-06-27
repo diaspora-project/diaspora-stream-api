@@ -72,6 +72,18 @@ class ConsumerInterface {
     virtual const DataSelector& dataSelector() const = 0;
 
     /**
+     * @brief Feed the Events pulled by the Consumer into the provided
+     * EventProcessor function. The Consumer will stop feeding the processor
+     * if it raises a StopEventProcessor exception, or after maxEvents events
+     * have been processed.
+     *
+     * @param processor EventProcessor.
+     */
+    virtual void process(EventProcessor processor,
+                         std::shared_ptr<ThreadPoolInterface> threadPool,
+                         NumEvents maxEvents = NumEvents::Infinity()) const = 0;
+
+    /**
      * @brief Unsubscribe from the topic.
      *
      * This function is not supposed to be called by users directly.
@@ -198,7 +210,11 @@ class Consumer {
      */
     void process(EventProcessor processor,
                  ThreadPool threadPool = ThreadPool{},
-                 NumEvents maxEvents = NumEvents::Infinity()) const;
+                 NumEvents maxEvents = NumEvents::Infinity()) const {
+        self->process(std::move(processor),
+                      threadPool.self,
+                      maxEvents);
+    }
 
     /**
      * @brief This method is syntactic sugar to call process with

@@ -81,7 +81,7 @@ class TopicHandleInterface {
         makeProducer(std::string_view name,
                      BatchSize batch_size,
                      MaxNumBatches max_batch,
-                     ThreadPool thread_pool,
+                     std::shared_ptr<ThreadPoolInterface> thread_pool,
                      Ordering ordering,
                      Metadata options) const = 0;
 
@@ -104,7 +104,7 @@ class TopicHandleInterface {
         makeConsumer(std::string_view name,
                      BatchSize batch_size,
                      MaxNumBatches max_batch,
-                     ThreadPool thread_pool,
+                     std::shared_ptr<ThreadPoolInterface> thread_pool,
                      DataBroker data_broker,
                      DataSelector data_selector,
                      const std::vector<size_t>& targets,
@@ -271,7 +271,7 @@ class TopicHandle {
                           Metadata options) const {
         return self->makeProducer(
             name, batch_size, max_batch,
-            std::move(thread_pool), ordering, std::move(options));
+            thread_pool.self, ordering, std::move(options));
     }
 
     /**
@@ -298,7 +298,7 @@ class TopicHandle {
                           Metadata options) const {
         return self->makeConsumer(
             name, batch_size, max_batch,
-            std::move(thread_pool), data_broker,
+            thread_pool.self, data_broker,
             data_selector, targets, std::move(options));
     }
 

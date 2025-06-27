@@ -67,6 +67,8 @@ class ValidatorInterface {
 
 class Validator {
 
+    friend struct PythonBindingHelper;
+
     public:
 
     /**

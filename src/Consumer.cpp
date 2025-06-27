@@ -23,15 +23,6 @@ TopicHandle Consumer::topic() const {
     return self->topic();
 }
 
-void Consumer::process(EventProcessor processor,
-                       ThreadPool threadPool,
-                       NumEvents maxEvents) const {
-    (void)processor;
-    (void)threadPool;
-    (void)maxEvents;
-    // TODO
-}
-
 NumEvents NumEvents::Infinity() {
     return NumEvents{std::numeric_limits<size_t>::max()};
 }

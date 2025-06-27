@@ -77,6 +77,8 @@ class SerializerInterface {
 
 class Serializer {
 
+    friend struct PythonBindingHelper;
+
     public:
 
     /**

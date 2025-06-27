@@ -41,7 +41,7 @@ jobs:
 
     - name: Build code and run unit tests
       run: |
-        spack env activate tests
+        eval `spack env activate --sh tests`
         mkdir build
         cd build
         cmake .. -DENABLE_TESTS=ON \

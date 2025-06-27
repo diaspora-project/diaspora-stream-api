@@ -66,8 +66,6 @@ pkg_check_modules (uuid REQUIRED IMPORTED_TARGET uuid)
 # search for nlohmann/json and schema validator
 find_package (nlohmann_json REQUIRED)
 find_package (nlohmann_json_schema_validator REQUIRED)
-# search for fmt package
-find_package (fmt REQUIRED)
 
 if (ENABLE_PYTHON)
     find_package (Python3 COMPONENTS Interpreter Development REQUIRED)

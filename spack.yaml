@@ -2,11 +2,8 @@ spack:
   specs:
   - cmake
   - pkg-config
-  - uuid
   - nlohmann-json
   - nlohmann-json-schema-validator
-  - spdlog
-  - fmt
   - py-pybind11
   - catch2
   concretizer:

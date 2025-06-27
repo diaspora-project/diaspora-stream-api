@@ -10,7 +10,6 @@
 #include "PimplUtil.hpp"
 #include "DefaultValidator.hpp"
 #include "SchemaValidator.hpp"
-#include <fmt/format.h>
 #include <unordered_map>
 
 namespace mofka {

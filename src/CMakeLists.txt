@@ -27,7 +27,6 @@ target_link_libraries (mofka-api
     nlohmann_json::nlohmann_json
     nlohmann_json_schema_validator::validator
     PRIVATE
-    fmt::fmt
     coverage_config
     warnings_config)
 target_include_directories (mofka-api PUBLIC $<INSTALL_INTERFACE:include>)

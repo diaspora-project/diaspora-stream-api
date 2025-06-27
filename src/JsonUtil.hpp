@@ -8,7 +8,6 @@
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json-schema.hpp>
-#include <fmt/format.h>
 #include <vector>
 #include <stack>
 #include <string>

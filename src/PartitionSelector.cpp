@@ -9,7 +9,6 @@
 #include "MetadataImpl.hpp"
 #include "PimplUtil.hpp"
 #include "DefaultPartitionSelector.hpp"
-#include <fmt/format.h>
 #include <unordered_map>
 
 namespace mofka {

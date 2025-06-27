@@ -10,7 +10,6 @@
 #include "JsonUtil.hpp"
 #include "mofka/Json.hpp"
 #include "mofka/Metadata.hpp"
-#include <fmt/format.h>
 
 namespace mofka {
 
@@ -50,8 +49,8 @@ class MetadataImpl {
         try {
             m_json = json::parse(m_string);
         } catch(const std::exception& ex) {
-           throw Exception(fmt::format(
-                "Could not parse Metadata string: {}", ex.what()));
+           throw Exception(std::string(
+                "Could not parse Metadata string: ") + ex.what());
         }
         m_type |= Type::ActualJson;
     }

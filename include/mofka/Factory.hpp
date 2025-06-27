@@ -8,7 +8,6 @@
 
 #include <mofka/ForwardDcl.hpp>
 #include <mofka/Exception.hpp>
-#include <fmt/format.h>
 #include <dlfcn.h>
 #include <unordered_map>
 #include <functional>
@@ -38,7 +37,8 @@ class Factory {
             auto it = factory.m_creator_fn.find(name);
             if (it == factory.m_creator_fn.end()) {
                 if(dlopen(path.c_str(), RTLD_NOW) == nullptr) {
-                    throw Exception(fmt::format("Could not dlopen {}: {}", name, dlerror()));
+                    throw Exception(
+                        std::string{"Could not dlopen"} + name + ":" + dlerror());
                 }
             }
         }
@@ -46,7 +46,7 @@ class Factory {
         if (it != factory.m_creator_fn.end()) {
             return it->second(std::forward<Args>(args)...);
         } else {
-            throw Exception(fmt::format("Factory method not found for type {}", name));
+            throw Exception(std::string("Factory method not found for type ") +  name);
         }
     }
 

@@ -1,13 +1,9 @@
 spack:
   specs:
-  - mpich
   - cmake
   - pkg-config
-  - uuid
   - nlohmann-json
   - nlohmann-json-schema-validator
-  - spdlog
-  - fmt
   - py-coverage
   - py-pybind11
   - catch2

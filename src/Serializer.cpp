@@ -10,7 +10,6 @@
 #include "PimplUtil.hpp"
 #include "DefaultSerializer.hpp"
 #include "SchemaSerializer.hpp"
-#include <fmt/format.h>
 
 namespace mofka {
 

@@ -7,7 +7,5 @@ Name: mofka-api
 Description: API for event streaming services for HPC
 Version: @MOFKA_API_VERSION@
 
-Requires: uuid
-Requires.private: fmt
 Libs: -L${libdir} @MOFKA_API_PRIVATE_LIBS@ -lstdc++
 Cflags: -I${includedir}

@@ -102,18 +102,16 @@ static std::pair<bool,std::vector<std::string>> extractPrefixesOrSuffixes(
         // { "prefix" : ["abc", "def"] }
         for(auto& prefix : prefixPattern) {
             if(!prefix.is_string())
-                throw Exception{fmt::format(
-                    "Invalid Eventbridge \"{}\" rule: "
-                    "list of prefixes should contain only strings",
-                    ruleName)};
+                throw Exception{std::string(
+                    "Invalid Eventbridge \"") + ruleName + "\" rule: "
+                    "list of prefixes should contain only strings"};
             prefixes.push_back(prefix.get<std::string>());
         }
     } else if(prefixPattern.is_object()) {
         if(prefixPattern.size() != 1 || !prefixPattern.contains("equals-ignore-case"))
-            throw Exception{fmt::format(
-                "Invalid Eventbridge \"{}\" rule: "
-                "only \"equals-ignore-case\" is allowed as sub-pattern",
-                ruleName)};
+            throw Exception{std::string(
+                "Invalid Eventbridge \"") + ruleName + "\" rule: "
+                "only \"equals-ignore-case\" is allowed as sub-pattern"};
         ignore_case = true;
         if(prefixPattern["equals-ignore-case"].is_string()) {
             // { "prefix" : { "equals-ignore-case" : "abc" }}
@@ -123,18 +121,16 @@ static std::pair<bool,std::vector<std::string>> extractPrefixesOrSuffixes(
             // { "prefix" : { "equals-ignore-case" : [ "abc", "def" ] }}
             for(auto& prefix : prefixPattern["equals-ignore-case"]) {
                 if(!prefix.is_string())
-                    throw Exception{fmt::format(
-                        "Invalid Eventbridge \"{}\" rule: "
-                        "list in \"equals-ignore-case\" should contain only strings",
-                        ruleName)};
+                    throw Exception{std::string(
+                        "Invalid Eventbridge \"") + ruleName + "\" rule: "
+                        "list in \"equals-ignore-case\" should contain only strings"};
                 prefixes.push_back(toLower(prefix.get_ref<const std::string&>()));
             }
         }
     } else {
-        throw Exception{fmt::format(
-            "Invalid Eventbridge \"{}\" rule: "
-            "pattern should be a string, a list, or an object",
-            ruleName)};
+        throw Exception{std::string(
+            "Invalid Eventbridge \"") + ruleName + "\" rule: "
+            "pattern should be a string, a list, or an object"};
     }
     return std::make_pair(ignore_case, std::move(prefixes));
 }
@@ -315,9 +311,9 @@ static std::function<bool(const json&)> matchNumeric(const json& patternValue) {
                 }
             );
         } else {
-            throw Exception{fmt::format(
+            throw Exception{std::string(
                 "Invalid Eventbridge \"numeric\" rule: "
-                "unknown operator \"{}\"", op)};
+                "unknown operator \"") + op + "\""};
         }
     }
     return allOf(std::move(conditions));
@@ -434,9 +430,9 @@ static std::function<bool(const json&)> matchRule(const json& rule) {
     } else if(rule.contains("wildcard")) {
         func = matchWildcard(rule["wildcard"]);
     } else {
-        throw Exception{fmt::format(
+        throw Exception{std::string(
             "Invalid Eventbridge pattern: "
-            "unexpected rule: {}", rule.dump())};
+            "unexpected rule: ") + rule.dump()};
     }
     return func;
 }

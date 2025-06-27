@@ -1,6 +1,6 @@
 <p align="center">
-<img src="docs/_static/MofkaLogo-light.svg#gh-light-mode-only" height="220" width="210" />
-<img src="docs/_static/MofkaLogo-dark.svg#gh-dark-mode-only" height="220" width="210" />
+<img src="img/MofkaLogo-light.svg#gh-light-mode-only" height="220" width="210" />
+<img src="img/MofkaLogo-dark.svg#gh-dark-mode-only" height="220" width="210" />
 </p>
 
 This repository provides the Mofka API library, an API for streaming frameworks for HPC

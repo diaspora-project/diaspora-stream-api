@@ -28,44 +28,44 @@ class Future {
     /**
      * @brief Default constructor. Will create a non-valid Future.
      */
-    Future() = default;
+    inline Future() = default;
 
     /**
      * @brief Copy constructor.
      */
-    Future(const Future& other) = default;
+    inline Future(const Future& other) = default;
 
     /**
      * @brief Move constructor.
      */
-    Future(Future&& other) = default;
+    inline Future(Future&& other) = default;
 
     /**
      * @brief Copy-assignment operator.
      */
-    Future& operator=(const Future& other) = default;
+    inline Future& operator=(const Future& other) = default;
 
     /**
      * @brief Move-assignment operator.
      */
-    Future& operator=(Future&& other) = default;
+    inline Future& operator=(Future&& other) = default;
 
     /**
      * @brief Destructor.
      */
-    ~Future() = default;
+    inline ~Future() = default;
 
     /**
      * @brief Check the validity of the Future.
      */
-    operator bool() const {
+    explicit inline operator bool() const {
         return static_cast<bool>(m_wait) || static_cast<bool>(m_completed);
     }
 
     /**
      * @brief Wait for the request to complete.
      */
-    ResultType wait() const {
+    inline ResultType wait() const {
         if(!m_wait)
             throw Exception("Calling Future::wait on an invalid future");
         return m_wait();
@@ -74,7 +74,7 @@ class Future {
     /**
      * @brief Test if the request has completed, without blocking.
      */
-    bool completed() const {
+    inline bool completed() const {
         if(!m_completed)
             throw Exception("Calling Future::completed on an invalid future");
         return m_completed();
@@ -84,7 +84,7 @@ class Future {
      * @brief Constructor meant for classes that actually know what the
      * internals of the future are.
      */
-    Future(WaitFn wait_fn,
+    inline Future(WaitFn wait_fn,
            TestFn completed_fn)
     : m_wait(std::move(wait_fn))
     , m_completed(std::move(completed_fn)) {}

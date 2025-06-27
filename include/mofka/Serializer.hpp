@@ -88,27 +88,27 @@ class Serializer {
     /**
      * @brief Copy-constructor.
      */
-    Serializer(const Serializer&);
+    inline Serializer(const Serializer&) = default;
 
     /**
      * @brief Move-constructor.
      */
-    Serializer(Serializer&&);
+    inline Serializer(Serializer&&) = default;
 
     /**
      * @brief copy-assignment operator.
      */
-    Serializer& operator=(const Serializer&);
+    inline Serializer& operator=(const Serializer&) = default;
 
     /**
      * @brief Move-assignment operator.
      */
-    Serializer& operator=(Serializer&&);
+    inline Serializer& operator=(Serializer&&) = default;
 
     /**
      * @brief Destructor.
      */
-    ~Serializer();
+    inline ~Serializer() = default;
 
     /**
      * @brief Serialize the Metadata into the Archive.
@@ -117,7 +117,9 @@ class Serializer {
      * @param archive Archive into which to serialize the metadata.
      * @param metadata Metadata to serialize.
      */
-    void serialize(Archive& archive, const Metadata& metadata) const;
+    inline void serialize(Archive& archive, const Metadata& metadata) const {
+        self->serialize(archive, metadata);
+    }
 
     /**
      * @brief Deserialize the Metadata from the Archive.
@@ -126,7 +128,9 @@ class Serializer {
      * @param archive Archive from which to deserialize the metadata.
      * @param metadata Metadata to deserialize.
      */
-    void deserialize(Archive& archive, Metadata& metadata) const;
+    inline void deserialize(Archive& archive, Metadata& metadata) const {
+        self->deserialize(archive, metadata);
+    }
 
     /**
      * @brief Convert the underlying serializer implementation into a Metadata
@@ -137,7 +141,9 @@ class Serializer {
      *
      * @param metadata Metadata representing the internals of the serializer.
      */
-    Metadata metadata() const;
+    inline Metadata metadata() const {
+        return self->metadata();
+    }
 
     /**
      * @brief Factory function to create a Serializer instance.
@@ -165,20 +171,22 @@ class Serializer {
     /**
      * @brief Checks for the validity of the underlying pointer.
      */
-    operator bool() const;
+    explicit inline operator bool() const {
+        return static_cast<bool>(self);
+    }
 
     private:
 
-    std::shared_ptr<SerializerInterface> self;
+    Serializer(const std::shared_ptr<SerializerInterface>& impl)
+    : self(impl) {}
 
-    Serializer(const std::shared_ptr<SerializerInterface>& impl);
+    std::shared_ptr<SerializerInterface> self;
 
 };
 
 using SerializerFactory = Factory<SerializerInterface, const Metadata&>;
 
 }
-
 
 #define MOFKA_REGISTER_SERIALIZER(__name__, __type__) \
     MOFKA_REGISTER_IMPLEMENTATION_FOR(SerializerFactory, __type__, __name__)

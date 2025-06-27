@@ -16,8 +16,6 @@
 namespace mofka {
 
 class DataViewImpl;
-class PythonBindingHelper;
-class ProducerBatchImpl;
 
 /**
  * @brief A DataView is an object that encapsulates the data of an event.
@@ -98,7 +96,7 @@ class DataView {
     /**
      * @brief Checks if the Data instance is valid.
      */
-    operator bool() const;
+    explicit operator bool() const;
 
     /**
      * @brief Return the context of this Data object.

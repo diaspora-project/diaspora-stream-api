@@ -86,15 +86,13 @@ class ProducerInterface {
 class Producer {
 
     friend class TopicHandle;
-    friend class ActiveProducerBatchQueue;
 
     public:
 
     /**
      * @brief Constructor.
      */
-    inline Producer(const std::shared_ptr<ProducerInterface>& impl = nullptr)
-    : self{impl} {}
+    inline Producer() = default;
 
     /**
      * @brief Copy-constructor.
@@ -159,7 +157,7 @@ class Producer {
     /**
      * @brief Checks if the Producer instance is valid.
      */
-    inline operator bool() const {
+    explicit inline operator bool() const {
         return static_cast<bool>(self);
     }
 
@@ -186,6 +184,12 @@ class Producer {
     }
 
     private:
+
+    /**
+     * @brief Constructor.
+     */
+    inline Producer(const std::shared_ptr<ProducerInterface>& impl)
+    : self{impl} {}
 
     std::shared_ptr<ProducerInterface> self;
 };

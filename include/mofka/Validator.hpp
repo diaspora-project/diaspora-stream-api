@@ -78,32 +78,34 @@ class Validator {
     /**
      * @brief Copy-constructor.
      */
-    Validator(const Validator&);
+    inline Validator(const Validator&) = default;
 
     /**
      * @brief Move-constructor.
      */
-    Validator(Validator&&);
+    inline Validator(Validator&&) = default;
 
     /**
      * @brief copy-assignment operator.
      */
-    Validator& operator=(const Validator&);
+    inline Validator& operator=(const Validator&) = default;
 
     /**
      * @brief Move-assignment operator.
      */
-    Validator& operator=(Validator&&);
+    inline Validator& operator=(Validator&&) = default;
 
     /**
      * @brief Destructor.
      */
-    ~Validator();
+    inline ~Validator() = default;
 
     /**
      * @brief Checks for the validity of the underlying pointer.
      */
-    operator bool() const;
+    inline explicit operator bool() const {
+        return static_cast<bool>(self);
+    }
 
     /**
      * @brief Validate that the Metadata it correct, throwing an
@@ -115,7 +117,7 @@ class Validator {
      * @param metadata Metadata to validate.
      * @param data Associated data.
      */
-    void validate(const Metadata& metadata, const DataView& data) const {
+    inline void validate(const Metadata& metadata, const DataView& data) const {
         self->validate(metadata, data);
     }
 
@@ -124,7 +126,7 @@ class Validator {
      * object that can be stored (e.g. if the validator uses a JSON schema
      * the Metadata could contain that schema).
      */
-    Metadata metadata() const {
+    inline Metadata metadata() const {
         return self->metadata();
     }
 
@@ -157,9 +159,9 @@ class Validator {
 
     private:
 
-    std::shared_ptr<ValidatorInterface> self;
-
     Validator(const std::shared_ptr<ValidatorInterface>& impl);
+
+    std::shared_ptr<ValidatorInterface> self;
 };
 
 using ValidatorFactory = Factory<ValidatorInterface, const Metadata&>;

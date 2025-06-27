@@ -3,8 +3,8 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_CONSUMER_HPP
-#define MOFKA_CONSUMER_HPP
+#ifndef MOFKA_API_CONSUMER_HPP
+#define MOFKA_API_CONSUMER_HPP
 
 #include <mofka/ForwardDcl.hpp>
 #include <mofka/Exception.hpp>
@@ -54,22 +54,22 @@ class ConsumerInterface {
     /**
      * @brief Returns the ThreadPool associated with the Consumer.
      */
-    virtual ThreadPool threadPool() const = 0;
+    virtual std::shared_ptr<ThreadPoolInterface> threadPool() const = 0;
 
     /**
      * @brief Returns the TopicHandle this producer has been created from.
      */
-    virtual TopicHandle topic() const = 0;
+    virtual std::shared_ptr<TopicHandleInterface> topic() const = 0;
 
     /**
      * @brief Returns the DataBroker used by the Consumer.
      */
-    virtual DataBroker dataBroker() const = 0;
+    virtual const DataBroker& dataBroker() const = 0;
 
     /**
      * @brief Returns the DataSelector used by the Consumer.
      */
-    virtual DataSelector dataSelector() const = 0;
+    virtual const DataSelector& dataSelector() const = 0;
 
     /**
      * @brief Unsubscribe from the topic.
@@ -96,33 +96,31 @@ class ConsumerInterface {
  */
 class Consumer {
 
+    friend class TopicHandle;
+
     public:
 
-    /**
-     * @brief Constructor. The resulting Consumer handle will be invalid.
-     */
-    Consumer(const std::shared_ptr<ConsumerInterface>& impl = nullptr)
-    : self{impl} {}
+    inline Consumer() = default;
 
     /**
      * @brief Copy-constructor.
      */
-    Consumer(const Consumer&) = default;
+    inline Consumer(const Consumer&) = default;
 
     /**
      * @brief Move-constructor.
      */
-    Consumer(Consumer&&) = default;
+    inline Consumer(Consumer&&) = default;
 
     /**
      * @brief Copy-assignment operator.
      */
-    Consumer& operator=(const Consumer&) = default;
+    inline Consumer& operator=(const Consumer&) = default;
 
     /**
      * @brief Move-assignment operator.
      */
-    Consumer& operator=(Consumer&&) = default;
+    inline Consumer& operator=(Consumer&&) = default;
 
     /**
      * @brief Destructor.
@@ -132,7 +130,7 @@ class Consumer {
     /**
      * @brief Returns the name of the producer.
      */
-    const std::string& name() const {
+    inline const std::string& name() const {
         return self->name();
     }
 
@@ -140,7 +138,7 @@ class Consumer {
      * @brief Returns a copy of the options provided when
      * the Consumer was created.
      */
-    BatchSize batchSize() const {
+    inline BatchSize batchSize() const {
         return self->batchSize();
     }
 
@@ -148,14 +146,14 @@ class Consumer {
      * @brief Returns the maximum number of batches the
      * Consumer is allowed to hold at any time.
      */
-    MaxNumBatches maxNumBatch() const {
+    inline MaxNumBatches maxNumBatch() const {
         return self->maxNumBatches();
     }
 
     /**
      * @brief Returns the ThreadPool associated with the Consumer.
      */
-    ThreadPool threadPool() const {
+    inline ThreadPool threadPool() const {
         return self->threadPool();
     }
 
@@ -167,14 +165,14 @@ class Consumer {
     /**
      * @brief Returns the DataBroker used by the Consumer.
      */
-    DataBroker dataBroker() const {
+    inline decltype(auto) dataBroker() const {
         return self->dataBroker();
     }
 
     /**
      * @brief Returns the DataSelector used by the Consumer.
      */
-    DataSelector dataSelector() const {
+    inline decltype(auto) dataSelector() const {
         return self->dataSelector();
     }
 
@@ -183,7 +181,7 @@ class Consumer {
      * return a Future<Event>. Calling wait() on the event will
      * block until an Event is actually available.
      */
-    Future<Event> pull() const {
+    inline Future<Event> pull() const {
         return self->pull();
     }
 
@@ -217,18 +215,21 @@ class Consumer {
      *
      * @param processor EventProcessor.
      */
-    void operator|(EventProcessor processor) const && {
+    inline void operator|(EventProcessor processor) const && {
         process(processor, threadPool(), NumEvents::Infinity());
     }
 
     /**
      * @brief Checks if the Consumer instance is valid.
      */
-    operator bool() const {
+    inline explicit operator bool() const {
         return static_cast<bool>(self);
     }
 
     private:
+
+    inline Consumer(const std::shared_ptr<ConsumerInterface>& impl)
+    : self{impl} {}
 
     std::shared_ptr<ConsumerInterface> self;
 };

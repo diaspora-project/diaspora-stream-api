@@ -14,27 +14,8 @@
 
 namespace mofka {
 
-using PartitionSelectorImpl = PartitionSelectorInterface;
-
-PIMPL_DEFINE_COMMON_FUNCTIONS_NO_CTOR(PartitionSelector);
-
 PartitionSelector::PartitionSelector()
 : self(std::make_shared<DefaultPartitionSelector>()) {}
-
-void PartitionSelector::setPartitions(const std::vector<PartitionInfo>& targets) {
-    return self->setPartitions(targets);
-}
-
-size_t PartitionSelector::selectPartitionFor(const Metadata& metadata, std::optional<size_t> requested) {
-    return self->selectPartitionFor(metadata, requested);
-}
-
-Metadata PartitionSelector::metadata() const {
-    return self->metadata();
-}
-
-static std::unordered_map<std::string, std::function<std::shared_ptr<PartitionSelectorInterface>(const Metadata&)>>
-    targetSelectorFactories;
 
 MOFKA_REGISTER_PARTITION_SELECTOR(default, DefaultPartitionSelector);
 

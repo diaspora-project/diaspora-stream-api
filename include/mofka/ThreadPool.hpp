@@ -66,6 +66,8 @@ class ThreadPoolInterface {
  */
 class ThreadPool {
 
+    friend class Consumer;
+
     public:
 
     /**
@@ -101,7 +103,7 @@ class ThreadPool {
     /**
      * @brief Returns the number of underlying threads.
      */
-    ThreadCount threadCount() const {
+    inline ThreadCount threadCount() const {
         return self->threadCount();
     }
 
@@ -111,7 +113,7 @@ class ThreadPool {
      * @param func Function to push.
      * @param priority Priority.
      */
-    void pushWork(std::function<void()> func,
+    inline void pushWork(std::function<void()> func,
                   uint64_t priority = std::numeric_limits<uint64_t>::max()) const {
         self->pushWork(std::move(func), priority);
     }
@@ -119,12 +121,14 @@ class ThreadPool {
     /**
      * @brief Get the number of ULTs in the pool, including blocked and running ULTs.
      */
-    size_t size() const;
+    inline size_t size() const {
+        return self->size();
+    }
 
     /**
      * @brief Checks if the ThreadPool instance is valid.
      */
-    explicit operator bool() const {
+    inline explicit operator bool() const {
         return static_cast<bool>(self);
     }
 

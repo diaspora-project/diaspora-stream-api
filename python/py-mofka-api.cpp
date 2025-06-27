@@ -7,6 +7,7 @@
 #include <mofka/DataView.hpp>
 #include <mofka/TopicHandle.hpp>
 #include <mofka/ThreadPool.hpp>
+#include <mofka/Driver.hpp>
 #include "../src/DataViewImpl.hpp"
 #include "../src/JsonUtil.hpp"
 

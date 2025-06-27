@@ -11,28 +11,8 @@
 #include "DefaultSerializer.hpp"
 #include "SchemaSerializer.hpp"
 #include <fmt/format.h>
-#include <unordered_map>
 
 namespace mofka {
-
-using SerializerImpl = SerializerInterface;
-
-PIMPL_DEFINE_COMMON_FUNCTIONS_NO_CTOR(Serializer);
-
-Serializer::Serializer()
-: self(std::make_shared<DefaultSerializer>()) {}
-
-void Serializer::serialize(Archive& archive, const Metadata& metadata) const {
-    self->serialize(archive, metadata);
-}
-
-void Serializer::deserialize(Archive& archive, Metadata& metadata) const {
-    self->deserialize(archive, metadata);
-}
-
-Metadata Serializer::metadata() const {
-    return self->metadata();
-}
 
 MOFKA_REGISTER_SERIALIZER(default, DefaultSerializer);
 MOFKA_REGISTER_SERIALIZER(schema, SchemaSerializer);

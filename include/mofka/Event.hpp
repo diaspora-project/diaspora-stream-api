@@ -79,27 +79,27 @@ class Event {
     /**
      * @brief Move-constructor.
      */
-    Event(Event&&) = default;
+    inline Event(Event&&) = default;
 
     /**
      * @brief Copy-constructor.
      */
-    Event(const Event&) = default;
+    inline Event(const Event&) = default;
 
     /**
      * @brief Copy-assignment operator.
      */
-    Event& operator=(const Event&) = default;
+    inline Event& operator=(const Event&) = default;
 
     /**
      * @brief Move-assignment operator.
      */
-    Event& operator=(Event&&) = default;
+    inline Event& operator=(Event&&) = default;
 
     /**
      * @brief Destructor.
      */
-    ~Event() = default;
+    inline ~Event() = default;
 
     /**
      * @brief Get event Event's Metadata.
@@ -142,7 +142,7 @@ class Event {
     /**
      * @brief Checks if the Event instance is valid.
      */
-    inline operator bool() const {
+    explicit inline operator bool() const {
         return static_cast<bool>(self);
     }
 

@@ -75,14 +75,15 @@ class TopicHandleInterface {
      * @param ordering Whether to enforce strict ordering.
      * @param options Extra options.
      *
-     * @return Producer instance.
+     * @return ProducerInterface instance.
      */
-    virtual Producer makeProducer(std::string_view name,
-                                  BatchSize batch_size,
-                                  MaxNumBatches max_batch,
-                                  ThreadPool thread_pool,
-                                  Ordering ordering,
-                                  Metadata options) const = 0;
+    virtual std::shared_ptr<ProducerInterface>
+        makeProducer(std::string_view name,
+                     BatchSize batch_size,
+                     MaxNumBatches max_batch,
+                     ThreadPool thread_pool,
+                     Ordering ordering,
+                     Metadata options) const = 0;
 
     /**
      * @brief Create a Consumer object from the full
@@ -97,16 +98,17 @@ class TopicHandleInterface {
      * @param targets Indices of the partitions to consumer from.
      * @param options Extra options.
      *
-     * @return Consumer instance.
+     * @return ConsumerInterface instance.
      */
-    virtual Consumer makeConsumer(std::string_view name,
-                                  BatchSize batch_size,
-                                  MaxNumBatches max_batch,
-                                  ThreadPool thread_pool,
-                                  DataBroker data_broker,
-                                  DataSelector data_selector,
-                                  const std::vector<size_t>& targets,
-                                  Metadata options) const = 0;
+    virtual std::shared_ptr<ConsumerInterface>
+        makeConsumer(std::string_view name,
+                     BatchSize batch_size,
+                     MaxNumBatches max_batch,
+                     ThreadPool thread_pool,
+                     DataBroker data_broker,
+                     DataSelector data_selector,
+                     const std::vector<size_t>& targets,
+                     Metadata options) const = 0;
 
 };
 
@@ -116,46 +118,42 @@ class TopicHandleInterface {
  */
 class TopicHandle {
 
-    friend class Producer;
     friend class Consumer;
+    friend class Producer;
 
     public:
 
-    /**
-     * @brief Constructor.
-     */
-    TopicHandle(std::shared_ptr<TopicHandleInterface> impl = nullptr)
-    : self{std::move(impl)} {}
+    inline TopicHandle() = default;
 
     /**
      * @brief Copy-constructor.
      */
-    TopicHandle(const TopicHandle&) = default;
+    inline TopicHandle(const TopicHandle&) = default;
 
     /**
      * @brief Move-constructor.
      */
-    TopicHandle(TopicHandle&&) = default;
+    inline TopicHandle(TopicHandle&&) = default;
 
     /**
      * @brief Copy-assignment operator.
      */
-    TopicHandle& operator=(const TopicHandle&) = default;
+    inline TopicHandle& operator=(const TopicHandle&) = default;
 
     /**
      * @brief Move-assignment operator.
      */
-    TopicHandle& operator=(TopicHandle&&) = default;
+    inline TopicHandle& operator=(TopicHandle&&) = default;
 
     /**
      * @brief Destructor.
      */
-    ~TopicHandle() = default;
+    inline ~TopicHandle() = default;
 
     /**
      * @brief Returns the name of the topic.
      */
-    const std::string& name() const {
+    inline const std::string& name() const {
         return self->name();
     }
 
@@ -168,7 +166,7 @@ class TopicHandle {
      * @return a Producer object.
      */
     template<typename ... Options>
-    Producer producer(Options&&... opts) const {
+    inline Producer producer(Options&&... opts) const {
         return makeProducer(
             GetArgOrDefault(std::string_view{""}, std::forward<Options>(opts)...),
             GetArgOrDefault(BatchSize::Adaptive(), std::forward<Options>(opts)...),
@@ -188,7 +186,7 @@ class TopicHandle {
      * @return a Consumer object.
      */
     template<typename ... Options>
-    Consumer consumer(std::string_view name, Options&&... opts) const {
+    inline Consumer consumer(std::string_view name, Options&&... opts) const {
         return makeConsumer(name,
             GetArgOrDefault(BatchSize::Adaptive(), std::forward<Options>(opts)...),
             GetArgOrDefault(MaxNumBatches{2}, std::forward<Options>(opts)...),
@@ -209,21 +207,21 @@ class TopicHandle {
     /**
      * @brief Return the Validator of the topic.
      */
-    Validator validator() const {
+    inline Validator validator() const {
         return self->validator();
     }
 
     /**
      * @brief Return the PartitionSelector of the topic.
      */
-    PartitionSelector selector() const {
+    inline PartitionSelector selector() const {
         return self->selector();
     }
 
     /**
      * @brief Return the Serializer of the topic.
      */
-    Serializer serializer() const {
+    inline Serializer serializer() const {
         return self->serializer();
     }
 
@@ -232,20 +230,26 @@ class TopicHandle {
      * in this topic. This will make any attempt to consume events return events with
      * no metadata, no data, and an ID of NoMoreEvents.
      */
-    void markAsComplete() const {
+    inline void markAsComplete() const {
         self->markAsComplete();
     }
 
     /**
      * @brief Checks if the TopicHandle instance is valid.
      */
-    operator bool() const {
+    inline explicit operator bool() const {
         return static_cast<bool>(self);
     }
 
     private:
 
     std::shared_ptr<TopicHandleInterface> self;
+
+    /**
+     * @brief Constructor.
+     */
+    inline TopicHandle(std::shared_ptr<TopicHandleInterface> impl)
+    : self{std::move(impl)} {}
 
     /**
      * @brief Create a Producer object from the full
@@ -259,7 +263,7 @@ class TopicHandle {
      *
      * @return Producer instance.
      */
-    Producer makeProducer(std::string_view name,
+    inline Producer makeProducer(std::string_view name,
                           BatchSize batch_size,
                           MaxNumBatches max_batch,
                           ThreadPool thread_pool,
@@ -284,7 +288,7 @@ class TopicHandle {
      *
      * @return Consumer instance.
      */
-    Consumer makeConsumer(std::string_view name,
+    inline Consumer makeConsumer(std::string_view name,
                           BatchSize batch_size,
                           MaxNumBatches max_batch,
                           ThreadPool thread_pool,

@@ -76,7 +76,7 @@ class Metadata {
     /**
      * @brief Checks if the Metadata instance is valid.
      */
-    operator bool() const;
+    explicit operator bool() const;
 
     /**
      * @brief Checks if the content of the Metadata is valid JSON.

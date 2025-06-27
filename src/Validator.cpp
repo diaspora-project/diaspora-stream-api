@@ -15,10 +15,6 @@
 
 namespace mofka {
 
-using ValidatorImpl = ValidatorInterface;
-
-PIMPL_DEFINE_COMMON_FUNCTIONS_NO_CTOR(Validator);
-
 Validator::Validator()
 : self(std::make_shared<DefaultValidator>()) {}
 

@@ -215,7 +215,7 @@ class DataDescriptor {
     /**
      * @brief Checks if the Data instance is valid.
      */
-    operator bool() const;
+    explicit operator bool() const;
 
     private:
 

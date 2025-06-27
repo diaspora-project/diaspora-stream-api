@@ -90,39 +90,43 @@ class PartitionSelector {
     /**
      * @brief Copy-constructor.
      */
-    PartitionSelector(const PartitionSelector&);
+    inline PartitionSelector(const PartitionSelector&) = default;
 
     /**
      * @brief Move-constructor.
      */
-    PartitionSelector(PartitionSelector&&);
+    inline PartitionSelector(PartitionSelector&&) = default;
 
     /**
      * @brief copy-assignment operator.
      */
-    PartitionSelector& operator=(const PartitionSelector&);
+    inline PartitionSelector& operator=(const PartitionSelector&) = default;
 
     /**
      * @brief Move-assignment operator.
      */
-    PartitionSelector& operator=(PartitionSelector&&);
+    inline PartitionSelector& operator=(PartitionSelector&&) = default;
 
     /**
      * @brief Destructor.
      */
-    ~PartitionSelector();
+    inline ~PartitionSelector() = default;
 
     /**
      * @brief Checks for the validity of the underlying pointer.
      */
-    operator bool() const;
+    explicit inline operator bool() const {
+        return static_cast<bool>(self);
+    }
 
     /**
      * @brief Sets the list of targets that are available to store events.
      *
      * @param targets Vector of PartitionInfo.
      */
-    void setPartitions(const std::vector<PartitionInfo>& targets);
+    inline void setPartitions(const std::vector<PartitionInfo>& targets) {
+        self->setPartitions(targets);
+    }
 
     /**
      * @brief Selects a partition target to use to store the given event.
@@ -130,15 +134,19 @@ class PartitionSelector {
      * @param metadata Metadata of the event.
      * @param requested Partition requested by the caller of push() (if provided).
      */
-    size_t selectPartitionFor(const Metadata& metadata,
-                              std::optional<size_t> requested = std::nullopt);
+    inline size_t selectPartitionFor(const Metadata& metadata,
+                              std::optional<size_t> requested = std::nullopt) {
+        return self->selectPartitionFor(metadata, requested);
+    }
 
     /**
      * @brief Convert the underlying validator implementation into a Metadata
      * object that can be stored (e.g. if the validator uses a JSON schema
      * the Metadata could contain that schema).
      */
-    Metadata metadata() const;
+    inline Metadata metadata() const {
+        return self->metadata();
+    }
 
     /**
      * @brief Factory function to create a PartitionSelector instance
@@ -166,9 +174,10 @@ class PartitionSelector {
 
     private:
 
-    std::shared_ptr<PartitionSelectorInterface> self;
+    PartitionSelector(const std::shared_ptr<PartitionSelectorInterface>& impl)
+    : self(impl) {}
 
-    PartitionSelector(const std::shared_ptr<PartitionSelectorInterface>& impl);
+    std::shared_ptr<PartitionSelectorInterface> self;
 };
 
 using PartitionSelectorFactory = Factory<PartitionSelectorInterface, const Metadata&>;

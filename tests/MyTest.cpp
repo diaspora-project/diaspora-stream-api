@@ -7,9 +7,11 @@
 #include <catch2/catch_all.hpp>
 #include "SimpleBackend.hpp"
 
-TEST_CASE("Target test", "[target]") {
+MOFKA_REGISTER_DRIVER(simple, SimpleDriver);
 
-    SECTION("Access target via a TargetHandle") {
+TEST_CASE("Mofka API test", "[mofka-api]") {
+
+    SECTION("Create Driver") {
 
     }
 }

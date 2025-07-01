@@ -35,9 +35,9 @@ class DefaultSerializer : public SerializerInterface {
         return Metadata{"{\"type\":\"default\"}"};
     }
 
-    static std::unique_ptr<SerializerInterface> create(const Metadata& metadata) {
+    static std::shared_ptr<SerializerInterface> create(const Metadata& metadata) {
         (void)metadata;
-        return std::make_unique<DefaultSerializer>();
+        return std::make_shared<DefaultSerializer>();
     }
 };
 

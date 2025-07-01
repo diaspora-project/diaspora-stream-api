@@ -31,7 +31,7 @@ class EventbridgeValidator : public ValidatorInterface {
 
     Metadata metadata() const override;
 
-    static std::unique_ptr<ValidatorInterface> create(const Metadata& metadata);
+    static std::shared_ptr<ValidatorInterface> create(const Metadata& metadata);
 
 };
 

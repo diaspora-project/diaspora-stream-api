@@ -50,7 +50,7 @@ class SchemaSerializer : public SerializerInterface {
         return Metadata{std::move(config)};
     }
 
-    static std::unique_ptr<SerializerInterface> create(const Metadata& metadata) {
+    static std::shared_ptr<SerializerInterface> create(const Metadata& metadata) {
         if(!metadata.isValidJson())
             throw Exception{"Provided Metadata is not valid JSON"};
         if(!metadata.json().contains("schema"))
@@ -60,7 +60,7 @@ class SchemaSerializer : public SerializerInterface {
         // build the schema serializer and deserialize
         auto serializer   = makeSerializer(metadata.json()["schema"]);
         auto deserializer = makeDeserializer(metadata.json()["schema"]);
-        return std::make_unique<SchemaSerializer>(
+        return std::make_shared<SchemaSerializer>(
                 std::move(serializer),
                 std::move(deserializer),
                 metadata.json()["schema"]);

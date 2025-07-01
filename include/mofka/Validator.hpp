@@ -61,7 +61,7 @@ class ValidatorInterface {
      * function with the following prototype, instanciating a shared_ptr of
      * the class from the provided Metadata:
      *
-     * static std::shared_ptr<ValidatorInterface> Create(const Metadata&);
+     * static std::shared_ptr<ValidatorInterface> create(const Metadata&);
      */
 };
 

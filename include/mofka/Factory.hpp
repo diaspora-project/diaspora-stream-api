@@ -27,7 +27,7 @@ class Factory {
 
     public:
 
-    static std::unique_ptr<Base> create(const std::string& key, Args&&... args) {
+    static std::shared_ptr<Base> create(const std::string& key, Args&&... args) {
         auto& factory = instance();
         std::string name = key;
         std::size_t found = key.find(":");
@@ -55,7 +55,7 @@ private:
     template <typename FactoryType, typename Derived>
     friend struct Registrar;
 
-    using CreatorFunction = std::function<std::unique_ptr<Base>(Args...)>;
+    using CreatorFunction = std::function<std::shared_ptr<Base>(Args...)>;
 
     static Factory& instance() {
         static Factory factory;

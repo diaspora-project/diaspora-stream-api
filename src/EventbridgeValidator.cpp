@@ -535,7 +535,7 @@ Metadata EventbridgeValidator::metadata() const {
     return Metadata{std::move(config)};
 }
 
-std::unique_ptr<ValidatorInterface> EventbridgeValidator::create(const Metadata& metadata) {
+std::shared_ptr<ValidatorInterface> EventbridgeValidator::create(const Metadata& metadata) {
     const auto& config = metadata.json();
     if(!config.contains("schema")) {
         throw InvalidMetadata{"Metadata object does not contain a \"schema\" field for EventbridgeValidator"};
@@ -544,7 +544,7 @@ std::unique_ptr<ValidatorInterface> EventbridgeValidator::create(const Metadata&
     if(!schema.is_object()) {
         throw InvalidMetadata{"\"schema\" field in EventbridgeValidator configuration should be an object"};
     }
-    return std::make_unique<EventbridgeValidator>(schema, matchJson(schema));
+    return std::make_shared<EventbridgeValidator>(schema, matchJson(schema));
 }
 
 }

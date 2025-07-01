@@ -470,6 +470,10 @@ class SimpleDriver : public mofka::DriverInterface,
     std::shared_ptr<mofka::ThreadPoolInterface> makeThreadPool(mofka::ThreadCount count) const override {
         return std::make_shared<SimpleThreadPool>(count);
     }
+
+    static inline std::shared_ptr<DriverInterface> create(const mofka::Metadata&) {
+        return std::make_shared<SimpleDriver>();
+    }
 };
 
 
@@ -578,4 +582,3 @@ inline void SimpleConsumer::process(
     std::unique_lock lock{pending_mutex};
     while(pending_events) pending_cv.wait(lock);
 }
-

@@ -48,12 +48,12 @@ class SchemaValidator : public ValidatorInterface {
         return Metadata{std::move(config)};
     }
 
-    static std::unique_ptr<ValidatorInterface> create(const Metadata& metadata) {
+    static std::shared_ptr<ValidatorInterface> create(const Metadata& metadata) {
         if(!metadata.isValidJson())
             throw Exception{"Provided Metadata is not valid JSON"};
         if(!metadata.json().contains("schema"))
             throw Exception{"SchemaValidator is expecting a \"schema\" entry in its configuration"};
-        return std::make_unique<SchemaValidator>(metadata.json()["schema"]);
+        return std::make_shared<SchemaValidator>(metadata.json()["schema"]);
     }
 
 };

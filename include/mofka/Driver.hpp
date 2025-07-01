@@ -74,6 +74,14 @@ class DriverInterface {
      */
     virtual std::shared_ptr<ThreadPoolInterface> makeThreadPool(ThreadCount count) const = 0;
 
+    /**
+     * @note A DriverInterface class must also provide a static Create
+     * function with the following prototype, instanciating a shared_ptr of
+     * the class from the provided Metadata:
+     *
+     * static std::shared_ptr<DriverInterface> create(const Metadata&);
+     */
+
 };
 
 class Driver {

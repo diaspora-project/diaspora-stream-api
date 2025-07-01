@@ -471,7 +471,7 @@ class SimpleDriver : public mofka::DriverInterface,
         return std::make_shared<SimpleThreadPool>(count);
     }
 
-    static inline std::shared_ptr<DriverInterface> create(const mofka::Metadata&) {
+    static inline std::shared_ptr<mofka::DriverInterface> create(const mofka::Metadata&) {
         return std::make_shared<SimpleDriver>();
     }
 };

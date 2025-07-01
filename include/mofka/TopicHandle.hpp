@@ -38,6 +38,11 @@ class TopicHandleInterface {
     virtual const std::string& name() const = 0;
 
     /**
+     * @brief Driver that instantiated this TopicHandle.
+     */
+    virtual std::shared_ptr<DriverInterface> driver() const = 0;
+
+    /**
      * @brief Returns the list of PartitionInfo of the underlying topic.
      */
     virtual const std::vector<PartitionInfo>& partitions() const = 0;
@@ -62,7 +67,7 @@ class TopicHandleInterface {
      * in this topic. This will make any attempt to consume events return events with
      * no metadata, no data, and an ID of NoMoreEvents.
      */
-    virtual void markAsComplete() const = 0;
+    virtual void markAsComplete() = 0;
 
     /**
      * @brief Create a Producer object from the full
@@ -71,8 +76,8 @@ class TopicHandleInterface {
      * @param name Name of the Producer.
      * @param batch_size Batch size.
      * @param max_batch Maximum number of batches (must be >= 1) that can be pending at the same time.
-     * @param thread_pool Thread pool.
      * @param ordering Whether to enforce strict ordering.
+     * @param thread_pool Thread pool.
      * @param options Extra options.
      *
      * @return ProducerInterface instance.
@@ -81,9 +86,9 @@ class TopicHandleInterface {
         makeProducer(std::string_view name,
                      BatchSize batch_size,
                      MaxNumBatches max_batch,
-                     std::shared_ptr<ThreadPoolInterface> thread_pool,
                      Ordering ordering,
-                     Metadata options) const = 0;
+                     std::shared_ptr<ThreadPoolInterface> thread_pool,
+                     Metadata options) = 0;
 
     /**
      * @brief Create a Consumer object from the full
@@ -108,7 +113,7 @@ class TopicHandleInterface {
                      DataBroker data_broker,
                      DataSelector data_selector,
                      const std::vector<size_t>& targets,
-                     Metadata options) const = 0;
+                     Metadata options) = 0;
 
 };
 
@@ -120,6 +125,7 @@ class TopicHandle {
 
     friend class Consumer;
     friend class Producer;
+    friend class Driver;
 
     public:
 
@@ -156,6 +162,11 @@ class TopicHandle {
     inline const std::string& name() const {
         return self->name();
     }
+
+    /**
+     * @brief Driver that instantiated this TopicHandle.
+     */
+    Driver driver() const;
 
     /**
      * @brief Creates a Producer object with the specified options.
@@ -270,8 +281,8 @@ class TopicHandle {
                           Ordering ordering,
                           Metadata options) const {
         return self->makeProducer(
-            name, batch_size, max_batch,
-            thread_pool.self, ordering, std::move(options));
+            name, batch_size, max_batch, ordering,
+            thread_pool.self, std::move(options));
     }
 
     /**

@@ -178,26 +178,26 @@ PYBIND11_MODULE(pymofka_client, m) {
         })
         .def("mark_as_complete", &mofka::TopicHandleInterface::markAsComplete)
         .def("producer",
-            [](const mofka::TopicHandleInterface& topic,
+            [](mofka::TopicHandleInterface& topic,
                std::string_view name,
                std::size_t batch_size,
                std::size_t max_batch,
-               std::shared_ptr<mofka::ThreadPoolInterface> thread_pool,
                mofka::Ordering ordering,
+               std::shared_ptr<mofka::ThreadPoolInterface> thread_pool,
                const nlohmann::json& options) {
                 return topic.makeProducer(
                     name, mofka::BatchSize(batch_size),
-                    mofka::MaxNumBatches{max_batch}, thread_pool,
-                    ordering, mofka::Metadata{options});
+                    mofka::MaxNumBatches{max_batch}, ordering, thread_pool,
+                    mofka::Metadata{options});
             },
             "name"_a="", py::kw_only(),
             "batch_size"_a=mofka::BatchSize::Adaptive().value,
             "max_num_batches"_a=2,
-            "thread_pool"_a=std::shared_ptr<mofka::ThreadPoolInterface>{},
             "ordering"_a=mofka::Ordering::Strict,
+            "thread_pool"_a=std::shared_ptr<mofka::ThreadPoolInterface>{},
             "options"_a=nlohmann::json(nullptr))
         .def("consumer",
-            [](const mofka::TopicHandleInterface& topic,
+            [](mofka::TopicHandleInterface& topic,
                std::string_view name,
                PythonDataSelector selector,
                PythonDataBroker broker,
@@ -251,7 +251,7 @@ PYBIND11_MODULE(pymofka_client, m) {
             "targets"_a=std::optional<std::vector<size_t>>{},
             "options"_a=nlohmann::json(nullptr))
         .def("consumer",
-            [](const mofka::TopicHandleInterface& topic,
+            [](mofka::TopicHandleInterface& topic,
                std::string_view name,
                std::size_t batch_size,
                std::size_t max_batch,
@@ -355,7 +355,7 @@ PYBIND11_MODULE(pymofka_client, m) {
             })
         .def("pull", &mofka::ConsumerInterface::pull)
         .def("process",
-            [](const mofka::ConsumerInterface& consumer,
+            [](mofka::ConsumerInterface& consumer,
                mofka::EventProcessor processor,
                std::shared_ptr<mofka::ThreadPoolInterface> threadPool,
                std::size_t maxEvents) {

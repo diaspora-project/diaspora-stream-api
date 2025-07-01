@@ -179,8 +179,8 @@ class Serializer {
 
     private:
 
-    Serializer(const std::shared_ptr<SerializerInterface>& impl)
-    : self(impl) {}
+    Serializer(std::shared_ptr<SerializerInterface> impl)
+    : self(std::move(impl)) {}
 
     std::shared_ptr<SerializerInterface> self;
 

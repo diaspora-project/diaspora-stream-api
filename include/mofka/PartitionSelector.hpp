@@ -126,7 +126,7 @@ class PartitionSelector {
      *
      * @param targets Vector of PartitionInfo.
      */
-    inline void setPartitions(const std::vector<PartitionInfo>& targets) {
+    inline void setPartitions(const std::vector<PartitionInfo>& targets) const {
         self->setPartitions(targets);
     }
 
@@ -137,7 +137,7 @@ class PartitionSelector {
      * @param requested Partition requested by the caller of push() (if provided).
      */
     inline size_t selectPartitionFor(const Metadata& metadata,
-                              std::optional<size_t> requested = std::nullopt) {
+                              std::optional<size_t> requested = std::nullopt) const {
         return self->selectPartitionFor(metadata, requested);
     }
 

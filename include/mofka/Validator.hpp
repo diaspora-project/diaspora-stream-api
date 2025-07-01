@@ -161,7 +161,8 @@ class Validator {
 
     private:
 
-    Validator(const std::shared_ptr<ValidatorInterface>& impl);
+    Validator(std::shared_ptr<ValidatorInterface> impl)
+    : self{std::move(impl)} {}
 
     std::shared_ptr<ValidatorInterface> self;
 };

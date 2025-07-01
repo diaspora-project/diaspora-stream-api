@@ -14,8 +14,6 @@
 
 namespace mofka {
 
-PIMPL_DEFINE_COMMON_FUNCTIONS_NO_CTOR(DataView);
-
 DataView::DataView(Context ctx, FreeCallback free_cb)
 : self(std::make_shared<DataViewImpl>(ctx, std::move(free_cb))) {}
 
@@ -37,7 +35,7 @@ DataView::Context DataView::context() const {
     return self->m_context;
 }
 
-void DataView::write(const char* data, size_t size, size_t offset) const {
+size_t DataView::write(const char* data, size_t size, size_t offset) {
     size_t off = 0;
     for(auto& seg : segments()) {
         if(offset >= seg.size) {
@@ -52,6 +50,25 @@ void DataView::write(const char* data, size_t size, size_t offset) const {
         size -= size_to_copy;
         if(size == 0) break;
     }
+    return off;
+}
+
+size_t DataView::read(char* data, size_t size, size_t offset) const {
+    size_t off = 0;
+    for(auto& seg : segments()) {
+        if(offset >= seg.size) {
+            offset -= seg.size;
+            continue;
+        }
+        // current segment needs to be copied
+        auto size_to_copy = std::min(size, seg.size);
+        std::memcpy(data + off, (char*)seg.ptr + offset, size_to_copy);
+        offset = 0;
+        off += size_to_copy;
+        size -= size_to_copy;
+        if(size == 0) break;
+    }
+    return off;
 }
 
 }

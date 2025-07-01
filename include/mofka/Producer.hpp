@@ -14,6 +14,7 @@
 #include <mofka/Future.hpp>
 #include <mofka/ThreadPool.hpp>
 #include <mofka/BatchParams.hpp>
+#include <mofka/Ordering.hpp>
 
 #include <memory>
 #include <optional>
@@ -50,6 +51,11 @@ class ProducerInterface {
     virtual MaxNumBatches maxNumBatches() const = 0;
 
     /**
+     * @brief Returns the ordering consistency of the producer.
+     */
+    virtual Ordering ordering() const = 0;
+
+    /**
      * @brief Returns the ThreadPool associated with the Producer.
      */
     virtual std::shared_ptr<ThreadPoolInterface> threadPool() const = 0;
@@ -70,8 +76,8 @@ class ProducerInterface {
      *
      * @return a Future<EventID> tracking the asynchronous operation.
      */
-    virtual Future<EventID> push(Metadata metadata, DataView data = DataView{},
-                                 std::optional<size_t> partition = std::nullopt) = 0;
+    virtual Future<EventID> push(Metadata metadata, DataView data,
+                                 std::optional<size_t> partition) = 0;
 
     /**
      * @brief Block until all the pending events have been sent.
@@ -140,6 +146,13 @@ class Producer {
      */
     inline MaxNumBatches maxNumBatch() const {
         return self->maxNumBatches();
+    }
+
+    /**
+     * @brief Returns the ordering consistency of the producer.
+     */
+    inline Ordering ordering() const {
+        return self->ordering();
     }
 
     /**

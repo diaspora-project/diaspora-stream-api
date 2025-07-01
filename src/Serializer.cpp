@@ -16,6 +16,9 @@ namespace mofka {
 MOFKA_REGISTER_SERIALIZER(default, DefaultSerializer);
 MOFKA_REGISTER_SERIALIZER(schema, SchemaSerializer);
 
+Serializer::Serializer()
+: self(std::make_shared<DefaultSerializer>()) {}
+
 Serializer Serializer::FromMetadata(const Metadata& metadata) {
     const auto& json = metadata.json();
     if(!json.is_object()) {

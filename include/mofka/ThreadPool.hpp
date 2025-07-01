@@ -53,12 +53,12 @@ class ThreadPoolInterface {
      * @param priority Priority.
      */
     virtual void pushWork(std::function<void()> func,
-                          uint64_t priority = std::numeric_limits<uint64_t>::max()) const = 0;
+                          uint64_t priority = std::numeric_limits<uint64_t>::max()) = 0;
 
     /**
      * @brief Get the number of ULTs in the pool, including blocked and running ULTs.
      */
-    size_t size() const;
+    virtual size_t size() const = 0;
 };
 
 /**
@@ -69,6 +69,7 @@ class ThreadPool {
     friend class Consumer;
     friend class Producer;
     friend class TopicHandle;
+    friend class Driver;
 
     public:
 

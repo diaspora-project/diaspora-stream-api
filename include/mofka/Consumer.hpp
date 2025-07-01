@@ -78,10 +78,12 @@ class ConsumerInterface {
      * have been processed.
      *
      * @param processor EventProcessor.
+     * @param threadPool ThreadPool in which to submit processing jobs.
+     * @param maxEvents Maximum number of events to process.
      */
     virtual void process(EventProcessor processor,
                          std::shared_ptr<ThreadPoolInterface> threadPool,
-                         NumEvents maxEvents = NumEvents::Infinity()) const = 0;
+                         NumEvents maxEvents) = 0;
 
     /**
      * @brief Unsubscribe from the topic.

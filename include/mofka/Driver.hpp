@@ -35,14 +35,16 @@ class DriverInterface {
      * @brief Create a topic with a given name, if it does not exist yet.
      *
      * @param name Name of the topic.
+     * @param options Options (e.g. number of partitions, replication, etc.)
      * @param validator Validator object to validate events pushed to the topic.
      * @param selector PartitionSelector object of the topic.
      * @param serializer Serializer to use for all the events in the topic.
      */
     virtual void createTopic(std::string_view name,
-                             Validator validator = Validator{},
-                             PartitionSelector selector = PartitionSelector{},
-                             Serializer serializer = Serializer{}) const = 0;
+                             Metadata options,
+                             Validator validator,
+                             PartitionSelector selector,
+                             Serializer serializer) = 0;
 
     /**
      * @brief Open an existing topic with the given name.
@@ -51,7 +53,7 @@ class DriverInterface {
      *
      * @return a TopicHandle representing the topic.
      */
-    virtual TopicHandle openTopic(std::string_view name) const = 0;
+    virtual std::shared_ptr<TopicHandleInterface> openTopic(std::string_view name) const = 0;
 
     /**
      * @brief Checks if a topic exists.
@@ -61,7 +63,7 @@ class DriverInterface {
     /**
      * @brief Get the default ThreadPool.
      */
-    virtual ThreadPool defaultThreadPool() const = 0;
+    virtual std::shared_ptr<ThreadPoolInterface> defaultThreadPool() const = 0;
 
     /**
      * @brief Create a ThreadPool.
@@ -70,11 +72,13 @@ class DriverInterface {
      *
      * @return a ThreadPool with the specified number of threads.
      */
-    virtual ThreadPool makeThreadPool(ThreadCount count) const = 0;
+    virtual std::shared_ptr<ThreadPoolInterface> makeThreadPool(ThreadCount count) const = 0;
 
 };
 
 class Driver {
+
+    friend class TopicHandle;
 
     public:
 
@@ -94,10 +98,13 @@ class Driver {
      * @param serializer Serializer to use for all the events in the topic.
      */
     inline void createTopic(std::string_view name,
-                     Validator validator = Validator{},
-                     PartitionSelector selector = PartitionSelector{},
-                     Serializer serializer = Serializer{}) const {
-        self->createTopic(name, validator, selector, serializer);
+                            Metadata options = Metadata{"{}"},
+                            Validator validator = Validator{},
+                            PartitionSelector selector = PartitionSelector{},
+                            Serializer serializer = Serializer{}) const {
+        self->createTopic(name, std::move(options),
+                          std::move(validator), std::move(selector),
+                          std::move(serializer));
     }
 
     /**
@@ -108,7 +115,7 @@ class Driver {
      * @return a TopicHandle representing the topic.
      */
     inline TopicHandle openTopic(std::string_view name) const {
-        return self->openTopic(name);
+        return TopicHandle{self->openTopic(name)};
     }
 
     /**
@@ -122,7 +129,7 @@ class Driver {
      * @brief Get the default ThreadPool.
      */
     inline ThreadPool defaultThreadPool() const {
-        return self->defaultThreadPool();
+        return ThreadPool{self->defaultThreadPool()};
     }
 
     /**
@@ -133,7 +140,7 @@ class Driver {
      * @return a ThreadPool with the specified number of threads.
      */
     inline ThreadPool makeThreadPool(ThreadCount count) const {
-        return self->makeThreadPool(count);
+        return ThreadPool{self->makeThreadPool(count)};
     }
 
     /**

@@ -1,4 +1,6 @@
-file (GLOB mofka-test-sources ${CMAKE_CURRENT_SOURCE_DIR}/Mofka*Test.cpp)
+file (GLOB mofka-test-sources ${CMAKE_CURRENT_SOURCE_DIR}/*Test.cpp)
+
+message (STATUS "AAA ${mofka-test-sources}")
 
 foreach (test-source ${mofka-test-sources})
     get_filename_component (name ${test-source} NAME_WE)
@@ -12,7 +14,7 @@ endforeach ()
 
 if (ENABLE_PYTHON)
 
-    add_subdirectory (python)
+#    add_subdirectory (python)
 
     set (PYTHON_MODULE_DIR ${CMAKE_SOURCE_DIR}/python)
     file (GLOB_RECURSE PYTHON_MOFKA_TEST_FILES "${PYTHON_MODULE_DIR}/test_mofka_*.py")

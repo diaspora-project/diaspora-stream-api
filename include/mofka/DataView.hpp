@@ -50,27 +50,27 @@ class DataView {
     /**
      * @brief Copy-constructor.
      */
-    DataView(const DataView&);
+    DataView(const DataView&) = default;
 
     /**
      * @brief Move-constructor.
      */
-    DataView(DataView&&);
+    DataView(DataView&&) = default;
 
     /**
      * @brief Copy-assignment operator.
      */
-    DataView& operator=(const DataView&);
+    DataView& operator=(const DataView&) = default;
 
     /**
      * @brief Move-assignment operator.
      */
-    DataView& operator=(DataView&&);
+    DataView& operator=(DataView&&) = default;
 
     /**
      * @brief Free.
      */
-    ~DataView();
+    ~DataView() = default;
 
     /**
      * @brief Returns the list of memory segments
@@ -91,12 +91,23 @@ class DataView {
      * @param size Size of the data.
      * @param from_offset Offset from which to write.
      */
-    void write(const char* data, size_t size, size_t offset = 0) const;
+    size_t write(const char* data, size_t size, size_t offset = 0);
+
+    /**
+     * @brief Read the content of the DataView into the provided buffer.
+     *
+     * @param data Destination.
+     * @param size Size to read.
+     * @param offset Offset at which to start in the DataView.
+     */
+    size_t read(char* data, size_t size, size_t offset = 0) const;
 
     /**
      * @brief Checks if the Data instance is valid.
      */
-    explicit operator bool() const;
+    inline explicit operator bool() const {
+        return static_cast<bool>(self);
+    }
 
     /**
      * @brief Return the context of this Data object.

@@ -15,9 +15,6 @@ spack:
       lib: [LD_LIBRARY_PATH]
       lib64: [LD_LIBRARY_PATH]
   packages:
-    all:
-      providers:
-        mpi: [mpich]
     catch2:
       require: "@3.6.0:"
     nlohmann-json-schema-validator:

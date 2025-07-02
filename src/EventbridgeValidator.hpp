@@ -10,7 +10,6 @@
 #include "mofka/Metadata.hpp"
 #include "mofka/Validator.hpp"
 #include "mofka/Json.hpp"
-#include "MetadataImpl.hpp"
 
 namespace mofka {
 

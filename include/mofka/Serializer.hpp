@@ -149,20 +149,8 @@ class Serializer {
 
     /**
      * @brief Factory function to create a Serializer instance.
-     *
-     * @param type Type of Serializer.
-     * @param metadata Metadata of the Serializer.
-     *
-     * @return Serializer instance.
-     */
-    static Serializer FromMetadata(
-            const char* type,
-            const Metadata& metadata);
-
-    /**
-     * @brief Same as the above function but the type is expected
-     * to be provided as a "__type__" field in the metdata, and the
-     * function will fall back to "default" if not provided.
+     * If the Metadata is not a JSON object or if it doesn't have a "type"
+     * field, this function will assume "type" = "default".
      *
      * @param metadata Metadata of the Serializer.
      *

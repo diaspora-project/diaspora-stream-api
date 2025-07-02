@@ -51,8 +51,8 @@ class SchemaSerializer : public SerializerInterface {
     }
 
     static std::shared_ptr<SerializerInterface> create(const Metadata& metadata) {
-        if(!metadata.isValidJson())
-            throw Exception{"Provided Metadata is not valid JSON"};
+        if(!metadata.json().is_object())
+            throw Exception{"Provided Metadata is not a JSON object"};
         if(!metadata.json().contains("schema"))
             throw Exception{"SchemaSerializer is expecting a \"schema\" entry in its configuration"};
         // check that the schema field indeed is a schema

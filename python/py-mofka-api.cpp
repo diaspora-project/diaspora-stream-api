@@ -114,11 +114,6 @@ PYBIND11_MODULE(pymofka_client, m) {
     py::class_<mofka::ValidatorInterface,
                std::shared_ptr<mofka::ValidatorInterface>>(m, "Validator")
         .def_static("from_metadata",
-            [](const char* type, const nlohmann::json& md){
-                return mofka::PythonBindingHelper::GetSelf(
-                    mofka::Validator::FromMetadata(type, md));
-            }, "type"_a, "metadata"_a=nlohmann::json::object())
-        .def_static("from_metadata",
             [](const nlohmann::json& md){
                 return mofka::PythonBindingHelper::GetSelf(
                     mofka::Validator::FromMetadata(md));
@@ -141,24 +136,14 @@ PYBIND11_MODULE(pymofka_client, m) {
     py::class_<mofka::SerializerInterface,
                std::shared_ptr<mofka::SerializerInterface>>(m, "Serializer")
         .def_static("from_metadata",
-            [](const char* type, const nlohmann::json& md){
-                return mofka::PythonBindingHelper::GetSelf(
-                    mofka::Serializer::FromMetadata(type, md));
-            }, "type"_a, "metadata"_a=nlohmann::json::object())
-        .def_static("from_metadata",
             [](const nlohmann::json& md){
                 return mofka::PythonBindingHelper::GetSelf(
-                    mofka::Serializer::FromMetadata(md));
+                    mofka::Serializer::FromMetadata( md));
             }, "metadata"_a=nlohmann::json::object())
     ;
 
     py::class_<mofka::PartitionSelectorInterface,
                std::shared_ptr<mofka::PartitionSelectorInterface>>(m, "PartitionSelector")
-        .def_static("from_metadata",
-            [](const char* type, const nlohmann::json& md){
-                return mofka::PythonBindingHelper::GetSelf(
-                    mofka::PartitionSelector::FromMetadata(type, md));
-            }, "type"_a, "metadata"_a=nlohmann::json::object())
         .def_static("from_metadata",
             [](const nlohmann::json& md){
                 return mofka::PythonBindingHelper::GetSelf(
@@ -401,7 +386,7 @@ PYBIND11_MODULE(pymofka_client, m) {
     py::class_<mofka::EventInterface,
                std::shared_ptr<mofka::EventInterface>>(m, "Event")
         .def_property_readonly("metadata",
-                [](mofka::EventInterface& event) { return event.metadata().string(); })
+                [](mofka::EventInterface& event) { return event.metadata().json(); })
         .def_property_readonly("data",
                 [](mofka::EventInterface& event) {
                     auto owner = static_cast<AbstractDataOwner*>(event.data().context());

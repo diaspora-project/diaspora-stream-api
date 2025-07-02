@@ -3,14 +3,13 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_SCHEMA_VALIDATOR_H
-#define MOFKA_SCHEMA_VALIDATOR_H
+#ifndef MOFKA_API_SCHEMA_VALIDATOR_H
+#define MOFKA_API_SCHEMA_VALIDATOR_H
 
 #include "JsonUtil.hpp"
 #include "mofka/Metadata.hpp"
 #include "mofka/Validator.hpp"
 #include "mofka/Json.hpp"
-#include "MetadataImpl.hpp"
 
 namespace mofka {
 
@@ -49,8 +48,8 @@ class SchemaValidator : public ValidatorInterface {
     }
 
     static std::shared_ptr<ValidatorInterface> create(const Metadata& metadata) {
-        if(!metadata.isValidJson())
-            throw Exception{"Provided Metadata is not valid JSON"};
+        if(!metadata.json().is_object())
+            throw Exception{"Provided Metadata is not a JSON object"};
         if(!metadata.json().contains("schema"))
             throw Exception{"SchemaValidator is expecting a \"schema\" entry in its configuration"};
         return std::make_shared<SchemaValidator>(metadata.json()["schema"]);

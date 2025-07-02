@@ -6,7 +6,6 @@
 #include "JsonUtil.hpp"
 #include "mofka/Exception.hpp"
 #include "mofka/Validator.hpp"
-#include "MetadataImpl.hpp"
 #include "PimplUtil.hpp"
 #include "DefaultValidator.hpp"
 #include "SchemaValidator.hpp"
@@ -38,19 +37,6 @@ Validator Validator::FromMetadata(const Metadata& metadata) {
     }
     auto& type_str = type.get_ref<const std::string&>();
     std::shared_ptr<ValidatorInterface> v = ValidatorFactory::create(type_str, metadata);
-    return v;
-}
-
-Validator Validator::FromMetadata(const char* type, const Metadata& metadata) {
-    auto& json = metadata.json();
-    if(!json.is_object()) {
-        throw Exception(
-            "Cannot create Validator from Metadata: "
-            "invalid Metadata (expected JSON object)");
-    }
-    auto md_copy = metadata;
-    md_copy.json()["type"] = type;
-    std::shared_ptr<ValidatorInterface> v = ValidatorFactory::create(type, md_copy);
     return v;
 }
 

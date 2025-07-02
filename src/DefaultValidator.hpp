@@ -3,14 +3,13 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_DEFAULT_VALIDATOR_H
-#define MOFKA_DEFAULT_VALIDATOR_H
+#ifndef MOFKA_API_DEFAULT_VALIDATOR_H
+#define MOFKA_API_DEFAULT_VALIDATOR_H
 
 #include "JsonUtil.hpp"
 #include "mofka/Metadata.hpp"
 #include "mofka/Validator.hpp"
 #include "mofka/Json.hpp"
-#include "MetadataImpl.hpp"
 
 namespace mofka {
 

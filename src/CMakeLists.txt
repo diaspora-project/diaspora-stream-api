@@ -4,7 +4,6 @@ set (src-files
      Consumer.cpp
      DataView.cpp
      DataDescriptor.cpp
-     Metadata.cpp
      Serializer.cpp
      PartitionSelector.cpp
      Validator.cpp

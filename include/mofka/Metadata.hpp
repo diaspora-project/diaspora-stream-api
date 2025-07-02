@@ -17,10 +17,10 @@
 
 namespace mofka {
 
-class MetadataImpl;
-
 /**
  * @brief A Metadata is an object that encapsulates the metadata of an event.
+ * The Metadata class encapsulates a json object. If the metadata is not JSON,
+ * it can simply be used as a string.
  */
 class Metadata {
 
@@ -30,78 +30,81 @@ class Metadata {
      * @brief Constructor taking a string. The string will be moved
      * into the Metadata object, hence it is passed by value.
      *
-     * @param json JSON string.
-     * @param validate Validate that the string is actually JSON.
-     *
-     * Note: if validate is left to false, validation will happen
-     * only when events are pushed into a producer and only if the topic's
-     * Validator requires the Metadata to be valid JSON.
+     * @param content string content.
+     * @param parse Whether to parse the string into a JSON object. If false,
+     *              the content will be assigned as a string instead.
      */
-    Metadata(std::string json = "{}", bool validate = false);
-    Metadata(std::string_view json, bool validate = false);
-    Metadata(const char* json, bool validate = false);
+    Metadata(const std::string& content = "{}", bool parse = true)
+    : Metadata(std::string_view{content}, parse) {}
+
+    Metadata(std::string_view content, bool parse = true) {
+        if(parse) {
+            try {
+                m_content = nlohmann::json::parse(content);
+            } catch(const std::exception& ex) {
+                throw Exception{std::string{"Could not parse JSON: "} + ex.what()};
+            }
+        } else {
+            m_content = content;
+        }
+    }
+
+    Metadata(const char* content, bool parse = true)
+    : Metadata(std::string_view{content}, parse) {}
 
     /**
      * @brief Constructor taking an already formed JSON document.
      *
      * @param json
      */
-    Metadata(nlohmann::json json);
+    Metadata(nlohmann::json json)
+    : m_content(std::move(json)) {}
 
     /**
      * @brief Copy-constructor.
      */
-    Metadata(const Metadata&);
+    Metadata(const Metadata&) = default;
 
     /**
      * @brief Move-constructor.
      */
-    Metadata(Metadata&&);
+    Metadata(Metadata&&) = default;
 
     /**
      * @brief Copy-assignment operator.
      */
-    Metadata& operator=(const Metadata&);
+    Metadata& operator=(const Metadata&) = default;
 
     /**
      * @brief Move-assignment operator.
      */
-    Metadata& operator=(Metadata&&);
+    Metadata& operator=(Metadata&&) = default;
 
     /**
      * @brief Destructor.
      */
-    ~Metadata();
-
-    /**
-     * @brief Checks if the Metadata instance is valid.
-     */
-    explicit operator bool() const;
-
-    /**
-     * @brief Checks if the content of the Metadata is valid JSON.
-     * If the Metadata has been initialized from a JSON document,
-     * the call will be trivial. Other, the Metadata's string will
-     * be validated but not converted into JSON.
-     */
-    bool isValidJson() const;
+    ~Metadata() = default;
 
     /**
      * @brief Returns the underlying JSON document.
-     *
-     * Note: if the Metadata has been constructed from a string,
-     * this function will trigger its parsing into a JSON document.
      */
-    const nlohmann::json& json() const;
+    const nlohmann::json& json() const & {
+        return m_content;
+    }
 
     /**
      * @brief Returns the underlying JSON document.
-     *
-     * Note: if the Metadata has been constructed from a string,
-     * this function will trigger its parsing into a JSON document.
-     * The string representation will also be invalidated.
      */
-    nlohmann::json& json();
+    nlohmann::json& json() & {
+        return m_content;
+    }
+
+    /**
+     * @brief Returns the underlying JSON document.
+     */
+    nlohmann::json&& json() && {
+        return std::move(m_content);
+    }
 
     /**
      * @brief Returns the underlying string representation
@@ -110,37 +113,34 @@ class Metadata {
      * Note: if the Metadata has been constructed from a JSON document,
      * this function will trigger its serialization into a string.
      */
-    const std::string& string() const;
+    template<typename ... Args>
+    auto dump(Args&&... args) const {
+        return m_content.dump(std::forward<Args>(args)...);
+    }
 
     /**
-     * @brief Returns the underlying string representation
-     * of the Metadata.
-     *
-     * Note: if the Metadata has been constructed from a JSON document,
-     * this function will trigger its serialization into a string.
-     * The JSON representation will also be invalidated.
+     * @brief Returns the Metadata's string if the underlying JSON is a string.
      */
-    std::string& string();
+    const auto& string() const {
+        if(m_content.is_string())
+            return m_content.get_ref<const std::string&>();
+        else
+            throw mofka::Exception{"Metadata content is not a string"};
+    }
+
+    /**
+     * @brief Returns the Metadata's string if the underlying JSON is a string.
+     */
+    auto& string() {
+        if(m_content.is_string())
+            return m_content.get_ref<std::string&>();
+        else
+            throw mofka::Exception{"Metadata content is not a string"};
+    }
 
     private:
 
-    /**
-     * @brief Constructor is private. Use one of the static functions
-     * to create a valid Metadata object.
-     *
-     * @param impl Pointer to implementation.
-     */
-    Metadata(const std::shared_ptr<MetadataImpl>& impl);
-
-    std::shared_ptr<MetadataImpl> self;
-
-    template<typename A>
-    friend void save(A& ar, const Metadata& metadata);
-
-    template<typename A>
-    friend void load(A& ar, Metadata& metadata);
-
-    friend class Event;
+    nlohmann::json m_content;
 };
 
 }

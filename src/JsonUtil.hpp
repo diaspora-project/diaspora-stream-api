@@ -20,7 +20,6 @@ static inline bool ValidateIsJson(std::string_view json) {
     std::stack<char> brackets;
     bool insideString = false;
     bool escaped = false;
-    std::cerr << "Validating: " << json << std::endl;
     for (char c : json) {
         if (!escaped) {
             if (c == '"') {

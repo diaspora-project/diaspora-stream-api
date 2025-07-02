@@ -3,13 +3,12 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_DEFAULT_PARTITION_SELECTOR_H
-#define MOFKA_DEFAULT_PARTITION_SELECTOR_H
+#ifndef MOFKA_API_DEFAULT_PARTITION_SELECTOR_H
+#define MOFKA_API_DEFAULT_PARTITION_SELECTOR_H
 
 #include "mofka/Metadata.hpp"
 #include "mofka/PartitionSelector.hpp"
 #include "mofka/Json.hpp"
-#include "MetadataImpl.hpp"
 #include "JsonUtil.hpp"
 
 namespace mofka {

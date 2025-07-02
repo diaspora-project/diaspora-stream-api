@@ -17,18 +17,23 @@ class DefaultSerializer : public SerializerInterface {
     public:
 
     void serialize(Archive& archive, const Metadata& metadata) const override {
-        const auto& str = metadata.string();
+        const auto str = metadata.dump();
         size_t s = str.size();
         archive.write(&s, sizeof(s));
         archive.write(str.data(), s);
     }
 
     void deserialize(Archive& archive, Metadata& metadata) const override {
-        auto& str = metadata.string();
         size_t s = 0;
         archive.read(&s, sizeof(s));
+        std::string str;
         str.resize(s);
         archive.read(const_cast<char*>(str.data()), s);
+        try {
+            metadata.json() = nlohmann::json::parse(str);
+        } catch(const std::exception& ex) {
+            throw Exception{std::string{"Could not deserialize Serializer metadata: "} + ex.what()};
+        }
     }
 
     Metadata metadata() const override {

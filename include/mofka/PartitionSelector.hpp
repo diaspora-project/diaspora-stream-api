@@ -151,22 +151,10 @@ class PartitionSelector {
     }
 
     /**
-     * @brief Factory function to create a PartitionSelector instance
-     * from its type and configuration.
-     *
-     * @param type Type of PartitionSelector.
-     * @param metadata Metadata of the PartitionSelector.
-     *
-     * @return PartitionSelector instance.
-     */
-    static PartitionSelector FromMetadata(
-            const char* type,
-            const Metadata& metadata);
-
-    /**
-     * @brief Version of the above function that does not require a type.
-     * The type will be obtained from a "__type__" field in the metadata,
-     * and will fall back to "default" if not provided.
+     * @brief Factory function to create a PartitionSelector instance.
+     * The Metadata object is expected to be a JSON object containing
+     * at least a "type" field. If this field is not found, it is
+     * assumed to be "default".
      *
      * @param metadata Metadata of the PartitionSelector.
      *

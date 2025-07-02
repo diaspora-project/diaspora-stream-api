@@ -133,27 +133,14 @@ class Validator {
     }
 
     /**
-     * @brief Factory function to create a Validator instance
-     * when the underlying implementation is not known.
+     * @brief Factory function to create a Validator instance.
+     * The Metadata is expected to be a JSON object with at least
+     * a "type" field. The type can be in the form "name:library.so"
+     * if library.so must be loaded to access the validator.
+     * If the "type" field is not provided, it is assumed to be
+     * "default".
      *
-     * Note: the type can be in the form "name:library.so" if
-     * library.so must be loaded to access the validator.
-     *
-     * @param type Type of Validator.
      * @param metadata Metadata of the Validator.
-     *
-     * @return Validator instance.
-     */
-    static Validator FromMetadata(
-            const char* type,
-            const Metadata& metadata);
-
-    /**
-     * @brief Same as the above function but will look for a "__type__"
-     * field in the metadata and, if not provided, will fall back to the
-     * "default" type.
-     *
-     * @param metadata Metadata of the validator.
      *
      * @return Validator instance.
      */

@@ -522,8 +522,6 @@ static std::function<bool(const json&)> matchJson(const json& pattern) {
 
 void EventbridgeValidator::validate(const Metadata& metadata, const DataView& data) const {
     (void)data;
-    if(!metadata.isValidJson())
-        throw InvalidMetadata("Metadata object does not contain valid JSON metadata");
     if(!m_validator(metadata.json()))
         throw InvalidMetadata("Metadata object does not satisfy eventbridge pattern");
 }

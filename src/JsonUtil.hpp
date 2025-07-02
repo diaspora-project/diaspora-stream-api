@@ -12,6 +12,7 @@
 #include <stack>
 #include <string>
 #include <string_view>
+#include <iostream>
 
 namespace mofka {
 
@@ -19,11 +20,12 @@ static inline bool ValidateIsJson(std::string_view json) {
     std::stack<char> brackets;
     bool insideString = false;
     bool escaped = false;
-
+    std::cerr << "Validating: " << json << std::endl;
     for (char c : json) {
         if (!escaped) {
             if (c == '"') {
                 insideString = !insideString;
+                if(!insideString) escaped = false;
             } else if (!insideString) {
                 if (c == '{' || c == '[') {
                     brackets.push(c);
@@ -43,10 +45,12 @@ static inline bool ValidateIsJson(std::string_view json) {
             }
         }
 
-        if (c == '\\') {
-            escaped = !escaped;
-        } else {
-            escaped = false;
+        if(insideString) {
+            if (c == '\\') {
+                escaped = !escaped;
+            } else {
+                escaped = false;
+            }
         }
     }
 

@@ -56,7 +56,7 @@ class MetadataImpl {
     }
 
     bool validateJson() {
-        if(m_type & Type::ValidJson) return true;
+        if((m_type & Type::ValidJson) == Type::ValidJson) return true;
         if(ValidateIsJson(m_string)) {
             m_type |= Type::ValidJson;
             return true;

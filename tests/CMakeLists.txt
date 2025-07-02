@@ -1,7 +1,5 @@
 file (GLOB mofka-test-sources ${CMAKE_CURRENT_SOURCE_DIR}/*Test.cpp)
 
-message (STATUS "AAA ${mofka-test-sources}")
-
 foreach (test-source ${mofka-test-sources})
     get_filename_component (name ${test-source} NAME_WE)
     add_executable (${name} ${test-source})

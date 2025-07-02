@@ -22,9 +22,12 @@ TEST_CASE("Mofka API Metadata test", "[metadata]") {
             REQUIRE(static_cast<bool>(md));
             REQUIRE(md.isValidJson());
             REQUIRE(md.json().is_object());
+            REQUIRE(((const mofka::Metadata&)md).json().is_object());
             REQUIRE(md.json().contains("x"));
             REQUIRE(md.json().contains("y"));
             REQUIRE(md.string() == R"({"x":1,"y":2.3})");
+            REQUIRE(((const mofka::Metadata&)md).string() == R"({"x":1,"y":2.3})");
+            REQUIRE(((mofka::Metadata&)md).string() == R"({"x":1,"y":2.3})");
         }
 
         SECTION("Modify metadata using json accessor") {
@@ -64,6 +67,16 @@ TEST_CASE("Mofka API Metadata test", "[metadata]") {
         SECTION("const char* constructor") {
             const char* content = R"({"x":1,"y":2.3})";
             auto md = mofka::Metadata{content, false};
+            REQUIRE(md.isValidJson());
+            REQUIRE(md.json().is_object());
+            REQUIRE(md.json().contains("x"));
+            REQUIRE(md.json().contains("y"));
+            REQUIRE(md.string() == R"({"x":1,"y":2.3})");
+        }
+
+        SECTION("JSON constructor") {
+            auto content = nlohmann::json::parse(R"({"x":1,"y":2.3})");
+            auto md = mofka::Metadata{content};
             REQUIRE(md.isValidJson());
             REQUIRE(md.json().is_object());
             REQUIRE(md.json().contains("x"));

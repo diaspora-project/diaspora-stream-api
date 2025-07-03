@@ -23,7 +23,6 @@ add_library (mofka-api ${src-files})
 add_library (mofka::api ALIAS mofka-api)
 target_link_libraries (mofka-api
     PUBLIC
-    PkgConfig::uuid
     nlohmann_json::nlohmann_json
     nlohmann_json_schema_validator::validator
     PRIVATE

@@ -8,7 +8,6 @@
 #include <mofka/TopicHandle.hpp>
 #include <mofka/ThreadPool.hpp>
 #include <mofka/Driver.hpp>
-#include "../src/DataViewImpl.hpp"
 #include "../src/JsonUtil.hpp"
 
 #include <iostream>
@@ -52,7 +51,7 @@ static auto data_helper(const py::buffer& buffer) {
     auto buffer_info = get_buffer_info(buffer);
     check_buffer_is_contiguous(buffer_info);
     auto owner = new py::object(std::move(buffer));
-    auto free_cb = [owner](mofka::DataView::Context) { delete owner; };
+    auto free_cb = [owner](mofka::DataView::UserContext) { delete owner; };
     return mofka::DataView(buffer_info.ptr, buffer_info.size, owner, std::move(free_cb));
 }
 
@@ -68,7 +67,7 @@ static auto data_helper(const py::list& buffers) {
                 static_cast<size_t>(buff_info.size)});
     }
     auto owner = new py::object(std::move(buffers));
-    auto free_cb = [owner](mofka::DataView::Context) { delete owner; };
+    auto free_cb = [owner](mofka::DataView::UserContext) { delete owner; };
     return mofka::DataView(std::move(segments), owner, std::move(free_cb));
 }
 
@@ -205,7 +204,7 @@ PYBIND11_MODULE(pymofka_client, m) {
                             cpp_segments.push_back({buf_info.ptr, (size_t)buf_info.size});
                         }
                         auto owner = new PythonDataOwner{std::move(segments)};
-                        auto free_cb = [owner](mofka::DataView::Context) { delete owner; };
+                        auto free_cb = [owner](mofka::DataView::UserContext) { delete owner; };
                         auto data = mofka::DataView{std::move(cpp_segments), owner, std::move(free_cb)};
                         return data;
                 }
@@ -250,7 +249,7 @@ PYBIND11_MODULE(pymofka_client, m) {
                         std::vector<mofka::DataView::Segment> cpp_segment{
                             mofka::DataView::Segment{owner->m_data.data(), owner->m_data.size()}
                         };
-                        auto free_cb = [owner](mofka::DataView::Context) { delete owner; };
+                        auto free_cb = [owner](mofka::DataView::UserContext) { delete owner; };
                         auto data = mofka::DataView{std::move(cpp_segment), owner, std::move(free_cb)};
                         return data;
                 };

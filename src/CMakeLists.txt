@@ -2,7 +2,6 @@ set (src-files
      TopicHandle.cpp
      Producer.cpp
      Consumer.cpp
-     DataView.cpp
      DataDescriptor.cpp
      Serializer.cpp
      PartitionSelector.cpp

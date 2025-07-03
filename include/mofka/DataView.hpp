@@ -12,10 +12,10 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <numeric>
+#include <cstring>
 
 namespace mofka {
-
-class DataViewImpl;
 
 /**
  * @brief A DataView is an object that encapsulates the data of an event.
@@ -29,59 +29,79 @@ class DataView {
         size_t size;
     };
 
-    using Context = void*;
-    using FreeCallback = std::function<void(Context)>;
+    using UserContext = void*;
+    using FreeCallback = std::function<void(UserContext)>;
 
     /**
      * @brief Constructor. The resulting Data handle will represent NULL.
      */
-    DataView(Context ctx = nullptr, FreeCallback free_cb = FreeCallback{});
+    inline DataView(UserContext ctx = nullptr,
+                    FreeCallback free_cb = FreeCallback{})
+    : DataView(std::vector<Segment>(), ctx, std::move(free_cb)) {}
 
     /**
      * @brief Creates a Data object with a single segment.
      */
-    DataView(void* ptr, size_t size, Context ctx = nullptr, FreeCallback free_cb = FreeCallback{});
+    inline DataView(void* ptr, size_t size,
+                    UserContext ctx = nullptr,
+                    FreeCallback free_cb = FreeCallback{})
+    : DataView(std::vector{Segment{ptr, size}}, ctx, std::move(free_cb)) {}
 
     /**
      * @brief Creates a Data object from a list of Segments.
      */
-    DataView(std::vector<Segment> segments, Context ctx = nullptr, FreeCallback free_cb = FreeCallback{});
+    inline DataView(std::vector<Segment> segments,
+                    UserContext ctx = nullptr,
+                    FreeCallback free_cb = FreeCallback{})
+    : m_segments(std::move(segments))
+    , m_size(std::accumulate(m_segments.begin(), m_segments.end(), (size_t)0,
+                             [](size_t sum, const Segment& seg) { return sum + seg.size; }))
+    , m_context(ctx)
+    , m_free(std::make_shared<FreeCallback>(std::move(free_cb))) {}
 
     /**
      * @brief Copy-constructor.
      */
-    DataView(const DataView&) = default;
+    inline DataView(const DataView&) = default;
 
     /**
      * @brief Move-constructor.
      */
-    DataView(DataView&&) = default;
+    inline DataView(DataView&&) = default;
 
     /**
      * @brief Copy-assignment operator.
      */
-    DataView& operator=(const DataView&) = default;
+    inline DataView& operator=(const DataView&) = default;
 
     /**
      * @brief Move-assignment operator.
      */
-    DataView& operator=(DataView&&) = default;
+    inline DataView& operator=(DataView&&) = default;
 
     /**
      * @brief Free.
      */
-    ~DataView() = default;
+    inline ~DataView() {
+        if(m_free.use_count() == 1 && (*m_free)) {
+            (*m_free)(m_context);
+        }
+    }
 
     /**
      * @brief Returns the list of memory segments
      * this Data object refers to.
      */
-    const std::vector<Segment>& segments() const;
+    inline const std::vector<Segment>& segments() const {
+        return m_segments;
+    }
 
     /**
      * @brief Return the total size of the Data.
      */
-    size_t size() const;
+    inline size_t size() const {
+        return m_size;
+    }
 
     /**
      * @brief Write the content of target at the specified offset
@@ -91,7 +111,23 @@ class DataView {
      * @param size Size of the data.
      * @param from_offset Offset from which to write.
      */
-    size_t write(const char* data, size_t size, size_t offset = 0);
+    inline size_t write(const char* source, size_t size, size_t offset = 0) {
+        size_t source_offset = 0;
+        for(auto& seg : segments()) {
+            if(offset >= seg.size) {
+                offset -= seg.size;
+                continue;
+            }
+            // current segment needs to be copied
+            auto size_to_copy = std::min(size, seg.size);
+            std::memcpy((char*)seg.ptr + offset, source + source_offset, size_to_copy);
+            offset = 0;
+            source_offset += size_to_copy;
+            size -= size_to_copy;
+            if(size == 0) break;
+        }
+        return source_offset;
+    }
 
     /**
      * @brief Read the content of the DataView into the provided buffer.
@@ -100,32 +136,37 @@ class DataView {
      * @param size Size to read.
      * @param offset Offset at which to start in the DataView.
      */
-    size_t read(char* data, size_t size, size_t offset = 0) const;
-
-    /**
-     * @brief Checks if the Data instance is valid.
-     */
-    inline explicit operator bool() const {
-        return static_cast<bool>(self);
+    inline size_t read(char* dest, size_t size, size_t offset = 0) const {
+        size_t dest_offset = 0;
+        for(auto& seg : segments()) {
+            if(offset >= seg.size) {
+                offset -= seg.size;
+                continue;
+            }
+            // current segment needs to be copied
+            auto size_to_copy = std::min(size, seg.size);
+            std::memcpy(dest + dest_offset, (char*)seg.ptr + offset, size_to_copy);
+            offset = 0;
+            dest_offset += size_to_copy;
+            size -= size_to_copy;
+            if(size == 0) break;
+        }
+        return dest_offset;
     }
 
     /**
      * @brief Return the context of this Data object.
      */
-    Context context() const;
+    inline UserContext context() const {
+        return m_context;
+    }
 
     private:
 
-    /**
-     * @brief Constructor is private.
-     *
-     * @param impl Pointer to implementation.
-     */
-    DataView(const std::shared_ptr<DataViewImpl>& impl);
-
-    std::shared_ptr<DataViewImpl> self;
-
-    friend class Event;
+    std::vector<DataView::Segment>          m_segments;
+    size_t                                  m_size = 0;
+    DataView::UserContext                   m_context = nullptr;
+    std::shared_ptr<DataView::FreeCallback> m_free;
 
 };
 

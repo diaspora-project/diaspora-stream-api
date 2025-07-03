@@ -1,7 +1,6 @@
 spack:
   specs:
   - cmake
-  - pkg-config
   - nlohmann-json
   - nlohmann-json-schema-validator
   - py-coverage

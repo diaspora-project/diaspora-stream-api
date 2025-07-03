@@ -60,9 +60,6 @@ if (CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo|Debug")
     )
 endif ()
 
-find_package (PkgConfig REQUIRED)
-# search for uuid
-pkg_check_modules (uuid REQUIRED IMPORTED_TARGET uuid)
 # search for nlohmann/json and schema validator
 find_package (nlohmann_json REQUIRED)
 find_package (nlohmann_json_schema_validator REQUIRED)

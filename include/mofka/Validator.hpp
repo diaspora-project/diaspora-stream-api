@@ -68,8 +68,12 @@ class ValidatorInterface {
 class Validator {
 
     friend struct PythonBindingHelper;
+    friend class Driver;
 
     public:
+
+    Validator(std::shared_ptr<ValidatorInterface> impl)
+    : self{std::move(impl)} {}
 
     /**
      * @brief Constructor. Will construct a valid Validator that accepts
@@ -147,9 +151,6 @@ class Validator {
     static Validator FromMetadata(const Metadata& metadata);
 
     private:
-
-    Validator(std::shared_ptr<ValidatorInterface> impl)
-    : self{std::move(impl)} {}
 
     std::shared_ptr<ValidatorInterface> self;
 };

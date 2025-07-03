@@ -430,14 +430,14 @@ class SimpleDriver : public mofka::DriverInterface,
     public:
 
     void createTopic(std::string_view name,
-                     mofka::Metadata options,
-                     mofka::Validator validator,
-                     mofka::PartitionSelector selector,
-                     mofka::Serializer serializer) override {
+                     const mofka::Metadata& options,
+                     std::shared_ptr<mofka::ValidatorInterface> validator,
+                     std::shared_ptr<mofka::PartitionSelectorInterface> selector,
+                     std::shared_ptr<mofka::SerializerInterface> serializer) override {
         (void)options;
         if(m_topics.count(std::string{name})) throw mofka::Exception{"Topic already exists"};
         std::vector<mofka::PartitionInfo> pinfo{mofka::PartitionInfo{"{}"}};
-        selector.setPartitions(pinfo);
+        if(selector) selector->setPartitions(pinfo);
         m_topics.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(std::string{name}),

@@ -80,8 +80,12 @@ class PartitionSelectorInterface {
 class PartitionSelector {
 
     friend struct PythonBindingHelper;
+    friend class Driver;
 
     public:
+
+    PartitionSelector(const std::shared_ptr<PartitionSelectorInterface>& impl)
+    : self(impl) {}
 
     /**
      * @brief Constructor. Will construct a valid PartitionSelector that accepts
@@ -163,9 +167,6 @@ class PartitionSelector {
     static PartitionSelector FromMetadata(const Metadata& metadata);
 
     private:
-
-    PartitionSelector(const std::shared_ptr<PartitionSelectorInterface>& impl)
-    : self(impl) {}
 
     std::shared_ptr<PartitionSelectorInterface> self;
 };

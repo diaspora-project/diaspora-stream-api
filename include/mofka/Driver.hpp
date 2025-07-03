@@ -41,10 +41,10 @@ class DriverInterface {
      * @param serializer Serializer to use for all the events in the topic.
      */
     virtual void createTopic(std::string_view name,
-                             Metadata options,
-                             Validator validator,
-                             PartitionSelector selector,
-                             Serializer serializer) = 0;
+                             const Metadata& options,
+                             std::shared_ptr<ValidatorInterface> validator,
+                             std::shared_ptr<PartitionSelectorInterface> selector,
+                             std::shared_ptr<SerializerInterface> serializer) = 0;
 
     /**
      * @brief Open an existing topic with the given name.
@@ -106,13 +106,13 @@ class Driver {
      * @param serializer Serializer to use for all the events in the topic.
      */
     inline void createTopic(std::string_view name,
-                            Metadata options = Metadata{"{}"},
+                            const Metadata& options = Metadata{"{}"},
                             Validator validator = Validator{},
                             PartitionSelector selector = PartitionSelector{},
                             Serializer serializer = Serializer{}) const {
         self->createTopic(name, std::move(options),
-                          std::move(validator), std::move(selector),
-                          std::move(serializer));
+                          std::move(validator).self, std::move(selector).self,
+                          std::move(serializer).self);
     }
 
     /**

@@ -78,8 +78,12 @@ class SerializerInterface {
 class Serializer {
 
     friend struct PythonBindingHelper;
+    friend class Driver;
 
     public:
+
+    Serializer(std::shared_ptr<SerializerInterface> impl)
+    : self(std::move(impl)) {}
 
     /**
      * @brief Constructor. Will construct a valid Serializer that simply
@@ -166,9 +170,6 @@ class Serializer {
     }
 
     private:
-
-    Serializer(std::shared_ptr<SerializerInterface> impl)
-    : self(std::move(impl)) {}
 
     std::shared_ptr<SerializerInterface> self;
 

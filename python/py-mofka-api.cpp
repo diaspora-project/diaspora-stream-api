@@ -110,6 +110,27 @@ PYBIND11_MODULE(pymofka_client, m) {
 
     m.attr("AdaptiveBatchSize") = py::int_(mofka::BatchSize::Adaptive().value);
 
+    py::class_<mofka::DriverInterface,
+               std::shared_ptr<mofka::DriverInterface>>(m, "Driver")
+        .def("create_topic",
+             &mofka::DriverInterface::createTopic,
+             "name"_a, "options"_a=mofka::Metadata{},
+             "validator"_a=mofka::PythonBindingHelper::GetSelf(mofka::Validator{}),
+             "partition_selector"_a=mofka::PythonBindingHelper::GetSelf(mofka::PartitionSelector{}),
+             "serializer"_a=mofka::PythonBindingHelper::GetSelf(mofka::Serializer{}))
+        .def("open_topic",
+             &mofka::DriverInterface::openTopic,
+             "name"_a)
+        .def("topic_exists",
+             &mofka::DriverInterface::topicExists,
+             "name"_a)
+        .def("make_thread_pool",
+             [](const mofka::DriverInterface& driver, size_t count) {
+                return driver.makeThreadPool(mofka::ThreadCount{count});
+             }, "count"_a)
+        .def_property_readonly("default_thread_pool", &mofka::DriverInterface::defaultThreadPool)
+    ;
+
     py::class_<mofka::ValidatorInterface,
                std::shared_ptr<mofka::ValidatorInterface>>(m, "Validator")
         .def_static("from_metadata",

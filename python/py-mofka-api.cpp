@@ -129,6 +129,10 @@ PYBIND11_MODULE(pymofka_client, m) {
                 return driver.makeThreadPool(mofka::ThreadCount{count});
              }, "count"_a)
         .def_property_readonly("default_thread_pool", &mofka::DriverInterface::defaultThreadPool)
+        .def_static("new",
+            [](const std::string& name, const nlohmann::json& md){
+                return mofka::DriverFactory::create(name, mofka::Metadata{md});
+            }, "name"_a, "metadata"_a=nlohmann::json::object())
     ;
 
     py::class_<mofka::ValidatorInterface,

@@ -50,13 +50,12 @@ class ThreadPoolInterface {
      * @brief Push work into the thread pool.
      *
      * @param func Function to push.
-     * @param priority Priority.
+     * @param priority Priority. Higher priority work should be done first.
      */
-    virtual void pushWork(std::function<void()> func,
-                          uint64_t priority = std::numeric_limits<uint64_t>::max()) = 0;
+    virtual void pushWork(std::function<void()> func, uint64_t priority) = 0;
 
     /**
-     * @brief Get the number of ULTs in the pool, including blocked and running ULTs.
+     * @brief Get the number of tasks in the pool, including blocked and running tasks.
      */
     virtual size_t size() const = 0;
 };

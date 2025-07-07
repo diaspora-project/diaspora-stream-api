@@ -109,8 +109,7 @@ class SimpleThreadPool final : public mofka::ThreadPoolInterface {
         return mofka::ThreadCount{m_threads.size()};
     }
 
-    void pushWork(std::function<void()> func,
-                  uint64_t priority = std::numeric_limits<uint64_t>::max()) override {
+    void pushWork(std::function<void()> func, uint64_t priority) override {
         if(m_threads.size() == 0) {
             func();
         } else {

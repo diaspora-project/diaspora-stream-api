@@ -12,8 +12,6 @@ class Archive;
 struct BatchSize;
 struct BufferWrapperOutputArchive;
 struct BufferWrapperInputArchive;
-template<typename T>
-struct Cerealized;
 class Consumer;
 class ConsumerInterface;
 class DataView;

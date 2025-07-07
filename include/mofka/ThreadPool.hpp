@@ -52,7 +52,8 @@ class ThreadPoolInterface {
      * @param func Function to push.
      * @param priority Priority. Higher priority work should be done first.
      */
-    virtual void pushWork(std::function<void()> func, uint64_t priority) = 0;
+    virtual void pushWork(std::function<void()> func,
+                          uint64_t priority = std::numeric_limits<uint64_t>::max()) = 0;
 
     /**
      * @brief Get the number of tasks in the pool, including blocked and running tasks.
@@ -116,7 +117,7 @@ class ThreadPool {
      * @param priority Priority.
      */
     inline void pushWork(std::function<void()> func,
-                  uint64_t priority = std::numeric_limits<uint64_t>::max()) const {
+                         uint64_t priority = std::numeric_limits<uint64_t>::max()) const {
         self->pushWork(std::move(func), priority);
     }
 

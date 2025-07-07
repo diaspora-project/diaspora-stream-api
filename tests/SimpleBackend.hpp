@@ -539,7 +539,7 @@ mofka::Future<mofka::Event> SimpleConsumer::pull() {
         m_topic->m_serializer.deserialize(archive, metadata);
         // invoke the data selector
         auto data_descriptor = m_data_selector(
-            metadata, mofka::DataDescriptor::From("", data_buffer.size()));
+            metadata, mofka::DataDescriptor("", data_buffer.size()));
         // invoke the data broker
         auto data_view = m_data_broker(metadata, data_descriptor);
         // copy the data to target destination

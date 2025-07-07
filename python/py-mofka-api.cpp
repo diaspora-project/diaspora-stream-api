@@ -240,7 +240,7 @@ PYBIND11_MODULE(pymofka_client, m) {
                      const mofka::DataDescriptor& descriptor) -> mofka::DataDescriptor {
                         std::optional<mofka::DataDescriptor> result = selector(metadata.json(), descriptor);
                         if(result) return result.value();
-                        else return mofka::DataDescriptor::Null();
+                        else return mofka::DataDescriptor();
                     }
                 : mofka::DataSelector{};
                 std::vector<size_t> default_targets;
@@ -377,10 +377,8 @@ PYBIND11_MODULE(pymofka_client, m) {
 
     py::class_<mofka::DataDescriptor>(m, "DataDescriptor")
         .def(py::init<>())
-        .def(py::init(&mofka::DataDescriptor::From))
+        .def(py::init<std::string_view, size_t>())
         .def_property_readonly("size", &mofka::DataDescriptor::size)
-        .def_property_readonly("location",
-            py::overload_cast<>(&mofka::DataDescriptor::location))
         .def_property_readonly("location",
             py::overload_cast<>(&mofka::DataDescriptor::location, py::const_))
         .def("make_stride_view",
@@ -402,7 +400,10 @@ PYBIND11_MODULE(pymofka_client, m) {
         .def("make_unstructured_view",
             [](const mofka::DataDescriptor& data_descriptor,
                const std::vector<std::pair<std::size_t, std::size_t>> segments) -> mofka::DataDescriptor {
-                return data_descriptor.makeUnstructuredView(segments);
+                std::vector<mofka::DataDescriptor::Segment> seg;
+                seg.reserve(segments.size());
+                for(auto& s : segments) seg.push_back(mofka::DataDescriptor::Segment{s.first, s.first});
+                return data_descriptor.makeUnstructuredView(seg);
             },
             "segments"_a)
     ;

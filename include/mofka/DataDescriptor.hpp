@@ -11,13 +11,11 @@
 #include <mofka/Archive.hpp>
 
 #include <vector>
-#include <memory>
 #include <string_view>
-#include <map>
+#include <variant>
+#include <cstring>
 
 namespace mofka {
-
-class DataDescriptorImpl;
 
 /**
  * @brief A DataDescriptor is an opaque object describing
@@ -27,24 +25,37 @@ class DataDescriptor {
 
     public:
 
+    /**
+     * @brief represents a contiguous segment of data.
+     */
     struct Segment {
-
         std::size_t offset;
         std::size_t size;
+    };
 
-        Segment(std::size_t o = 0, std::size_t s = 0)
-        : offset(o), size(s) {}
+    using Contiguous = Segment;
 
-        Segment(const Segment&) = default;
-        Segment(Segment&&) = default;
-        Segment& operator=(const Segment&) = default;
-        Segment& operator=(Segment&&) = default;
+    /**
+     * @brief Represents a strided selection, starting at a given
+     * offset, counting numblocks blocks, each with a given blocksize
+     * and separated from the next block by gapsize.
+     */
+    struct Strided {
+        std::size_t offset;
+        std::size_t numblocks;
+        std::size_t blocksize;
+        std::size_t gapsize;
     };
 
     /**
-     * @brief Creates a NULL DataDescriptor.
+     * @brief Arbitrary selection of the underlying data as a series
+     * of segments.
      */
-    static DataDescriptor Null();
+    struct Unstructured {
+        std::vector<Segment> segments;
+    };
+
+    using Selection = std::variant<Contiguous, Strided, Unstructured>;
 
     /**
      * @brief Create an implementation-dependent DataDescriptor.
@@ -54,54 +65,55 @@ class DataDescriptor {
      *
      * @return a DataDescriptor.
      */
-    static DataDescriptor From(std::string_view opaque, size_t size);
+    DataDescriptor(std::string_view opaque, size_t size) {
+        m_location.resize(opaque.size());
+        std::memcpy(m_location.data(), opaque.data(), opaque.size());
+        m_size = size;
+    }
 
     /**
-     * @brief Constructor (equivalent to a Null DataDescriptor).
+     * @brief Constructor (equivalent to a DataDescriptor for no data).
      */
-    DataDescriptor();
+    DataDescriptor() = default;
 
     /**
      * @brief Copy-constructor.
      */
-    DataDescriptor(const DataDescriptor&);
+    DataDescriptor(const DataDescriptor&) = default;
 
     /**
      * @brief Move-constructor.
      */
-    DataDescriptor(DataDescriptor&&);
+    DataDescriptor(DataDescriptor&&) = default;
 
     /**
      * @brief Copy-assignment operator.
      */
-    DataDescriptor& operator=(const DataDescriptor&);
+    DataDescriptor& operator=(const DataDescriptor&) = default;
 
     /**
      * @brief Move-assignment operator.
      */
-    DataDescriptor& operator=(DataDescriptor&&);
+    DataDescriptor& operator=(DataDescriptor&&) = default;
 
     /**
      * @brief Destructor.
      */
-    ~DataDescriptor();
+    ~DataDescriptor() = default;
 
     /**
      * @brief Return the size of the underlying data in bytes.
      */
-    size_t size() const;
+    size_t size() const {
+        return m_size;
+    }
 
     /**
-     * @brief Returns the root location (interpretable by the
-     * PartitionManager that created this DataDescriptor).
+     * @brief Returns the location (interpretable by the backend).
      */
-    const std::vector<char>& location() const;
-
-    /**
-     * @brief Returns the root location (interpretable by the
-     * PartitionManager that created this DataDescriptor).
-     */
-    std::vector<char>& location();
+    const std::vector<char>& location() const {
+        return m_location;
+    }
 
     /**
      * @brief Extract a flat representation of the data descriptor.
@@ -170,7 +182,7 @@ class DataDescriptor {
      * and creates a view by selecting the segments (offset, size) in
      * the underlying DataDescriptor.
      *
-     * @warning: segments must not overlap.
+     * @warning: segments must not overlap and must come in order.
      *
      * @note: the use of an std::map forces segments to be sorted by offset.
      *
@@ -179,7 +191,7 @@ class DataDescriptor {
      * use this function if you have the possibility to use sub or strided
      * views (or a composition of them).
      *
-     * @param segments List of <offset,size> pairs.
+     * @param segments List of contiguous segments.
      *
      * @return a new DataDescriptor.
      *
@@ -196,39 +208,13 @@ class DataDescriptor {
      * "BCDHIJKLOPQR"
      */
     DataDescriptor makeUnstructuredView(
-        const std::vector<std::pair<size_t, size_t>>& segments) const;
-
-    /**
-     * @brief Load the DataDescriptor from an Archive.
-     *
-     * @param ar Archive.
-     */
-    void load(Archive& ar);
-
-    /**
-     * @brief Serialize the DataDescriptor into an Archive.
-     *
-     * @param ar Archive.
-     */
-    void save(Archive& ar) const;
-
-    /**
-     * @brief Checks if the Data instance is valid.
-     */
-    explicit operator bool() const;
+        const std::vector<Contiguous>& segments) const;
 
     private:
 
-    /**
-     * @brief Constructor is private.
-     *
-     * @param impl Pointer to implementation.
-     */
-    DataDescriptor(const std::shared_ptr<DataDescriptorImpl>& impl);
-
-    std::shared_ptr<DataDescriptorImpl> self;
-
-    friend struct Cerealized<DataDescriptor>;
+    std::vector<char>      m_location;   /* implementation defined data location */
+    std::vector<Selection> m_selections; /* stack of selections on top of the data */
+    size_t                 m_size = 0;   /* size of the data after selections applied */
 };
 
 }

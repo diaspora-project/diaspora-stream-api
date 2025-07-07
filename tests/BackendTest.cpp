@@ -17,6 +17,10 @@ TEST_CASE("Mofka API test", "[mofka-api]") {
             mofka::DriverFactory::create("unknown", {}),
             mofka::Exception);
 
+        REQUIRE_THROWS_AS(
+            mofka::DriverFactory::create("unknown:libunknown.so", {}),
+            mofka::Exception);
+
     }
 
     SECTION("Create Driver") {

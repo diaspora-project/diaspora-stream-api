@@ -34,7 +34,7 @@ class ValidatorInterface {
     /**
      * @brief Destructor.
      */
-    virtual ~ValidatorInterface() = default;
+    virtual ~ValidatorInterface() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Validate that the Metadata it correct, throwing an
@@ -84,27 +84,27 @@ class Validator {
     /**
      * @brief Copy-constructor.
      */
-    inline Validator(const Validator&) = default;
+    inline Validator(const Validator&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-constructor.
      */
-    inline Validator(Validator&&) = default;
+    inline Validator(Validator&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief copy-assignment operator.
      */
-    inline Validator& operator=(const Validator&) = default;
+    inline Validator& operator=(const Validator&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    inline Validator& operator=(Validator&&) = default;
+    inline Validator& operator=(Validator&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Destructor.
      */
-    inline ~Validator() = default;
+    inline ~Validator() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Checks for the validity of the underlying pointer.

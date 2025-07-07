@@ -29,7 +29,7 @@ class EventInterface {
     /**
      * @brief Destructor.
      */
-    virtual ~EventInterface() = default;
+    virtual ~EventInterface() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Get an Event's Metadata.
@@ -79,27 +79,27 @@ class Event {
     /**
      * @brief Move-constructor.
      */
-    inline Event(Event&&) = default;
+    inline Event(Event&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-constructor.
      */
-    inline Event(const Event&) = default;
+    inline Event(const Event&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-assignment operator.
      */
-    inline Event& operator=(const Event&) = default;
+    inline Event& operator=(const Event&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    inline Event& operator=(Event&&) = default;
+    inline Event& operator=(Event&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Destructor.
      */
-    inline ~Event() = default;
+    inline ~Event() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Get event Event's Metadata.

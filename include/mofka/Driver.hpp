@@ -29,7 +29,7 @@ class DriverInterface {
     /**
      * @brief Destructor.
      */
-    virtual ~DriverInterface() = default;
+    virtual ~DriverInterface() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Create a topic with a given name, if it does not exist yet.
@@ -90,12 +90,12 @@ class Driver {
 
     public:
 
-    Driver() = default;
-    Driver(const Driver&) = default;
-    Driver(Driver&&) = default;
-    Driver& operator=(const Driver&) = default;
-    Driver& operator=(Driver&&) = default;
-    ~Driver() = default;
+    Driver() = default; // LCOV_EXCL_LINE
+    Driver(const Driver&) = default; // LCOV_EXCL_LINE
+    Driver(Driver&&) = default; // LCOV_EXCL_LINE
+    Driver& operator=(const Driver&) = default; // LCOV_EXCL_LINE
+    Driver& operator=(Driver&&) = default; // LCOV_EXCL_LINE
+    ~Driver() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Create a topic with a given name, if it does not exist yet.

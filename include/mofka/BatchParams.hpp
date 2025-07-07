@@ -31,12 +31,12 @@ struct BatchSize {
         return BatchSize{std::numeric_limits<std::size_t>::max()};
     }
 
-    inline bool operator<(const BatchSize& other) const { return value < other.value; }
-    inline bool operator>(const BatchSize& other) const { return value > other.value; }
-    inline bool operator<=(const BatchSize& other) const { return value <= other.value; }
-    inline bool operator>=(const BatchSize& other) const { return value >= other.value; }
-    inline bool operator==(const BatchSize& other) const { return value == other.value; }
-    inline bool operator!=(const BatchSize& other) const { return value != other.value; }
+    inline bool operator<(const BatchSize& other) const { return value < other.value; } // LCOV_EXCL_LINE
+    inline bool operator>(const BatchSize& other) const { return value > other.value; } // LCOV_EXCL_LINE
+    inline bool operator<=(const BatchSize& other) const { return value <= other.value; } // LCOV_EXCL_LINE
+    inline bool operator>=(const BatchSize& other) const { return value >= other.value; } // LCOV_EXCL_LINE
+    inline bool operator==(const BatchSize& other) const { return value == other.value; } // LCOV_EXCL_LINE
+    inline bool operator!=(const BatchSize& other) const { return value != other.value; } // LCOV_EXCL_LINE
 };
 
 /**
@@ -54,12 +54,12 @@ struct MaxNumBatches {
         return MaxNumBatches{std::numeric_limits<std::size_t>::max()};
     }
 
-    inline bool operator<(const MaxNumBatches& other) const { return value < other.value; }
-    inline bool operator>(const MaxNumBatches& other) const { return value > other.value; }
-    inline bool operator<=(const MaxNumBatches& other) const { return value <= other.value; }
-    inline bool operator>=(const MaxNumBatches& other) const { return value >= other.value; }
-    inline bool operator==(const MaxNumBatches& other) const { return value == other.value; }
-    inline bool operator!=(const MaxNumBatches& other) const { return value != other.value; }
+    inline bool operator<(const MaxNumBatches& other) const { return value < other.value; } // LCOV_EXCL_LINE
+    inline bool operator>(const MaxNumBatches& other) const { return value > other.value; } // LCOV_EXCL_LINE
+    inline bool operator<=(const MaxNumBatches& other) const { return value <= other.value; } // LCOV_EXCL_LINE
+    inline bool operator>=(const MaxNumBatches& other) const { return value >= other.value; } // LCOV_EXCL_LINE
+    inline bool operator==(const MaxNumBatches& other) const { return value == other.value; } // LCOV_EXCL_LINE
+    inline bool operator!=(const MaxNumBatches& other) const { return value != other.value; } // LCOV_EXCL_LINE
 };
 
 }

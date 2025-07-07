@@ -28,32 +28,32 @@ class Future {
     /**
      * @brief Default constructor. Will create a non-valid Future.
      */
-    inline Future() = default;
+    inline Future() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy constructor.
      */
-    inline Future(const Future& other) = default;
+    inline Future(const Future& other) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move constructor.
      */
-    inline Future(Future&& other) = default;
+    inline Future(Future&& other) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-assignment operator.
      */
-    inline Future& operator=(const Future& other) = default;
+    inline Future& operator=(const Future& other) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    inline Future& operator=(Future&& other) = default;
+    inline Future& operator=(Future&& other) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Destructor.
      */
-    inline ~Future() = default;
+    inline ~Future() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Check the validity of the Future.

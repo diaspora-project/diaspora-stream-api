@@ -63,27 +63,27 @@ class Metadata {
     /**
      * @brief Copy-constructor.
      */
-    Metadata(const Metadata&) = default;
+    Metadata(const Metadata&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-constructor.
      */
-    Metadata(Metadata&&) = default;
+    Metadata(Metadata&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-assignment operator.
      */
-    Metadata& operator=(const Metadata&) = default;
+    Metadata& operator=(const Metadata&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    Metadata& operator=(Metadata&&) = default;
+    Metadata& operator=(Metadata&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Destructor.
      */
-    ~Metadata() = default;
+    ~Metadata() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Returns the underlying JSON document.

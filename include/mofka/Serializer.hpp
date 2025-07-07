@@ -94,27 +94,27 @@ class Serializer {
     /**
      * @brief Copy-constructor.
      */
-    inline Serializer(const Serializer&) = default;
+    inline Serializer(const Serializer&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-constructor.
      */
-    inline Serializer(Serializer&&) = default;
+    inline Serializer(Serializer&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief copy-assignment operator.
      */
-    inline Serializer& operator=(const Serializer&) = default;
+    inline Serializer& operator=(const Serializer&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    inline Serializer& operator=(Serializer&&) = default;
+    inline Serializer& operator=(Serializer&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Destructor.
      */
-    inline ~Serializer() = default;
+    inline ~Serializer() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Serialize the Metadata into the Archive.

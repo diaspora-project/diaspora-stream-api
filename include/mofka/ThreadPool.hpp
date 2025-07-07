@@ -39,7 +39,7 @@ class ThreadPoolInterface {
     /**
      * @brief Destructor.
      */
-    virtual ~ThreadPoolInterface() = default;
+    virtual ~ThreadPoolInterface() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Returns the number of underlying threads.
@@ -76,32 +76,32 @@ class ThreadPool {
     /**
      * @brief Constructor.
      */
-    ThreadPool() = default;
+    ThreadPool() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-constructor.
      */
-    ThreadPool(const ThreadPool&) = default;
+    ThreadPool(const ThreadPool&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-constructor.
      */
-    ThreadPool(ThreadPool&&) = default;
+    ThreadPool(ThreadPool&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-assignment operator.
      */
-    ThreadPool& operator=(const ThreadPool&) = default;
+    ThreadPool& operator=(const ThreadPool&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    ThreadPool& operator=(ThreadPool&&) = default;
+    ThreadPool& operator=(ThreadPool&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Destructor.
      */
-    ~ThreadPool() = default;
+    ~ThreadPool() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Returns the number of underlying threads.

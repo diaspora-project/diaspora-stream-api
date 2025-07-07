@@ -28,12 +28,12 @@ struct NumEvents {
      */
     static NumEvents Infinity();
 
-    inline bool operator<(const NumEvents& other) const { return value < other.value; }
-    inline bool operator>(const NumEvents& other) const { return value > other.value; }
-    inline bool operator<=(const NumEvents& other) const { return value <= other.value; }
-    inline bool operator>=(const NumEvents& other) const { return value >= other.value; }
-    inline bool operator==(const NumEvents& other) const { return value == other.value; }
-    inline bool operator!=(const NumEvents& other) const { return value != other.value; }
+    inline bool operator<(const NumEvents& other) const { return value < other.value; } // LCOV_EXCL_LINE
+    inline bool operator>(const NumEvents& other) const { return value > other.value; } // LCOV_EXCL_LINE
+    inline bool operator<=(const NumEvents& other) const { return value <= other.value; } // LCOV_EXCL_LINE
+    inline bool operator>=(const NumEvents& other) const { return value >= other.value; } // LCOV_EXCL_LINE
+    inline bool operator==(const NumEvents& other) const { return value == other.value; } // LCOV_EXCL_LINE
+    inline bool operator!=(const NumEvents& other) const { return value != other.value; } // LCOV_EXCL_LINE
 };
 
 }

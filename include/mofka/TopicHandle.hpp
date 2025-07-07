@@ -30,7 +30,7 @@ class TopicHandleInterface {
     /**
      * @brief Destructor.
      */
-    virtual ~TopicHandleInterface() = default;
+    virtual ~TopicHandleInterface() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Returns the name of the topic.
@@ -129,32 +129,32 @@ class TopicHandle {
 
     public:
 
-    inline TopicHandle() = default;
+    inline TopicHandle() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-constructor.
      */
-    inline TopicHandle(const TopicHandle&) = default;
+    inline TopicHandle(const TopicHandle&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-constructor.
      */
-    inline TopicHandle(TopicHandle&&) = default;
+    inline TopicHandle(TopicHandle&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-assignment operator.
      */
-    inline TopicHandle& operator=(const TopicHandle&) = default;
+    inline TopicHandle& operator=(const TopicHandle&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    inline TopicHandle& operator=(TopicHandle&&) = default;
+    inline TopicHandle& operator=(TopicHandle&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Destructor.
      */
-    inline ~TopicHandle() = default;
+    inline ~TopicHandle() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Returns the name of the topic.

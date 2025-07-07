@@ -96,27 +96,27 @@ class PartitionSelector {
     /**
      * @brief Copy-constructor.
      */
-    inline PartitionSelector(const PartitionSelector&) = default;
+    inline PartitionSelector(const PartitionSelector&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-constructor.
      */
-    inline PartitionSelector(PartitionSelector&&) = default;
+    inline PartitionSelector(PartitionSelector&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief copy-assignment operator.
      */
-    inline PartitionSelector& operator=(const PartitionSelector&) = default;
+    inline PartitionSelector& operator=(const PartitionSelector&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    inline PartitionSelector& operator=(PartitionSelector&&) = default;
+    inline PartitionSelector& operator=(PartitionSelector&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Destructor.
      */
-    inline ~PartitionSelector() = default;
+    inline ~PartitionSelector() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Checks for the validity of the underlying pointer.

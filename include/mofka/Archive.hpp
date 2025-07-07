@@ -24,7 +24,7 @@ class Archive {
     /**
      * @brief Destructor.
      */
-    virtual ~Archive() = default;
+    virtual ~Archive() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Read size bytes from the archive into the buffer.

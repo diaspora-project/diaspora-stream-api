@@ -74,32 +74,32 @@ class DataDescriptor {
     /**
      * @brief Constructor (equivalent to a DataDescriptor for no data).
      */
-    DataDescriptor() = default;
+    DataDescriptor() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-constructor.
      */
-    DataDescriptor(const DataDescriptor&) = default;
+    DataDescriptor(const DataDescriptor&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-constructor.
      */
-    DataDescriptor(DataDescriptor&&) = default;
+    DataDescriptor(DataDescriptor&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-assignment operator.
      */
-    DataDescriptor& operator=(const DataDescriptor&) = default;
+    DataDescriptor& operator=(const DataDescriptor&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    DataDescriptor& operator=(DataDescriptor&&) = default;
+    DataDescriptor& operator=(DataDescriptor&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Destructor.
      */
-    ~DataDescriptor() = default;
+    ~DataDescriptor() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Return the size of the underlying data in bytes.

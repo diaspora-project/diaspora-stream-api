@@ -32,7 +32,7 @@ class ConsumerInterface {
     /**
      * @brief Destructor.
      */
-    virtual ~ConsumerInterface() = default;
+    virtual ~ConsumerInterface() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Returns the name of the producer.
@@ -114,27 +114,27 @@ class Consumer {
 
     public:
 
-    inline Consumer() = default;
+    inline Consumer() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-constructor.
      */
-    inline Consumer(const Consumer&) = default;
+    inline Consumer(const Consumer&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-constructor.
      */
-    inline Consumer(Consumer&&) = default;
+    inline Consumer(Consumer&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-assignment operator.
      */
-    inline Consumer& operator=(const Consumer&) = default;
+    inline Consumer& operator=(const Consumer&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    inline Consumer& operator=(Consumer&&) = default;
+    inline Consumer& operator=(Consumer&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Destructor.

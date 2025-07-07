@@ -62,22 +62,22 @@ class DataView {
     /**
      * @brief Copy-constructor.
      */
-    inline DataView(const DataView&) = default;
+    inline DataView(const DataView&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-constructor.
      */
-    inline DataView(DataView&&) = default;
+    inline DataView(DataView&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-assignment operator.
      */
-    inline DataView& operator=(const DataView&) = default;
+    inline DataView& operator=(const DataView&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    inline DataView& operator=(DataView&&) = default;
+    inline DataView& operator=(DataView&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Free.

@@ -98,32 +98,32 @@ class Producer {
     /**
      * @brief Constructor.
      */
-    inline Producer() = default;
+    inline Producer() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-constructor.
      */
-    inline Producer(const Producer&) = default;
+    inline Producer(const Producer&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-constructor.
      */
-    inline Producer(Producer&&) = default;
+    inline Producer(Producer&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Copy-assignment operator.
      */
-    inline Producer& operator=(const Producer&) = default;
+    inline Producer& operator=(const Producer&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Move-assignment operator.
      */
-    inline Producer& operator=(Producer&&) = default;
+    inline Producer& operator=(Producer&&) = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Destructor.
      */
-    inline ~Producer() = default;
+    inline ~Producer() = default; // LCOV_EXCL_LINE
 
     /**
      * @brief Returns the name of the producer.

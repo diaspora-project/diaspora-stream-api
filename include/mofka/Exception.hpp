@@ -20,13 +20,13 @@ class Exception : public std::logic_error {
 
     public:
 
-    Exception(const Exception&) = default;
+    Exception(const Exception&) = default; // LCOV_EXCL_LINE
 
-    Exception(Exception&&) = default;
+    Exception(Exception&&) = default; // LCOV_EXCL_LINE
 
-    Exception& operator=(const Exception&) = default;
+    Exception& operator=(const Exception&) = default; // LCOV_EXCL_LINE
 
-    Exception& operator=(Exception&&) = default;
+    Exception& operator=(Exception&&) = default; // LCOV_EXCL_LINE
 
     Exception(const char* w)
     : std::logic_error(w) {}

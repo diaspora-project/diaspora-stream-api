@@ -25,7 +25,7 @@ namespace mofka {
  *
  * An easy way to select the whole data is to just return the provided
  * DataDescriptor. An easy way to decline all the data is to just return
- * DataDescriptor::Null().
+ * DataDescriptor{}.
  */
 using DataSelector = std::function<DataDescriptor(const Metadata&, const DataDescriptor&)>;
 

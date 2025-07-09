@@ -1,17 +1,23 @@
 # (C) 2020 The University of Chicago
 # See COPYRIGHT in top-level directory.
 cmake_minimum_required (VERSION 3.21)
-project (mofka C CXX)
+project (mofka-api C CXX)
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing ()
 
 # library version set here (e.g. for shared libs).
-set (MOFKA_API_VERSION_MAJOR 1)
-set (MOFKA_API_VERSION_MINOR 0)
+set (MOFKA_API_VERSION_MAJOR 0)
+set (MOFKA_API_VERSION_MINOR 1)
 set (MOFKA_API_VERSION_PATCH 0)
 set (MOFKA_API_VERSION
     "${MOFKA_API_VERSION_MAJOR}.${MOFKA_API_VERSION_MINOR}.${MOFKA_API_VERSION_PATCH}")
+
+if (DEFINED SKBUILD_PROJECT_VERSION AND NOT "${SKBUILD_PROJECT_VERSION}" STREQUAL "${MOFKA_API_VERSION}")
+    message (FATAL_ERROR
+"Version in pyproject.toml (${SKBUILD_PROJECT_VERSION}) \
+does not match version in CMakeLists.txt (${MOFKA_API_VERSION})")
+endif ()
 
 add_library (coverage_config INTERFACE)
 add_library (warnings_config INTERFACE)
@@ -61,8 +67,30 @@ if (CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo|Debug")
 endif ()
 
 # search for nlohmann/json and schema validator
-find_package (nlohmann_json REQUIRED)
-find_package (nlohmann_json_schema_validator REQUIRED)
+if (NOT DEFINED SKBUILD_PROJECT_NAME)
+    find_package (nlohmann_json)
+    find_package (nlohmann_json_schema_validator REQUIRED)
+else ()
+    include (FetchContent)
+    FetchContent_Declare (
+        nlohmann_json
+        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+    )
+    FetchContent_MakeAvailable (nlohmann_json)
+    FetchContent_Declare (
+        nlohmann_json_schema_validator
+        URL https://github.com/pboettch/json-schema-validator/archive/refs/tags/2.3.0.tar.gz
+    )
+    FetchContent_MakeAvailable (nlohmann_json_schema_validator)
+    install (DIRECTORY ${nlohmann_json_SOURCE_DIR}/include/nlohmann
+             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install (TARGETS nlohmann_json nlohmann_json_schema_validator
+             EXPORT mofka-api-targets
+             ARCHIVE DESTINATION lib
+             LIBRARY DESTINATION lib
+             RUNTIME DESTINATION bin
+             INCLUDES DESTINATION include)
+endif ()
 
 if (ENABLE_PYTHON)
     find_package (Python3 COMPONENTS Interpreter Development REQUIRED)
@@ -72,7 +100,7 @@ endif ()
 
 add_subdirectory (src)
 
-if (${ENABLE_TESTS})
+if (ENABLE_TESTS)
     enable_testing ()
     find_package (Catch2 QUIET)
     if (NOT Catch2_FOUND)
@@ -85,4 +113,4 @@ if (${ENABLE_TESTS})
         FetchContent_MakeAvailable (Catch2)
     endif ()
     add_subdirectory (tests)
-endif (${ENABLE_TESTS})
+endif ()

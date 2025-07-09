@@ -59,6 +59,12 @@ configure_file ("mofka-api.pc.in" "mofka-api.pc" @ONLY)
 # configure config.h
 configure_file ("Config.h.in" "Config.h" @ONLY)
 
+install (TARGETS mofka-api ${NLOHMANN_JSON_TARGETS}
+         EXPORT mofka-api-targets
+         ARCHIVE DESTINATION lib
+         LIBRARY DESTINATION lib
+         RUNTIME DESTINATION bin
+         INCLUDES DESTINATION include)
 install (EXPORT mofka-api-targets
          DESTINATION ${mofka-api-pkg}
          FILE "mofka-api-targets.cmake")

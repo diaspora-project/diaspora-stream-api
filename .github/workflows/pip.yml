@@ -18,7 +18,7 @@ jobs:
 
     - name: Install cmake
       run: |
-        apt install cmake
+        sudo apt install -y cmake
 
     - name: Setup Python
       uses: actions/setup-python@v5

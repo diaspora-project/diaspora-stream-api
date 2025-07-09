@@ -35,3 +35,8 @@ jobs:
       run: |
         . .venv/bin/activate
         pip install .
+
+    - name: Test import
+      run: |
+        . .venv/bin/activate
+        python -c "import pymofka_api"

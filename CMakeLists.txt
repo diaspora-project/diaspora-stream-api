@@ -34,8 +34,13 @@ set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
      "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # link shared lib with full rpath
-set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+if (NOT DEFINED SKBUILD_PROJECT_VERSION)
+    list (APPEND CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+else ()
+    list (APPEND CMAKE_INSTALL_RPATH "\$ORIGIN/lib")
+    list (APPEND CMAKE_INSTALL_RPATH "\$ORIGIN")
+endif ()
 
 # setup cache variables for ccmake
 if (NOT CMAKE_BUILD_TYPE)

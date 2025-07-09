@@ -66,6 +66,7 @@ class ThreadPoolInterface {
  */
 class ThreadPool {
 
+    friend struct PythonBindingHelper;
     friend class Consumer;
     friend class Producer;
     friend class TopicHandle;

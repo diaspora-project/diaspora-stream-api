@@ -103,37 +103,12 @@ struct BufferDataOwner : public AbstractDataOwner {
     }
 };
 
-PYBIND11_MODULE(pymofka_client, m) {
+PYBIND11_MODULE(pymofka_api, m) {
     m.doc() = "Python binding for the Mofka client library";
 
     py::register_exception<mofka::Exception>(m, "Exception", PyExc_RuntimeError);
 
     m.attr("AdaptiveBatchSize") = py::int_(mofka::BatchSize::Adaptive().value);
-
-    py::class_<mofka::DriverInterface,
-               std::shared_ptr<mofka::DriverInterface>>(m, "Driver")
-        .def("create_topic",
-             &mofka::DriverInterface::createTopic,
-             "name"_a, "options"_a=mofka::Metadata{},
-             "validator"_a=mofka::PythonBindingHelper::GetSelf(mofka::Validator{}),
-             "partition_selector"_a=mofka::PythonBindingHelper::GetSelf(mofka::PartitionSelector{}),
-             "serializer"_a=mofka::PythonBindingHelper::GetSelf(mofka::Serializer{}))
-        .def("open_topic",
-             &mofka::DriverInterface::openTopic,
-             "name"_a)
-        .def("topic_exists",
-             &mofka::DriverInterface::topicExists,
-             "name"_a)
-        .def("make_thread_pool",
-             [](const mofka::DriverInterface& driver, size_t count) {
-                return driver.makeThreadPool(mofka::ThreadCount{count});
-             }, "count"_a)
-        .def_property_readonly("default_thread_pool", &mofka::DriverInterface::defaultThreadPool)
-        .def_static("new",
-            [](const std::string& name, const nlohmann::json& md){
-                return mofka::DriverFactory::create(name, mofka::Metadata{md});
-            }, "name"_a, "metadata"_a=nlohmann::json::object())
-    ;
 
     py::class_<mofka::ValidatorInterface,
                std::shared_ptr<mofka::ValidatorInterface>>(m, "Validator")
@@ -173,6 +148,31 @@ PYBIND11_MODULE(pymofka_client, m) {
                 return mofka::PythonBindingHelper::GetSelf(
                     mofka::PartitionSelector::FromMetadata(md));
             }, "metadata"_a=nlohmann::json::object())
+    ;
+
+    py::class_<mofka::DriverInterface,
+               std::shared_ptr<mofka::DriverInterface>>(m, "Driver")
+        .def("create_topic",
+             &mofka::DriverInterface::createTopic,
+             "name"_a, "options"_a=nlohmann::json::object(),
+             "validator"_a=mofka::PythonBindingHelper::GetSelf(mofka::Validator{}),
+             "partition_selector"_a=mofka::PythonBindingHelper::GetSelf(mofka::PartitionSelector{}),
+             "serializer"_a=mofka::PythonBindingHelper::GetSelf(mofka::Serializer{}))
+        .def("open_topic",
+             &mofka::DriverInterface::openTopic,
+             "name"_a)
+        .def("topic_exists",
+             &mofka::DriverInterface::topicExists,
+             "name"_a)
+        .def("make_thread_pool",
+             [](const mofka::DriverInterface& driver, size_t count) {
+                return driver.makeThreadPool(mofka::ThreadCount{count});
+             }, "count"_a)
+        .def_property_readonly("default_thread_pool", &mofka::DriverInterface::defaultThreadPool)
+        .def_static("new",
+            [](const std::string& name, const nlohmann::json& md){
+                return mofka::DriverFactory::create(name, mofka::Metadata{md});
+            }, "name"_a, "metadata"_a=nlohmann::json::object())
     ;
 
     py::class_<mofka::TopicHandleInterface,
@@ -256,7 +256,8 @@ PYBIND11_MODULE(pymofka_client, m) {
             "name"_a, py::kw_only(),
             "data_selector"_a, "data_broker"_a,
             "batch_size"_a=mofka::BatchSize::Adaptive().value,
-            "max_num_batches"_a=2, "thread_pool"_a=mofka::ThreadPool{},
+            "max_num_batches"_a=2,
+            "thread_pool"_a=mofka::PythonBindingHelper::GetSelf(mofka::ThreadPool{}),
             "targets"_a=std::optional<std::vector<size_t>>{},
             "options"_a=nlohmann::json(nullptr))
         .def("consumer",
@@ -294,7 +295,8 @@ PYBIND11_MODULE(pymofka_client, m) {
                },
             "name"_a, py::kw_only(),
             "batch_size"_a=mofka::BatchSize::Adaptive().value,
-            "max_num_batches"_a=2, "thread_pool"_a=mofka::ThreadPool{},
+            "max_num_batches"_a=2,
+            "thread_pool"_a=mofka::PythonBindingHelper::GetSelf(mofka::ThreadPool{}),
             "targets"_a=std::optional<std::vector<size_t>>{},
             "options"_a=nlohmann::json(nullptr))
     ;

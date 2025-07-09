@@ -153,7 +153,14 @@ PYBIND11_MODULE(pymofka_api, m) {
     py::class_<mofka::DriverInterface,
                std::shared_ptr<mofka::DriverInterface>>(m, "Driver")
         .def("create_topic",
-             &mofka::DriverInterface::createTopic,
+             [](mofka::DriverInterface& driver,
+                std::string_view name,
+                const nlohmann::json& options,
+                std::shared_ptr<mofka::ValidatorInterface> validator,
+                std::shared_ptr<mofka::PartitionSelectorInterface> partition_selector,
+                std::shared_ptr<mofka::SerializerInterface> serializer) {
+                    driver.createTopic(name, options, validator, partition_selector, serializer);
+             },
              "name"_a, "options"_a=nlohmann::json::object(),
              "validator"_a=mofka::PythonBindingHelper::GetSelf(mofka::Validator{}),
              "partition_selector"_a=mofka::PythonBindingHelper::GetSelf(mofka::PartitionSelector{}),

@@ -455,8 +455,9 @@ class SimpleDriver : public mofka::DriverInterface,
 
     std::shared_ptr<mofka::TopicHandleInterface> openTopic(std::string_view name) const override {
         auto it = m_topics.find(std::string{name});
-        if(it == m_topics.end()) return nullptr;
-        else return it->second;
+        if(it == m_topics.end())
+            throw mofka::Exception{"Could not find topic \"" + std::string{name} + "\""};
+        return it->second;
     }
 
     bool topicExists(std::string_view name) const override {

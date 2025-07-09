@@ -123,6 +123,8 @@ class Driver {
      * @return a TopicHandle representing the topic.
      */
     inline TopicHandle openTopic(std::string_view name) const {
+        auto topic = self->openTopic(name);
+        if(!topic) throw Exception{"Topic " + std::string{name} + " does not exist"};
         return TopicHandle{self->openTopic(name)};
     }
 

@@ -1,4 +1,5 @@
 set (src-files
+     Factory.cpp
      TopicHandle.cpp
      Producer.cpp
      Consumer.cpp

@@ -13,6 +13,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <iostream>
 
 namespace mofka {
 
@@ -27,28 +28,7 @@ class Factory {
 
     public:
 
-    static std::shared_ptr<Base> create(const std::string& key, Args&&... args) {
-        auto& factory = instance();
-        std::string name = key;
-        std::size_t found = key.find(":");
-        if (found != std::string::npos) {
-            name = key.substr(0, found);
-            const auto path = key.substr(found + 1);
-            auto it = factory.m_creator_fn.find(name);
-            if (it == factory.m_creator_fn.end()) {
-                if(dlopen(path.c_str(), RTLD_NOW) == nullptr) {
-                    throw Exception(
-                        std::string{"Could not dlopen"} + name + ":" + dlerror());
-                }
-            }
-        }
-        auto it = factory.m_creator_fn.find(name);
-        if (it != factory.m_creator_fn.end()) {
-            return it->second(std::forward<Args>(args)...);
-        } else {
-            throw Exception(std::string("Factory method not found for type ") +  name);
-        }
-    }
+    static std::shared_ptr<Base> create(const std::string& key, Args&&... args);
 
 private:
 
@@ -57,14 +37,9 @@ private:
 
     using CreatorFunction = std::function<std::shared_ptr<Base>(Args...)>;
 
-    static Factory& instance() {
-        static Factory factory;
-        return factory;
-    }
+    static Factory& instance();
 
-    void registerCreator(const std::string& key, CreatorFunction creator) {
-        m_creator_fn[key] = std::move(creator);
-    }
+    void registerCreator(const std::string& key, CreatorFunction creator);
 
     std::unordered_map<std::string, CreatorFunction> m_creator_fn;
 };
@@ -73,7 +48,8 @@ template <typename FactoryType, typename Derived>
 struct Registrar {
 
     explicit Registrar(const std::string& key) {
-        FactoryType::instance().registerCreator(key, Derived::create);
+        auto& factory = FactoryType::instance();
+        factory.registerCreator(key, Derived::create);
     }
 
 };

@@ -12,7 +12,7 @@ endforeach ()
 
 if (ENABLE_PYTHON)
 
-#    add_subdirectory (python)
+    add_subdirectory (python)
 
     set (PYTHON_MODULE_DIR ${CMAKE_SOURCE_DIR}/python)
     file (GLOB_RECURSE PYTHON_MOFKA_TEST_FILES "${PYTHON_MODULE_DIR}/test_mofka_*.py")

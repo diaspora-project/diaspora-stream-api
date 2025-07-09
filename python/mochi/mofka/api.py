@@ -14,6 +14,7 @@ Producer = pymofka_api.Producer
 Consumer = pymofka_api.Consumer
 DataDescriptor = pymofka_api.DataDescriptor
 Event = pymofka_api.Event
+Exception = pymofka_api.Exception
 FutureUint = pymofka_api.FutureUint
 FutureEvent = pymofka_api.FutureEvent
 FullDataSelector = pymofka_api.FullDataSelector

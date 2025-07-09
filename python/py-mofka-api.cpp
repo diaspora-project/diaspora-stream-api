@@ -16,18 +16,18 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
-typedef py::capsule py_margo_instance_id;
-typedef py::capsule py_hg_addr_t;
-
-#define MID2CAPSULE(__mid)   py::capsule((void*)(__mid),  "margo_instance_id")
-#define ADDR2CAPSULE(__addr) py::capsule((void*)(__addr), "hg_addr_t")
-
 namespace mofka {
 
 struct PythonBindingHelper {
+
     template<typename T>
     static auto GetSelf(const T& x) {
         return x.self;
+    }
+
+    template<typename T, typename I>
+    static auto FromInterface(std::shared_ptr<I> impl) {
+        return T{std::move(impl)};
     }
 };
 
@@ -382,6 +382,11 @@ PYBIND11_MODULE(pymofka_api, m) {
             "processor"_a, py::kw_only(), "thread_pool"_a,
             "max_events"_a=std::numeric_limits<size_t>::max()
             )
+        .def("__iter__",
+             [](std::shared_ptr<mofka::ConsumerInterface> consumer) {
+                auto c = mofka::PythonBindingHelper::FromInterface<mofka::Consumer>(consumer);
+                return py::make_iterator(c.begin(), c.end());
+              }, py::keep_alive<0, 1>())
     ;
 
     py::class_<mofka::DataDescriptor>(m, "DataDescriptor")

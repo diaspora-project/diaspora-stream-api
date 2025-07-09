@@ -111,6 +111,7 @@ class ConsumerInterface {
 class Consumer {
 
     friend class TopicHandle;
+    friend struct PythonBindingHelper;
 
     public:
 
@@ -230,7 +231,7 @@ class Consumer {
      * ```
      * This is to prevent another thread from calling it with another
      * processor.
-     *
+     {}*
      * @param processor EventProcessor.
      */
     inline void operator|(EventProcessor processor) const && {
@@ -243,6 +244,64 @@ class Consumer {
     inline explicit operator bool() const {
         return static_cast<bool>(self);
     }
+
+    class Iterator {
+
+        friend class Consumer;
+
+        public:
+
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = Event;
+        using difference_type = std::ptrdiff_t;
+        using pointer = Event*;
+        using reference = Event&;
+
+        inline Iterator() = default;
+
+        inline reference operator*() const { return m_current_event; }
+
+        inline pointer operator->() const { return &m_current_event; }
+
+        inline Iterator& operator++() {
+            m_current_event = m_owner->pull().wait();
+            if(m_current_event.id() == NoMoreEvents) {
+                m_owner = nullptr;
+                m_current_event = Event{};
+            }
+            return *this;
+        }
+
+        inline bool operator==(const Iterator& other) const {
+            if(!other.m_owner && !m_owner) return true;
+            return false;
+        }
+
+        inline bool operator!=(const Iterator& other) const {
+            return !(*this == other);
+        }
+
+        private:
+
+        Iterator(std::shared_ptr<ConsumerInterface> owner)
+        : m_owner(std::move(owner)) {
+            ++(*this);
+        }
+
+        mutable Event                      m_current_event;
+        std::shared_ptr<ConsumerInterface> m_owner;
+    };
+
+    /**
+     * @brief Create an iterator from the beginning of the topic
+     * or from the last consumed offset.
+     */
+    Iterator begin() { return Iterator(self); }
+
+    /**
+     * @brief Create an iterator indicating the end of a topic.
+     */
+    Iterator end() { return Iterator(); }
 
     private:
 

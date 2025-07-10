@@ -491,7 +491,7 @@ inline std::shared_ptr<mofka::ProducerInterface>
         mofka::Metadata options) {
     (void)options;
     auto simple_thread_pool = std::dynamic_pointer_cast<SimpleThreadPool>(thread_pool);
-    if(!simple_thread_pool)
+    if(thread_pool && !simple_thread_pool)
         throw mofka::Exception{"ThreadPool should be an instance of SimpleThreadPool"};
     return std::make_shared<SimpleProducer>(
             std::string{name}, batch_size, max_batch, ordering, simple_thread_pool,

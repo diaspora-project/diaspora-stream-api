@@ -620,11 +620,16 @@ PYBIND11_MODULE(pymofka_api, m) {
             "data"_a=py::memoryview::from_memory(nullptr, 0, true),
             py::kw_only(),
             "partition"_a=std::nullopt)
-        .def("flush", &mofka::ProducerInterface::flush)
-        .def("batch_size",
+        .def("flush", &mofka::ProducerInterface::flush,
+             "Flush the producer, i.e. ensure all the events previously pushed have been sent.")
+        .def_property_readonly("batch_size",
             [](const mofka::ProducerInterface& producer) -> std::size_t {
                 return producer.batchSize().value;
-            })
+            }, "Return the batch size of the producer.")
+        .def_property_readonly("max_num_batches",
+            [](const mofka::ProducerInterface& producer) -> std::size_t {
+                return producer.maxNumBatches().value;
+            }, "Return the maximum number of pending batches in the producer.")
     ;
 
     py::class_<mofka::ConsumerInterface,

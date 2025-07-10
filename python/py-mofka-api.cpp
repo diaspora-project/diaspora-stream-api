@@ -317,13 +317,14 @@ PYBIND11_MODULE(pymofka_api, m) {
                 "name",
                 &mofka::TopicHandleInterface::name,
                 "Name of the topic.")
-        .def_property_readonly("partitions", [](const mofka::TopicHandle& topic) {
-            std::vector<nlohmann::json> result;
-            for(auto& p : topic.partitions()) {
-                result.push_back(p.json());
-            }
-            return result;
-        }, "List of partitions of the topic.")
+        .def_property_readonly("partitions",
+            [](const mofka::TopicHandleInterface& topic) {
+                std::vector<nlohmann::json> result;
+                for(auto& p : topic.partitions()) {
+                    result.push_back(p.json());
+                }
+                return result;
+            }, "List of partitions of the topic.")
         .def("mark_as_complete",
              &mofka::TopicHandleInterface::markAsComplete,
              R"(

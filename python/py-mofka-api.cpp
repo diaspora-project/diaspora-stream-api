@@ -116,7 +116,24 @@ PYBIND11_MODULE(pymofka_api, m) {
             [](const nlohmann::json& md){
                 return mofka::PythonBindingHelper::GetSelf(
                     mofka::Validator::FromMetadata(md));
-            }, "metadata"_a=nlohmann::json::object())
+            }, R"(
+            Create a Validator instance from some Metadata. The metadata argument
+            is expected to be a dictionary object with at least a "type" field.
+            The type can be in the form "name:library.so" if library.so must be
+            loaded to access the Validator. If the "type" field is not provided,
+            it is assumed to be "default".
+
+            Parameters
+            ----------
+
+            metadata (dict): metadata to pass to the Validator factory.
+
+            Returns
+            -------
+
+            New Validator instance.
+            )",
+            "metadata"_a=nlohmann::json::object())
     ;
 
     py::class_<mofka::ThreadPoolInterface,
@@ -124,7 +141,7 @@ PYBIND11_MODULE(pymofka_api, m) {
         .def_property_readonly("thread_count",
             [](const mofka::ThreadPoolInterface& thread_pool) -> std::size_t {
                 return thread_pool.threadCount().count;
-            })
+            }, "Returns the number of underlying threads.")
     ;
 
     py::enum_<mofka::Ordering>(m, "Ordering")
@@ -138,7 +155,24 @@ PYBIND11_MODULE(pymofka_api, m) {
             [](const nlohmann::json& md){
                 return mofka::PythonBindingHelper::GetSelf(
                     mofka::Serializer::FromMetadata( md));
-            }, "metadata"_a=nlohmann::json::object())
+            }, R"(
+            Create a Serializer instance from some Metadata. The metadata argument
+            is expected to be a dictionary object with at least a "type" field.
+            The type can be in the form "name:library.so" if library.so must be
+            loaded to access the Serializer. If the "type" field is not provided,
+            it is assumed to be "default".
+
+            Parameters
+            ----------
+
+            metadata (dict): metadata to pass to the Serializer factory.
+
+            Returns
+            -------
+
+            New Serializer instance.
+            )",
+            "metadata"_a=nlohmann::json::object())
     ;
 
     py::class_<mofka::PartitionSelectorInterface,
@@ -147,7 +181,24 @@ PYBIND11_MODULE(pymofka_api, m) {
             [](const nlohmann::json& md){
                 return mofka::PythonBindingHelper::GetSelf(
                     mofka::PartitionSelector::FromMetadata(md));
-            }, "metadata"_a=nlohmann::json::object())
+            }, R"(
+            Create a PartitionSelector instance from some Metadata. The metadata argument
+            is expected to be a dictionary object with at least a "type" field.
+            The type can be in the form "name:library.so" if library.so must be
+            loaded to access the PartitionSelector. If the "type" field is not provided,
+            it is assumed to be "default".
+
+            Parameters
+            ----------
+
+            metadata (dict): metadata to pass to the PartitionSelector factory.
+
+            Returns
+            -------
+
+            New PartitionSelector instance.
+            )",
+            "metadata"_a=nlohmann::json::object())
     ;
 
     py::class_<mofka::DriverInterface,
@@ -161,38 +212,124 @@ PYBIND11_MODULE(pymofka_api, m) {
                 std::shared_ptr<mofka::SerializerInterface> serializer) {
                     driver.createTopic(name, options, validator, partition_selector, serializer);
              },
-             "name"_a, "options"_a=nlohmann::json::object(),
+             R"(
+             Create a topic with a given name, if it does not exist yet.
+
+             Parameters
+             ----------
+
+             name (str): Name of the topic to create.
+             options (dict): Backend-specific options.
+             validator (Validator): Validator instance to call when pushing events.
+             partition_selector (PartitionSelector): PartitionSelector to call to choose a partition.
+             serializer (Serializer): Serializer to call to serialize events metadata.
+             )",
+             "name"_a, py::kw_only(), "options"_a=nlohmann::json::object(),
              "validator"_a=mofka::PythonBindingHelper::GetSelf(mofka::Validator{}),
              "partition_selector"_a=mofka::PythonBindingHelper::GetSelf(mofka::PartitionSelector{}),
              "serializer"_a=mofka::PythonBindingHelper::GetSelf(mofka::Serializer{}))
         .def("open_topic",
              &mofka::DriverInterface::openTopic,
+             R"(
+             Open a topic with a given its name.
+
+             Parameters
+             ----------
+
+             name (str): Name of the topic to open.
+
+             Returns
+             -------
+
+             A TopicHandle instance representing the opened topic.
+             )",
              "name"_a)
         .def("topic_exists",
              &mofka::DriverInterface::topicExists,
+             R"(
+             Check if a topic with a given name exists.
+
+             Parameters
+             ----------
+
+             name (str): Name of the topic.
+
+             Returns
+             -------
+
+             True if the topic exists, False otherwise.
+             )",
              "name"_a)
         .def("make_thread_pool",
              [](const mofka::DriverInterface& driver, size_t count) {
                 return driver.makeThreadPool(mofka::ThreadCount{count});
-             }, "count"_a)
-        .def_property_readonly("default_thread_pool", &mofka::DriverInterface::defaultThreadPool)
+                }, R"(
+             Create a ThreadPool instance with the given number of threads.
+
+             Parameters
+             ----------
+
+             count (int): Number of threads.
+
+             Returns
+             -------
+
+             A ThreadPool instance.
+             )",
+             "count"_a)
+        .def_property_readonly("default_thread_pool",
+             &mofka::DriverInterface::defaultThreadPool,
+             R"(
+             Get the default ThreadPool of the Driver.
+
+             Returns
+             -------
+
+             A ThreadPool instance.
+             )")
         .def_static("new",
-            [](const std::string& name, const nlohmann::json& md){
+            [](const std::string& name, const nlohmann::json& md) {
                 return mofka::DriverFactory::create(name, mofka::Metadata{md});
-            }, "name"_a, "metadata"_a=nlohmann::json::object())
+            },
+            R"(
+            Create a new Driver from a name an some backend-specific metadata.
+            The name can be in the "backend" if the backend has already been
+            loaded into the process' memory. Using "backend:library.so" will cause
+            the factory to dlopen library.so before searching for the "backend".
+
+            Parameters
+            ----------
+
+            name (str): Name of the backend.
+            metadata (dict): Backend-specific configuration.
+
+            Returns
+            -------
+
+            A Driver instance.
+            )"
+            "name"_a, "metadata"_a=nlohmann::json::object())
     ;
 
     py::class_<mofka::TopicHandleInterface,
                std::shared_ptr<mofka::TopicHandleInterface>>(m, "TopicHandle")
-        .def_property_readonly("name", &mofka::TopicHandleInterface::name)
+        .def_property_readonly(
+                "name",
+                &mofka::TopicHandleInterface::name,
+                "Name of the topic.")
         .def_property_readonly("partitions", [](const mofka::TopicHandle& topic) {
             std::vector<nlohmann::json> result;
             for(auto& p : topic.partitions()) {
                 result.push_back(p.json());
             }
             return result;
-        })
-        .def("mark_as_complete", &mofka::TopicHandleInterface::markAsComplete)
+        }, "List of partitions of the topic.")
+        .def("mark_as_complete",
+             &mofka::TopicHandleInterface::markAsComplete,
+             R"(
+             Closes the topic, preventing new events from being pushed into it,
+             and notifying consumers that no new events are to be expected.
+             )")
         .def("producer",
             [](mofka::TopicHandleInterface& topic,
                std::string_view name,
@@ -206,6 +343,24 @@ PYBIND11_MODULE(pymofka_api, m) {
                     mofka::MaxNumBatches{max_batch}, ordering, thread_pool,
                     mofka::Metadata{options});
             },
+            R"(
+            Create a Producer instance to produce events in this topic.
+
+            Parameters
+            ----------
+
+            name (str): Name of the producer.
+            batch_size (int): Batch size.
+            max_num_batches (int): Maximum number of pending batches before push becomes blocking.
+            ordering (Ordering): type of ordering (strict or loose).
+            thread_pool (ThreadPool): ThreadPool to use for any work needed for producing the events.
+            options (dict): Backend-specific options.
+
+            Returns
+            -------
+
+            A Producer instance.
+            )",
             "name"_a="", py::kw_only(),
             "batch_size"_a=mofka::BatchSize::Adaptive().value,
             "max_num_batches"_a=2,
@@ -260,6 +415,34 @@ PYBIND11_MODULE(pymofka_api, m) {
                     targets.value_or(default_targets),
                     mofka::Metadata{options});
                },
+            R"(
+            Create a Consumer instance to consume events from this topic.
+
+            The data_selector argument must be a callable taking a dictionary (an event's metadata)
+            and a DataDescriptor as arguments, and returning a DataDescriptor representing the subset
+            of the event's data to load.
+
+            The data_broker argument must be a callable taking a dictionary (an event's metadata)
+            and a DataDescriptor as arguments, and returning a list of object satisfying the buffer
+            protocol (e.g. bytearray, memoryview, numpy array, etc.).
+
+            Parameters
+            ----------
+
+            name (str): Name of the consumer.
+            data_selector (Callable[Optional[DataDescriptor], [dict, DataDescriptor]]): data selector.
+            data_broker (Callable[list, [dict, DataDescriptor]]): data broker.
+            batch_size (int): Batch size.
+            max_num_batches (int): Maximum number of batches to prefetch at any time.
+            thread_pool (ThreadPool): ThreadPool to use for any work needed for consuming the events.
+            targets (Optional[list[int]): List of indices of partitions to consume from.
+            options (dict): Backend-specific options.
+
+            Returns
+            -------
+
+            A Consumer instance.
+            )",
             "name"_a, py::kw_only(),
             "data_selector"_a, "data_broker"_a,
             "batch_size"_a=mofka::BatchSize::Adaptive().value,
@@ -300,6 +483,27 @@ PYBIND11_MODULE(pymofka_api, m) {
                     targets.value_or(default_targets),
                     mofka::Metadata{options});
                },
+            R"(
+            Create a Consumer instance to consume events from this topic.
+            With version of the consumer function returns a consumer that always loads all
+            of an event's data, and returns it as an internal buffer, of which the returned
+            event's data method will return a memoryview.
+
+            Parameters
+            ----------
+
+            name (str): Name of the consumer.
+            batch_size (int): Batch size.
+            max_num_batches (int): Maximum number of batches to prefetch at any time.
+            thread_pool (ThreadPool): ThreadPool to use for any work needed for consuming the events.
+            targets (Optional[list[int]): List of indices of partitions to consume from.
+            options (dict): Backend-specific options.
+
+            Returns
+            -------
+
+            A Consumer instance.
+            )",
             "name"_a, py::kw_only(),
             "batch_size"_a=mofka::BatchSize::Adaptive().value,
             "max_num_batches"_a=2,
@@ -310,17 +514,34 @@ PYBIND11_MODULE(pymofka_api, m) {
 
     py::class_<mofka::ProducerInterface,
                std::shared_ptr<mofka::ProducerInterface>>(m, "Producer")
-        .def_property_readonly("name", &mofka::ProducerInterface::name)
-        .def_property_readonly("thread_pool", &mofka::ProducerInterface::threadPool)
-        .def_property_readonly("topic", &mofka::ProducerInterface::topic)
+        .def_property_readonly("name", &mofka::ProducerInterface::name, "Name of the producer.")
+        .def_property_readonly("thread_pool", &mofka::ProducerInterface::threadPool,
+                               "ThreadPool used by the producer.")
+        .def_property_readonly("topic", &mofka::ProducerInterface::topic,
+                               "TopicHandle of the topic this producer produces to.")
         .def("push",
             [](mofka::ProducerInterface& producer,
                std::string metadata,
                py::buffer b_data,
                std::optional<size_t> part) -> mofka::Future<mofka::EventID> {
                 return producer.push(std::move(metadata), data_helper(b_data), part);
-            },
-            "metadata"_a, "data"_a=py::memoryview::from_memory(nullptr, 0, true),
+            }, R"(
+            Push an event into the topic.
+
+            The data part may be a memoryview or any object satisfying the buffer protocol.
+
+            If partition is provided, the PartitionSelector may or may not choose
+            to send the event to this requested partition.
+
+            Parameters
+            ----------
+
+            metadata (str): Metadata part of the event, as a string.
+            data (memoryview): Data part of the event (single memoryview).
+            partition (int): Request that the event be sent to a specific partition.
+            )",
+            "metadata"_a,
+            "data"_a=py::memoryview::from_memory(nullptr, 0, true),
             py::kw_only(),
             "partition"_a=std::nullopt)
         .def("push",
@@ -329,8 +550,23 @@ PYBIND11_MODULE(pymofka_api, m) {
                py::buffer b_data,
                std::optional<size_t> part) -> mofka::Future<mofka::EventID> {
                 return producer.push(std::move(metadata), data_helper(b_data), part);
-            },
-            "metadata"_a, "data"_a=py::memoryview::from_memory(nullptr, 0, true),
+            }, R"(
+            Push an event into the topic.
+
+            The data part may be a memoryview or any object satisfying the buffer protocol.
+
+            If partition is provided, the PartitionSelector may or may not choose
+            to send the event to this requested partition.
+
+            Parameters
+            ----------
+
+            metadata (dict): Metadata part of the event, as a dictionary.
+            data (memoryview): Data part of the event (single memoryview).
+            partition (int): Request that the event be sent to a specific partition.
+            )",
+            "metadata"_a,
+            "data"_a=py::memoryview::from_memory(nullptr, 0, true),
             py::kw_only(),
             "partition"_a=std::nullopt)
         .def("push",
@@ -339,8 +575,23 @@ PYBIND11_MODULE(pymofka_api, m) {
                const py::list& b_data,
                std::optional<size_t> part) -> mofka::Future<mofka::EventID> {
                 return producer.push(std::move(metadata), data_helper(b_data), part);
-            },
-            "metadata"_a, "data"_a=std::vector<py::memoryview>{},
+            }, R"(
+            Push an event into the topic.
+
+            The data part may be a list of memoryviews or any objects satisfying the buffer protocol.
+
+            If partition is provided, the PartitionSelector may or may not choose
+            to send the event to this requested partition.
+
+            Parameters
+            ----------
+
+            metadata (str): Metadata part of the event, as a string.
+            data (list[memoryview]): Data part of the event (list of memoryviews).
+            partition (int): Request that the event be sent to a specific partition.
+            )",
+            "metadata"_a,
+            "data"_a=std::vector<py::memoryview>{},
             py::kw_only(),
             "partition"_a=std::nullopt)
         .def("push",
@@ -349,8 +600,23 @@ PYBIND11_MODULE(pymofka_api, m) {
                py::list b_data,
                std::optional<size_t> part) -> mofka::Future<mofka::EventID> {
                 return producer.push(std::move(metadata), data_helper(b_data), part);
-            },
-            "metadata"_a, "data"_a=py::memoryview::from_memory(nullptr, 0, true),
+            }, R"(
+            Push an event into the topic.
+
+            The data part may be a list of memoryviews or any objects satisfying the buffer protocol.
+
+            If partition is provided, the PartitionSelector may or may not choose
+            to send the event to this requested partition.
+
+            Parameters
+            ----------
+
+            metadata (str): Metadata part of the event, as a dictionary.
+            data (list[memoryview]): Data part of the event (list of memoryviews).
+            partition (int): Request that the event be sent to a specific partition.
+            )",
+            "metadata"_a,
+            "data"_a=py::memoryview::from_memory(nullptr, 0, true),
             py::kw_only(),
             "partition"_a=std::nullopt)
         .def("flush", &mofka::ProducerInterface::flush)
@@ -362,16 +628,33 @@ PYBIND11_MODULE(pymofka_api, m) {
 
     py::class_<mofka::ConsumerInterface,
                std::shared_ptr<mofka::ConsumerInterface>>(m, "Consumer")
-        .def_property_readonly("name", &mofka::ConsumerInterface::name)
-        .def_property_readonly("thread_pool", &mofka::ConsumerInterface::threadPool)
-        .def_property_readonly("topic", &mofka::ConsumerInterface::topic)
-        .def_property_readonly("data_broker", &mofka::ConsumerInterface::dataBroker)
-        .def_property_readonly("data_selector", &mofka::ConsumerInterface::dataSelector)
-        .def("batch_size",
+        .def_property_readonly("name", &mofka::ConsumerInterface::name,
+                               "Name of the consumer.")
+        .def_property_readonly("thread_pool", &mofka::ConsumerInterface::threadPool,
+                               "ThreadPool used by the consumer.")
+        .def_property_readonly("topic", &mofka::ConsumerInterface::topic,
+                               "TopicHandle of the topic from which this consumer receives events.")
+        .def_property_readonly("data_broker", &mofka::ConsumerInterface::dataBroker,
+                               "Callable used to allocate memory for the data part of events.")
+        .def_property_readonly("data_selector", &mofka::ConsumerInterface::dataSelector,
+                               "Callable used to select the part of the data to load.")
+        .def_property_readonly("batch_size",
             [](const mofka::ConsumerInterface& consumer) -> std::size_t {
                 return consumer.batchSize().value;
-            })
-        .def("pull", &mofka::ConsumerInterface::pull)
+            }, "Bath size used by the consumer.")
+        .def_property_readonly("max_num_batches",
+            [](const mofka::ConsumerInterface& consumer) -> std::size_t {
+                return consumer.maxNumBatches().value;
+            }, "Maximum number of bathes used by the consumer internally.")
+        .def("pull", &mofka::ConsumerInterface::pull, R"(
+            Pull an event. This function will immediately return a FutureEvent.
+            Calling wait() on this future will block until an event is available.
+
+            Returns
+            -------
+
+            A FutureEvent instance.
+        )")
         .def("process",
             [](mofka::ConsumerInterface& consumer,
                mofka::EventProcessor processor,
@@ -379,22 +662,43 @@ PYBIND11_MODULE(pymofka_api, m) {
                std::size_t maxEvents) {
                 return consumer.process(processor, threadPool, mofka::NumEvents{maxEvents});
                },
-            "processor"_a, py::kw_only(), "thread_pool"_a,
+            R"(
+                Process the incoming events using the provided callable.
+
+                Parameters
+                ----------
+
+                processor (Callable[None, Event]): Callable to use to process the events.
+                thread_pool (ThreadPool): ThreadPool to use to submit calls to the processor.
+                max_events (int): Maximum number of events to process.
+            )",
+            "processor"_a, py::kw_only(),
+            "thread_pool"_a=std::shared_ptr<mofka::ThreadPoolInterface>{},
             "max_events"_a=std::numeric_limits<size_t>::max()
             )
         .def("__iter__",
              [](std::shared_ptr<mofka::ConsumerInterface> consumer) {
                 auto c = mofka::PythonBindingHelper::FromInterface<mofka::Consumer>(consumer);
                 return py::make_iterator(c.begin(), c.end());
-              }, py::keep_alive<0, 1>())
+              }, R"(
+                Create an iterator to iterate over the events.
+
+                Returns
+                -------
+
+                A Python iterator.
+            )",
+            py::keep_alive<0, 1>())
     ;
 
     py::class_<mofka::DataDescriptor>(m, "DataDescriptor")
         .def(py::init<>())
         .def(py::init<std::string_view, size_t>())
-        .def_property_readonly("size", &mofka::DataDescriptor::size)
+        .def_property_readonly("size", &mofka::DataDescriptor::size,
+                               "Amount of data (in bytes) this DataDescriptor represents.")
         .def_property_readonly("location",
-            py::overload_cast<>(&mofka::DataDescriptor::location, py::const_))
+            py::overload_cast<>(&mofka::DataDescriptor::location, py::const_),
+            "Opaque (backend-specific) location string.")
         .def("make_stride_view",
             [](const mofka::DataDescriptor& data_descriptor,
                std::size_t offset,
@@ -402,14 +706,47 @@ PYBIND11_MODULE(pymofka_api, m) {
                std::size_t blocksize,
                std::size_t gapsize) -> mofka::DataDescriptor {
                 return data_descriptor.makeStridedView(offset, numblocks, blocksize, gapsize);
-            },
-            "offset"_a, "numblocks"_a, "blocksize"_a, "gapsize"_a)
+            }, R"(
+            Construct a new DataDescriptor by taking a strided selection of the current DataDescriptor.
+
+            Parameters
+            ----------
+
+            offset (int): Offset at which to start the selection.
+            num_blocks (int): Number of blocks.
+            block_size (int): Size of each block.
+            gat_size (int): Number of bytes to leave out between each block.
+
+            Returns
+            -------
+
+            A new DataDescriptor representing the selection.
+            )",
+            py::kw_only(),
+            "offset"_a,
+            "num_blocks"_a,
+            "block_size"_a,
+            "gap_size"_a)
         .def("make_sub_view",
             [](const mofka::DataDescriptor& data_descriptor,
                std::size_t offset,
                std::size_t size) -> mofka::DataDescriptor {
                 return data_descriptor.makeSubView(offset, size);
-            },
+            }, R"(
+            Construct a new DataDescriptor by taking a sub-selection of the current DataDescriptor.
+
+            Parameters
+            ----------
+
+            offset (int): Offset at which to start the selection.
+            size (int): Size of the selection.
+
+            Returns
+            -------
+
+            A new DataDescriptor representing the selection.
+            )",
+            py::kw_only(),
             "offset"_a, "size"_a)
         .def("make_unstructured_view",
             [](const mofka::DataDescriptor& data_descriptor,
@@ -418,33 +755,48 @@ PYBIND11_MODULE(pymofka_api, m) {
                 seg.reserve(segments.size());
                 for(auto& s : segments) seg.push_back(mofka::DataDescriptor::Segment{s.first, s.first});
                 return data_descriptor.makeUnstructuredView(seg);
-            },
+            }, R"(
+            Construct a new DataDescriptor by taking a selection of segments from the current DataDescriptor.
+
+            Parameters
+            ----------
+
+            segments (list[tuple[int,int]]): list of segments.
+
+            Returns
+            -------
+
+            A new DataDescriptor representing the selection.
+            )",
+            py::kw_only(),
             "segments"_a)
     ;
 
     py::class_<mofka::EventInterface,
                std::shared_ptr<mofka::EventInterface>>(m, "Event")
         .def_property_readonly("metadata",
-                [](mofka::EventInterface& event) { return event.metadata().json(); })
+                [](mofka::EventInterface& event) { return event.metadata().json(); },
+                "Metadata of the event.")
         .def_property_readonly("data",
                 [](mofka::EventInterface& event) {
                     auto owner = static_cast<AbstractDataOwner*>(event.data().context());
                     return owner->toPythonObject();
-                })
+                },
+                "Data attached to the event.")
         .def_property_readonly("event_id", [](const mofka::EventInterface& event) -> py::object {
                 if(event.id() == mofka::NoMoreEvents)
                     return py::none();
                 else
                     return py::cast(event.id());
-                })
+                }, "Event ID in its partition.")
         .def_property_readonly("partition",
                 [](const mofka::EventInterface& event) {
                     return event.partition().json();
-                })
+                }, "Backend-specific information on the partition this event comes from.")
         .def("acknowledge",
              [](const mofka::EventInterface& event){
                 event.acknowledge();
-             })
+             }, "Acknowledge the event so it is not re-consumed if the consumer restarts.")
     ;
 
     py::class_<mofka::Future<std::uint64_t>,
@@ -455,8 +807,11 @@ PYBIND11_MODULE(pymofka_api, m) {
             result = future.wait();
             Py_END_ALLOW_THREADS
             return result;
-        })
-        .def_property_readonly("completed", &mofka::Future<std::uint64_t>::completed)
+        }, "Wait for the future to complete, returning its value (int) when it does.")
+        .def_property_readonly(
+            "completed",
+            &mofka::Future<std::uint64_t>::completed,
+            "Checks whether the future has completed.")
     ;
 
     py::class_<mofka::Future<mofka::Event>,
@@ -467,8 +822,9 @@ PYBIND11_MODULE(pymofka_api, m) {
             result = future.wait();
             Py_END_ALLOW_THREADS
             return result;
-        })
-        .def("completed", &mofka::Future<mofka::Event>::completed)
+        }, "Wait for the future to complete, returning its value (Event) when it does.")
+        .def("completed", &mofka::Future<mofka::Event>::completed,
+             "Checks whether the future has completed.")
     ;
 
     PythonDataSelector select_full_data =

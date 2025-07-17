@@ -111,8 +111,8 @@ class DataDescriptor {
     /**
      * @brief Returns the location (interpretable by the backend).
      */
-    const std::vector<char>& location() const {
-        return m_location;
+    std::string_view location() const {
+        return std::string_view{m_location.data(), m_location.size()};
     }
 
     /**

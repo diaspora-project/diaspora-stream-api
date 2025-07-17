@@ -759,7 +759,7 @@ PYBIND11_MODULE(pymofka_api, m) {
                const std::vector<std::pair<std::size_t, std::size_t>> segments) -> mofka::DataDescriptor {
                 std::vector<mofka::DataDescriptor::Segment> seg;
                 seg.reserve(segments.size());
-                for(auto& s : segments) seg.push_back(mofka::DataDescriptor::Segment{s.first, s.first});
+                for(auto& s : segments) seg.push_back(mofka::DataDescriptor::Segment{s.first, s.second});
                 return data_descriptor.makeUnstructuredView(seg);
             }, R"(
             Construct a new DataDescriptor by taking a selection of segments from the current DataDescriptor.

@@ -26,7 +26,7 @@ class TestSerializer(unittest.TestCase):
     def test_create_schema_serializer_invalid_schema(self):
         with self.assertRaises(Exception):
             Serializer.from_metadata({"type": "schema"})
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             Serializer.from_metadata({"type": "schema", "schema": "not-an-object"})
 
     def test_create_unknown_serializer(self):

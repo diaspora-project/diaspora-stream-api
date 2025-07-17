@@ -393,6 +393,7 @@ PYBIND11_MODULE(pymofka_api, m) {
                         }
                         auto owner = new PythonDataOwner{std::move(segments)};
                         auto free_cb = [owner](mofka::DataView::UserContext) { delete owner; };
+                        std::cerr << "CCC Creating DataView with context " << owner << std::endl;
                         auto data = mofka::DataView{std::move(cpp_segments), owner, std::move(free_cb)};
                         return data;
                 }
@@ -467,6 +468,7 @@ PYBIND11_MODULE(pymofka_api, m) {
                             mofka::DataView::Segment{owner->m_data.data(), owner->m_data.size()}
                         };
                         auto free_cb = [owner](mofka::DataView::UserContext) { delete owner; };
+                        std::cerr << "DDD Creating DataView with owner " << owner << std::endl;
                         auto data = mofka::DataView{std::move(cpp_segment), owner, std::move(free_cb)};
                         return data;
                 };
@@ -684,8 +686,7 @@ PYBIND11_MODULE(pymofka_api, m) {
             )
         .def("__iter__",
              [](std::shared_ptr<mofka::ConsumerInterface> consumer) {
-                auto c = mofka::PythonBindingHelper::FromInterface<mofka::Consumer>(consumer);
-                return py::make_iterator(c.begin(), c.end());
+                return py::make_iterator(consumer->begin(), consumer->end());
               }, R"(
                 Create an iterator to iterate over the events.
 
@@ -786,6 +787,7 @@ PYBIND11_MODULE(pymofka_api, m) {
         .def_property_readonly("data",
                 [](mofka::EventInterface& event) {
                     auto owner = static_cast<AbstractDataOwner*>(event.data().context());
+                    std::cerr << "AAA " << owner << std::endl;
                     return owner->toPythonObject();
                 },
                 "Data attached to the event.")
@@ -827,7 +829,7 @@ PYBIND11_MODULE(pymofka_api, m) {
             Py_BEGIN_ALLOW_THREADS
             result = future.wait();
             Py_END_ALLOW_THREADS
-            return result;
+            return mofka::PythonBindingHelper::GetSelf(result);
         }, "Wait for the future to complete, returning its value (Event) when it does.")
         .def("completed", &mofka::Future<mofka::Event>::completed,
              "Checks whether the future has completed.")

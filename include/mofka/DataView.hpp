@@ -14,6 +14,7 @@
 #include <vector>
 #include <numeric>
 #include <cstring>
+#include <utility>
 
 namespace mofka {
 
@@ -67,7 +68,10 @@ class DataView {
     /**
      * @brief Move-constructor.
      */
-    inline DataView(DataView&&) = default; // LCOV_EXCL_LINE
+    inline DataView(DataView&& other)
+    : m_segments(std::move(other.m_segments))
+    , m_context(std::move(other.m_context))
+    , m_free(std::exchange(other.m_free, nullptr)) {}
 
     /**
      * @brief Copy-assignment operator.
@@ -77,7 +81,16 @@ class DataView {
     /**
      * @brief Move-assignment operator.
      */
-    inline DataView& operator=(DataView&&) = default; // LCOV_EXCL_LINE
+    inline DataView& operator=(DataView&& other) {
+        if(this == &other) return *this;
+        if(m_free.use_count() == 1 && (*m_free)) {
+            (*m_free)(m_context);
+        }
+        m_segments = std::move(other.m_segments);
+        m_context = std::move(other.m_context);
+        m_free = std::exchange(other.m_free, nullptr);
+        return *this;
+    }
 
     /**
      * @brief Free.

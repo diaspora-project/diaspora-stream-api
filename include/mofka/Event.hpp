@@ -68,6 +68,8 @@ class EventInterface {
  */
 class Event {
 
+    friend struct PythonBindingHelper;
+
     public:
 
     /**
@@ -144,6 +146,13 @@ class Event {
      */
     explicit inline operator bool() const {
         return static_cast<bool>(self);
+    }
+
+    /**
+     * @brief Convert into the underlying std::shared_ptr<EventInterface>.
+     */
+    explicit inline operator std::shared_ptr<EventInterface>() const {
+        return self;
     }
 
     private:

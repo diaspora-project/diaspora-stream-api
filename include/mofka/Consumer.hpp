@@ -25,10 +25,69 @@ namespace mofka {
 /**
  * @brief Interface for Consumer class.
  */
-class ConsumerInterface {
+class ConsumerInterface : public std::enable_shared_from_this<ConsumerInterface> {
 
     public:
 
+    class Iterator {
+
+        friend class ConsumerInterface;
+
+        public:
+
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = std::shared_ptr<EventInterface>;
+        using difference_type = std::ptrdiff_t;
+        using pointer = std::shared_ptr<EventInterface>;
+        using reference = EventInterface&;
+
+        inline Iterator() = default;
+
+        inline reference operator*() const { return *m_current_event; }
+
+        inline pointer operator->() const { return m_current_event; }
+
+        inline Iterator& operator++() {
+            m_current_event = static_cast<std::shared_ptr<EventInterface>>(m_owner->pull().wait());
+            if(m_current_event->id() == NoMoreEvents) {
+                m_owner = nullptr;
+                m_current_event = nullptr;
+            }
+            return *this;
+        }
+
+        inline bool operator==(const Iterator& other) const {
+            if(!other.m_owner && !m_owner) {
+                return true;
+            }
+            return false;
+        }
+
+        inline bool operator!=(const Iterator& other) const {
+            return !(*this == other);
+        }
+
+        private:
+
+        Iterator(std::shared_ptr<ConsumerInterface> owner)
+        : m_owner(std::move(owner)) {
+            ++(*this);
+        }
+
+        std::shared_ptr<EventInterface>    m_current_event;
+        std::shared_ptr<ConsumerInterface> m_owner;
+    };
+
+    /**
+     * @brief Create an iterator from the beginning of the topic
+     * or from the last consumed offset.
+     */
+    Iterator begin() { return Iterator(shared_from_this()); }
+
+    /**
+     * @brief Create an iterator indicating the end of a topic.
+     */
+    Iterator end() { return Iterator(); }
     /**
      * @brief Destructor.
      */

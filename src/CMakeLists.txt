@@ -13,7 +13,7 @@ set (src-files
 include (CMakePackageConfigHelpers)
 
 # where to install files for "find_package"
-set (mofka-api-pkg "share/cmake/mofka")
+set (mofka-api-pkg "share/cmake/mofka-api")
 
 # set version fo shared library
 set (mofka-api-vers "${MOFKA_API_VERSION_MAJOR}.${MOFKA_API_VERSION_MINOR}")

@@ -70,13 +70,25 @@ class DataView {
      */
     inline DataView(DataView&& other)
     : m_segments(std::move(other.m_segments))
+    , m_size{std::exchange(other.m_size, 0)}
     , m_context(std::move(other.m_context))
-    , m_free(std::exchange(other.m_free, nullptr)) {}
+    , m_free(std::exchange(other.m_free, nullptr))
+    {}
 
     /**
      * @brief Copy-assignment operator.
      */
-    inline DataView& operator=(const DataView&) = default; // LCOV_EXCL_LINE
+    inline DataView& operator=(const DataView& other) {
+        if(this == &other) return *this;
+        if(m_free.use_count() == 1 && (*m_free)) {
+            (*m_free)(m_context);
+        }
+        m_segments = other.m_segments;
+        m_context = other.m_context;
+        m_free = other.m_free;
+        m_size = other.m_size;
+        return *this;
+    }
 
     /**
      * @brief Move-assignment operator.
@@ -89,6 +101,7 @@ class DataView {
         m_segments = std::move(other.m_segments);
         m_context = std::move(other.m_context);
         m_free = std::exchange(other.m_free, nullptr);
+        m_size = std::exchange(other.m_size, 0);
         return *this;
     }
 

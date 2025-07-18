@@ -13,6 +13,7 @@
 #include <atomic>
 #include <unordered_map>
 #include <variant>
+#include <iostream>
 
 
 class SimpleDriver;
@@ -406,6 +407,8 @@ inline mofka::Future<mofka::EventID> SimpleProducer::push(
                 auto& metadata_vector = topic->m_partition.metadata;
                 auto& data_vector = topic->m_partition.data;
                 metadata_vector.push_back(std::move(metadata_buffer));
+                std::cerr << metadata_vector.size()-1
+                          << ": Pushing an event with data size " << data_buffer.size() << std::endl;
                 data_vector.push_back(std::move(data_buffer));
                 auto event_id = metadata_vector.size()-1;
                 // set the ID
@@ -534,8 +537,9 @@ mofka::Future<mofka::Event> SimpleConsumer::pull() {
         // get the metadata and data from the topic
         auto& metadata_buffer = m_topic->m_partition.metadata[m_next_offset];
         auto& data_buffer     = m_topic->m_partition.data[m_next_offset];
+        std::cerr << "In pull for event " << m_next_offset
+                  << " data_buffer has size " << data_buffer.size() << std::endl;
         mofka::Metadata metadata;
-        mofka::DataView data;
         // deserialize metadata
         mofka::BufferWrapperInputArchive archive(
             std::string_view{metadata_buffer.data(), metadata_buffer.size()});
@@ -545,11 +549,12 @@ mofka::Future<mofka::Event> SimpleConsumer::pull() {
             metadata, mofka::DataDescriptor("", data_buffer.size()));
         // invoke the data broker
         auto data_view = m_data_broker(metadata, data_descriptor);
+
         // copy the data to target destination
         data_view.write(data_buffer.data(), data_buffer.size());
         m_next_offset += 1;
         return mofka::Future<mofka::Event>{
-            [metadata=std::move(metadata), data=std::move(data), event_id=m_next_offset-1]() {
+            [metadata=std::move(metadata), data=std::move(data_view), event_id=m_next_offset-1]() {
                 return mofka::Event(std::make_shared<SimpleEvent>(
                         std::move(metadata), std::move(data), mofka::PartitionInfo{},
                         event_id));},

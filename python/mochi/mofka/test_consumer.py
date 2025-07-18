@@ -85,11 +85,13 @@ class TestConsumer(unittest.TestCase):
         self.topic.mark_as_complete()
 
         def my_selector(metadata, descriptor):
+            sys.stderr.write(f"AAA {descriptor.size}\n")
             return descriptor
 
         def my_broker(metadata, descriptor):
+            sys.stderr.write(f"BBB {descriptor.size}\n")
             buffer = bytearray(descriptor.size)
-            return [memoryview(buffer)]
+            return [buffer]
 
         consumer = self.topic.consumer(
             "my_consumer",
@@ -102,10 +104,8 @@ class TestConsumer(unittest.TestCase):
         data_view = event.data
         self.assertIsInstance(data_view, list)
         self.assertEqual(len(data_view), 1)
-        self.assertIsInstance(data_view[0], memoryview)
-        # The simple backend doesn't actually store/return the data,
-        # so we just check if the buffer has the right size.
-        self.assertEqual(len(data_view[0]), len(event_data))
+        self.assertIsInstance(data_view[0], bytearray)
+        self.assertEqual(data_view[0], event_data)
 
 
 if __name__ == '__main__':

@@ -10,7 +10,7 @@
 #include <mofka/ArgsUtil.hpp>
 #include <mofka/Metadata.hpp>
 #include <mofka/Exception.hpp>
-#include <mofka/DataBroker.hpp>
+#include <mofka/DataAllocator.hpp>
 #include <mofka/DataSelector.hpp>
 #include <mofka/Ordering.hpp>
 #include <mofka/Producer.hpp>
@@ -98,7 +98,7 @@ class TopicHandleInterface {
      * @param batch_size Batch size.
      * @param max_batch Maximum number of batches (must be >= 1).
      * @param thread_pool Thread pool.
-     * @param data_broker Data broker.
+     * @param data_allocator Data allocator.
      * @param data_selector Data selector.
      * @param targets Indices of the partitions to consumer from.
      * @param options Extra options.
@@ -110,7 +110,7 @@ class TopicHandleInterface {
                      BatchSize batch_size,
                      MaxNumBatches max_batch,
                      std::shared_ptr<ThreadPoolInterface> thread_pool,
-                     DataBroker data_broker,
+                     DataAllocator data_allocator,
                      DataSelector data_selector,
                      const std::vector<size_t>& targets,
                      Metadata options) = 0;
@@ -202,7 +202,7 @@ class TopicHandle {
             GetArgOrDefault(BatchSize::Adaptive(), std::forward<Options>(opts)...),
             GetArgOrDefault(MaxNumBatches{2}, std::forward<Options>(opts)...),
             GetArgOrDefault(ThreadPool{}, std::forward<Options>(opts)...),
-            GetArgOrDefault(DataBroker{}, std::forward<Options>(opts)...),
+            GetArgOrDefault(DataAllocator{}, std::forward<Options>(opts)...),
             GetArgOrDefault(DataSelector{}, std::forward<Options>(opts)...),
             GetArgOrDefault(std::vector<size_t>(), std::forward<Options>(opts)...),
             GetArgOrDefault(Metadata{}, std::forward<Options>(opts)...));
@@ -293,7 +293,7 @@ class TopicHandle {
      * @param batch_size Batch size.
      * @param max_batch Max number of batches.
      * @param thread_pool Thread pool.
-     * @param data_broker Data broker.
+     * @param data_allocator Data allocator.
      * @param data_selector Data selector.
      * @param targets Indices of the partitions to consumer from.
      *
@@ -303,13 +303,13 @@ class TopicHandle {
                           BatchSize batch_size,
                           MaxNumBatches max_batch,
                           ThreadPool thread_pool,
-                          DataBroker data_broker,
+                          DataAllocator data_allocator,
                           DataSelector data_selector,
                           const std::vector<size_t>& targets,
                           Metadata options) const {
         return self->makeConsumer(
             name, batch_size, max_batch,
-            thread_pool.self, data_broker,
+            thread_pool.self, data_allocator,
             data_selector, targets, std::move(options));
     }
 

@@ -88,7 +88,7 @@ class TestConsumer(unittest.TestCase):
             sys.stderr.write(f"AAA {descriptor.size}\n")
             return descriptor
 
-        def my_broker(metadata, descriptor):
+        def my_allocator(metadata, descriptor):
             sys.stderr.write(f"BBB {descriptor.size}\n")
             buffer = bytearray(descriptor.size)
             return [buffer]
@@ -96,7 +96,7 @@ class TestConsumer(unittest.TestCase):
         consumer = self.topic.consumer(
             "my_consumer",
             data_selector=my_selector,
-            data_broker=my_broker)
+            data_allocator=my_allocator)
 
         event = next(iter(consumer))
         self.assertIsNotNone(event.event_id)

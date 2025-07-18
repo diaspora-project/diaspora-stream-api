@@ -72,7 +72,7 @@ static auto data_helper(const py::list& buffers) {
 }
 
 using PythonDataSelector = std::function<std::optional<mofka::DataDescriptor>(const nlohmann::json&, const mofka::DataDescriptor&)>;
-using PythonDataBroker   = std::function<py::list(const nlohmann::json&, const mofka::DataDescriptor&)>;
+using PythonDataAllocator = std::function<py::list(const nlohmann::json&, const mofka::DataDescriptor&)>;
 
 struct AbstractDataOwner {
     virtual py::object toPythonObject() const = 0;
@@ -372,17 +372,17 @@ PYBIND11_MODULE(pymofka_api, m) {
             [](mofka::TopicHandleInterface& topic,
                std::string_view name,
                PythonDataSelector selector,
-               PythonDataBroker broker,
+               PythonDataAllocator allocator,
                std::size_t batch_size,
                std::size_t max_batch,
                std::shared_ptr<mofka::ThreadPoolInterface> thread_pool,
                std::optional<std::vector<size_t>> targets,
                const nlohmann::json& options) {
-                auto cpp_broker = broker ?
-                    [broker=std::move(broker)]
+                auto cpp_allocator = allocator ?
+                    [allocator=std::move(allocator)]
                     (const mofka::Metadata& metadata,
                      const mofka::DataDescriptor& descriptor) -> mofka::DataView {
-                        auto segments = broker(metadata.json(), descriptor);
+                        auto segments = allocator(metadata.json(), descriptor);
                         std::vector<mofka::DataView::Segment> cpp_segments;
                         cpp_segments.reserve(segments.size());
                         for(auto& segment : segments) {
@@ -396,7 +396,7 @@ PYBIND11_MODULE(pymofka_api, m) {
                         auto data = mofka::DataView{std::move(cpp_segments), owner, std::move(free_cb)};
                         return data;
                 }
-                : mofka::DataBroker{};
+                : mofka::DataAllocator{};
                 auto cpp_selector = selector ?
                     [selector=std::move(selector)]
                     (const mofka::Metadata& metadata,
@@ -411,7 +411,7 @@ PYBIND11_MODULE(pymofka_api, m) {
                     name, mofka::BatchSize(batch_size),
                     mofka::MaxNumBatches{max_batch},
                     thread_pool,
-                    mofka::DataBroker{cpp_broker},
+                    mofka::DataAllocator{cpp_allocator},
                     mofka::DataSelector{cpp_selector},
                     targets.value_or(default_targets),
                     mofka::Metadata{options});
@@ -423,7 +423,7 @@ PYBIND11_MODULE(pymofka_api, m) {
             and a DataDescriptor as arguments, and returning a DataDescriptor representing the subset
             of the event's data to load.
 
-            The data_broker argument must be a callable taking a dictionary (an event's metadata)
+            The data_allocator argument must be a callable taking a dictionary (an event's metadata)
             and a DataDescriptor as arguments, and returning a list of object satisfying the buffer
             protocol (e.g. bytearray, memoryview, numpy array, etc.).
 
@@ -432,7 +432,7 @@ PYBIND11_MODULE(pymofka_api, m) {
 
             name (str): Name of the consumer.
             data_selector (Callable[Optional[DataDescriptor], [dict, DataDescriptor]]): data selector.
-            data_broker (Callable[list, [dict, DataDescriptor]]): data broker.
+            data_allocator (Callable[list, [dict, DataDescriptor]]): data allocator.
             batch_size (int): Batch size.
             max_num_batches (int): Maximum number of batches to prefetch at any time.
             thread_pool (ThreadPool): ThreadPool to use for any work needed for consuming the events.
@@ -445,7 +445,7 @@ PYBIND11_MODULE(pymofka_api, m) {
             A Consumer instance.
             )",
             "name"_a, py::kw_only(),
-            "data_selector"_a, "data_broker"_a,
+            "data_selector"_a, "data_allocator"_a,
             "batch_size"_a=mofka::BatchSize::Adaptive().value,
             "max_num_batches"_a=2,
             "thread_pool"_a=mofka::PythonBindingHelper::GetSelf(mofka::ThreadPool{}),
@@ -459,7 +459,7 @@ PYBIND11_MODULE(pymofka_api, m) {
                std::shared_ptr<mofka::ThreadPoolInterface> thread_pool,
                std::optional<std::vector<size_t>> targets,
                const nlohmann::json& options) {
-                auto cpp_broker = [](const mofka::Metadata& metadata,
+                auto cpp_allocator = [](const mofka::Metadata& metadata,
                                      const mofka::DataDescriptor& descriptor) -> mofka::DataView {
                         (void)metadata;
                         auto owner = new BufferDataOwner{descriptor.size()};
@@ -479,7 +479,7 @@ PYBIND11_MODULE(pymofka_api, m) {
                 return topic.makeConsumer(
                     name, mofka::BatchSize(batch_size),
                     mofka::MaxNumBatches{max_batch}, thread_pool,
-                    mofka::DataBroker{cpp_broker},
+                    mofka::DataAllocator{cpp_allocator},
                     mofka::DataSelector{cpp_selector},
                     targets.value_or(default_targets),
                     mofka::Metadata{options});
@@ -640,7 +640,7 @@ PYBIND11_MODULE(pymofka_api, m) {
                                "ThreadPool used by the consumer.")
         .def_property_readonly("topic", &mofka::ConsumerInterface::topic,
                                "TopicHandle of the topic from which this consumer receives events.")
-        .def_property_readonly("data_broker", &mofka::ConsumerInterface::dataBroker,
+        .def_property_readonly("data_allocator", &mofka::ConsumerInterface::dataAllocator,
                                "Callable used to allocate memory for the data part of events.")
         .def_property_readonly("data_selector", &mofka::ConsumerInterface::dataSelector,
                                "Callable used to select the part of the data to load.")
@@ -838,7 +838,7 @@ PYBIND11_MODULE(pymofka_api, m) {
         };
     m.attr("FullDataSelector") = py::cast(select_full_data);
 
-    PythonDataBroker bytes_data_broker =
+    PythonDataAllocator bytes_data_allocator =
         [](const nlohmann::json&, const mofka::DataDescriptor& d) -> py::list {
             auto buffer = py::bytearray();
             auto ret = PyByteArray_Resize(buffer.ptr(), d.size());
@@ -846,5 +846,5 @@ PYBIND11_MODULE(pymofka_api, m) {
             result.append(std::move(buffer));
             return result;
         };
-    m.attr("ByteArrayAllocator") = py::cast(bytes_data_broker);
+    m.attr("ByteArrayAllocator") = py::cast(bytes_data_allocator);
 }

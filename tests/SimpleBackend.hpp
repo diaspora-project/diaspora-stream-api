@@ -232,7 +232,7 @@ class SimpleConsumer final : public mofka::ConsumerInterface {
     const mofka::MaxNumBatches               m_max_num_batches;
     const std::shared_ptr<SimpleThreadPool>  m_thread_pool;
     const std::shared_ptr<SimpleTopicHandle> m_topic;
-    const mofka::DataBroker                  m_data_broker;
+    const mofka::DataAllocator                  m_data_allocator;
     const mofka::DataSelector                m_data_selector;
 
     size_t                                   m_next_offset = 0;
@@ -245,14 +245,14 @@ class SimpleConsumer final : public mofka::ConsumerInterface {
         mofka::MaxNumBatches max_num_batches,
         std::shared_ptr<SimpleThreadPool> thread_pool,
         std::shared_ptr<SimpleTopicHandle> topic,
-        mofka::DataBroker data_broker,
+        mofka::DataAllocator data_allocator,
         mofka::DataSelector data_selector)
     : m_name{std::move(name)}
     , m_batch_size(batch_size)
     , m_max_num_batches(max_num_batches)
     , m_thread_pool(std::move(thread_pool))
     , m_topic(std::move(topic))
-    , m_data_broker{std::move(data_broker)}
+    , m_data_allocator{std::move(data_allocator)}
     , m_data_selector{std::move(data_selector)}
     {}
 
@@ -274,8 +274,8 @@ class SimpleConsumer final : public mofka::ConsumerInterface {
 
     std::shared_ptr<mofka::TopicHandleInterface> topic() const override;
 
-    const mofka::DataBroker& dataBroker() const override {
-        return m_data_broker;
+    const mofka::DataAllocator& dataAllocator() const override {
+        return m_data_allocator;
     }
 
     const mofka::DataSelector& dataSelector() const override {
@@ -368,7 +368,7 @@ class SimpleTopicHandle final : public mofka::TopicHandleInterface,
                      mofka::BatchSize batch_size,
                      mofka::MaxNumBatches max_batch,
                      std::shared_ptr<mofka::ThreadPoolInterface> thread_pool,
-                     mofka::DataBroker data_broker,
+                     mofka::DataAllocator data_allocator,
                      mofka::DataSelector data_selector,
                      const std::vector<size_t>& targets,
                      mofka::Metadata options) override;
@@ -407,8 +407,6 @@ inline mofka::Future<mofka::EventID> SimpleProducer::push(
                 auto& metadata_vector = topic->m_partition.metadata;
                 auto& data_vector = topic->m_partition.data;
                 metadata_vector.push_back(std::move(metadata_buffer));
-                std::cerr << metadata_vector.size()-1
-                          << ": Pushing an event with data size " << data_buffer.size() << std::endl;
                 data_vector.push_back(std::move(data_buffer));
                 auto event_id = metadata_vector.size()-1;
                 // set the ID
@@ -507,7 +505,7 @@ inline std::shared_ptr<mofka::ConsumerInterface>
         mofka::BatchSize batch_size,
         mofka::MaxNumBatches max_batch,
         std::shared_ptr<mofka::ThreadPoolInterface> thread_pool,
-        mofka::DataBroker data_broker,
+        mofka::DataAllocator data_allocator,
         mofka::DataSelector data_selector,
         const std::vector<size_t>& targets,
         mofka::Metadata options) {
@@ -519,7 +517,7 @@ inline std::shared_ptr<mofka::ConsumerInterface>
         throw mofka::Exception{"ThreadPool should be an instance of SimpleThreadPool"};
     return std::make_shared<SimpleConsumer>(
             std::string{name}, batch_size, max_batch, simple_thread_pool,
-            shared_from_this(), std::move(data_broker),
+            shared_from_this(), std::move(data_allocator),
             std::move(data_selector));
 }
 
@@ -537,8 +535,6 @@ mofka::Future<mofka::Event> SimpleConsumer::pull() {
         // get the metadata and data from the topic
         auto& metadata_buffer = m_topic->m_partition.metadata[m_next_offset];
         auto& data_buffer     = m_topic->m_partition.data[m_next_offset];
-        std::cerr << "In pull for event " << m_next_offset
-                  << " data_buffer has size " << data_buffer.size() << std::endl;
         mofka::Metadata metadata;
         // deserialize metadata
         mofka::BufferWrapperInputArchive archive(
@@ -547,8 +543,8 @@ mofka::Future<mofka::Event> SimpleConsumer::pull() {
         // invoke the data selector
         auto data_descriptor = m_data_selector(
             metadata, mofka::DataDescriptor("", data_buffer.size()));
-        // invoke the data broker
-        auto data_view = m_data_broker(metadata, data_descriptor);
+        // invoke the data allocator
+        auto data_view = m_data_allocator(metadata, data_descriptor);
 
         // copy the data to target destination
         data_view.write(data_buffer.data(), data_buffer.size());

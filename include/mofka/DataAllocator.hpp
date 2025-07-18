@@ -3,8 +3,8 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_API_DATA_BROKER_HPP
-#define MOFKA_API_DATA_BROKER_HPP
+#ifndef MOFKA_API_DATA_ALLOCATOR_HPP
+#define MOFKA_API_DATA_ALLOCATOR_HPP
 
 #include <mofka/ForwardDcl.hpp>
 #include <mofka/Metadata.hpp>
@@ -18,12 +18,12 @@
 namespace mofka {
 
 /**
- * @brief DataBroker is the type of a function that takes the
+ * @brief DataAllocator is the type of a function that takes the
  * Metadata of an event as well as the DataDescriptor of the associated
  * data, and returns a Data object indicating where in memory the data
  * of the event should be placed by the Consumer.
  */
-using DataBroker = std::function<DataView(const Metadata&, const DataDescriptor&)>;
+using DataAllocator = std::function<DataView(const Metadata&, const DataDescriptor&)>;
 
 }
 

@@ -13,7 +13,7 @@
 #include <mofka/EventID.hpp>
 #include <mofka/Future.hpp>
 #include <mofka/ThreadPool.hpp>
-#include <mofka/DataBroker.hpp>
+#include <mofka/DataAllocator.hpp>
 #include <mofka/DataSelector.hpp>
 #include <mofka/EventProcessor.hpp>
 #include <mofka/BatchParams.hpp>
@@ -121,9 +121,9 @@ class ConsumerInterface : public std::enable_shared_from_this<ConsumerInterface>
     virtual std::shared_ptr<TopicHandleInterface> topic() const = 0;
 
     /**
-     * @brief Returns the DataBroker used by the Consumer.
+     * @brief Returns the DataAllocator used by the Consumer.
      */
-    virtual const DataBroker& dataBroker() const = 0;
+    virtual const DataAllocator& dataAllocator() const = 0;
 
     /**
      * @brief Returns the DataSelector used by the Consumer.
@@ -237,10 +237,10 @@ class Consumer {
     TopicHandle topic() const;
 
     /**
-     * @brief Returns the DataBroker used by the Consumer.
+     * @brief Returns the DataAllocator used by the Consumer.
      */
-    inline decltype(auto) dataBroker() const {
-        return self->dataBroker();
+    inline decltype(auto) dataAllocator() const {
+        return self->dataAllocator();
     }
 
     /**

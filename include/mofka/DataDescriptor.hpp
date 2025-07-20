@@ -116,6 +116,15 @@ class DataDescriptor {
     }
 
     /**
+     * @brief Returns the stacked selections.
+     *
+     * @return 
+     */
+    const auto& selections() const {
+        return m_selections;
+    }
+
+    /**
      * @brief Extract a flat representation of the data descriptor.
      */
     std::vector<Segment> flatten() const;
@@ -209,6 +218,21 @@ class DataDescriptor {
      */
     DataDescriptor makeUnstructuredView(
         const std::vector<Contiguous>& segments) const;
+
+
+    /**
+     * @brief Load the DataDescriptor from an Archive.
+     *
+     * @param ar Archive.
+     */
+    void load(Archive& ar);
+
+    /**
+     * @brief Serialize the DataDescriptor into an Archive.
+     *
+     * @param ar Archive.
+     */
+    void save(Archive& ar) const;
 
     private:
 

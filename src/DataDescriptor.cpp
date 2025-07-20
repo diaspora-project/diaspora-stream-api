@@ -159,4 +159,89 @@ DataDescriptor DataDescriptor::makeUnstructuredView(
     return newDesc;
 }
 
+template<class... Ts>
+struct Overloaded : Ts... { using Ts::operator()...; };
+
+template<class... Ts>
+Overloaded(Ts...) -> Overloaded<Ts...>;
+
+void DataDescriptor::save(Archive& ar) const {
+        auto visitor = Overloaded{
+            [&ar](const Contiguous& sub) {
+                uint8_t t = 1;
+                ar.write(&t, sizeof(t));
+                ar.write(&sub.offset, sizeof(sub.offset));
+                ar.write(&sub.size, sizeof(sub.size));
+            },
+            [&ar](const Strided& strided) {
+                uint8_t t = 2;
+                ar.write(&t, sizeof(t));
+                ar.write(&strided.offset, sizeof(strided.offset));
+                ar.write(&strided.numblocks, sizeof(strided.numblocks));
+                ar.write(&strided.blocksize, sizeof(strided.blocksize));
+                ar.write(&strided.gapsize, sizeof(strided.gapsize));
+            },
+            [&ar](const Unstructured& u) {
+                uint8_t t = 3;
+                ar.write(&t, sizeof(t));
+                size_t num_segments = u.segments.size();
+                ar.write(&num_segments, sizeof(num_segments));
+                ar.write(u.segments.data(), num_segments*sizeof(u.segments[0]));
+            }
+        };
+        ar.write(&m_size, sizeof(m_size));
+        size_t location_size = m_location.size();
+        ar.write(&location_size, sizeof(location_size));
+        ar.write(m_location.data(), location_size);
+        size_t num_views = m_selections.size();
+        ar.write(&num_views, sizeof(num_views));
+        for(auto& view : m_selections)
+            std::visit(visitor, view);
+    }
+
+void DataDescriptor::load(Archive& ar) {
+        ar.read(&m_size, sizeof(m_size));
+        size_t location_size = 0;
+        ar.read(&location_size, sizeof(location_size));
+        m_location.resize(location_size);
+        ar.read(const_cast<char*>(m_location.data()), location_size);
+        size_t num_views = 0;
+        ar.read(&num_views, sizeof(num_views));
+        m_selections.resize(0);
+        m_selections.reserve(num_views);
+        for(size_t i=0; i < num_views; ++i) {
+            uint8_t t;
+            ar.read(&t, sizeof(t));
+            switch(t) {
+            case 1:
+                {
+                    Contiguous s{0,0};
+                    ar.read(&s.offset, sizeof(s.offset));
+                    ar.read(&s.size, sizeof(s.size));
+                    m_selections.push_back(std::move(s));
+                }
+                break;
+            case 2:
+                {
+                    Strided s;
+                    ar.read(&s.offset, sizeof(s.offset));
+                    ar.read(&s.numblocks, sizeof(s.numblocks));
+                    ar.read(&s.blocksize, sizeof(s.blocksize));
+                    ar.read(&s.gapsize, sizeof(s.gapsize));
+                    m_selections.push_back(std::move(s));
+                }
+                break;
+            case 3:
+                {
+                    Unstructured u;
+                    size_t num_segments = 0;
+                    ar.read(&num_segments, sizeof(num_segments));
+                    u.segments.resize(num_segments);
+                    ar.read(u.segments.data(), num_segments*sizeof(u.segments[0]));
+                    m_selections.push_back(std::move(u));
+                }
+                break;
+            }
+        }
+    }
 }

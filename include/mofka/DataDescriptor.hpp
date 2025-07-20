@@ -111,14 +111,19 @@ class DataDescriptor {
     /**
      * @brief Returns the location (interpretable by the backend).
      */
-    std::string_view location() const {
-        return std::string_view{m_location.data(), m_location.size()};
+    const std::string& location() const {
+        return m_location;
+    }
+
+    /**
+     * @brief Returns the location (interpretable by the backend).
+     */
+    std::string& location() {
+        return m_location;
     }
 
     /**
      * @brief Returns the stacked selections.
-     *
-     * @return 
      */
     const auto& selections() const {
         return m_selections;
@@ -236,7 +241,7 @@ class DataDescriptor {
 
     private:
 
-    std::vector<char>      m_location;   /* implementation defined data location */
+    std::string            m_location;   /* implementation defined data location */
     std::vector<Selection> m_selections; /* stack of selections on top of the data */
     size_t                 m_size = 0;   /* size of the data after selections applied */
 };

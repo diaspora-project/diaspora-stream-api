@@ -160,10 +160,10 @@ class Driver {
         return static_cast<bool>(self);
     }
 
-    private:
-
     Driver(const std::shared_ptr<DriverInterface>& impl)
     : self{impl} {}
+
+    private:
 
     std::shared_ptr<DriverInterface> self;
 };

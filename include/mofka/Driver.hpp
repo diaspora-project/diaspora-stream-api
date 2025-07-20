@@ -84,6 +84,8 @@ class DriverInterface {
 
 };
 
+using DriverFactory = Factory<DriverInterface, const Metadata&>;
+
 class Driver {
 
     friend class TopicHandle;
@@ -160,15 +162,17 @@ class Driver {
         return static_cast<bool>(self);
     }
 
-    Driver(const std::shared_ptr<DriverInterface>& impl)
-    : self{impl} {}
+    static inline Driver New(const char* type, const Metadata& options) {
+        return DriverFactory::create(type, options);
+    }
 
     private:
 
+    Driver(const std::shared_ptr<DriverInterface>& impl)
+    : self{impl} {}
+
     std::shared_ptr<DriverInterface> self;
 };
-
-using DriverFactory = Factory<DriverInterface, const Metadata&>;
 
 #define MOFKA_REGISTER_DRIVER(__name__, __type__) \
     MOFKA_REGISTER_IMPLEMENTATION_FOR(DriverFactory, __type__, __name__)

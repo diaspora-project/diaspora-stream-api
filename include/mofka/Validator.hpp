@@ -155,7 +155,7 @@ class Validator {
      */
     template<typename T>
     T& as() {
-        T* ptr = std::dynamic_pointer_cast<T>(self);
+        auto ptr = std::dynamic_pointer_cast<T>(self);
         if(ptr) return *ptr;
         else throw Exception{"Invalid type convertion requested"};
     }

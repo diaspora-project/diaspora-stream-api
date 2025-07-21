@@ -154,7 +154,8 @@ class ThreadPool {
      *
      * @param impl Pointer to implementation.
      */
-    ThreadPool(const std::shared_ptr<ThreadPoolInterface>& self);
+    ThreadPool(const std::shared_ptr<ThreadPoolInterface>& impl)
+    : self{impl} {}
 
     std::shared_ptr<ThreadPoolInterface> self;
 };

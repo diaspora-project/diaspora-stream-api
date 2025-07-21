@@ -150,6 +150,16 @@ class Validator {
      */
     static Validator FromMetadata(const Metadata& metadata);
 
+    /**
+     * @brief Try to convert into a reference to the underlying type.
+     */
+    template<typename T>
+    T& as() {
+        T* ptr = std::dynamic_pointer_cast<T>(self);
+        if(ptr) return *ptr;
+        else throw Exception{"Invalid type convertion requested"};
+    }
+
     private:
 
     std::shared_ptr<ValidatorInterface> self;

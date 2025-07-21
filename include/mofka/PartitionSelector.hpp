@@ -155,6 +155,16 @@ class PartitionSelector {
     }
 
     /**
+     * @brief Try to convert into a reference to the underlying type.
+     */
+    template<typename T>
+    T& as() {
+        T* ptr = std::dynamic_pointer_cast<T>(self);
+        if(ptr) return *ptr;
+        else throw Exception{"Invalid type convertion requested"};
+    }
+
+    /**
      * @brief Factory function to create a PartitionSelector instance.
      * The Metadata object is expected to be a JSON object containing
      * at least a "type" field. If this field is not found, it is

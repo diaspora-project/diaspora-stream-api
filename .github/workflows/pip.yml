@@ -39,4 +39,4 @@ jobs:
     - name: Test import
       run: |
         . .venv/bin/activate
-        python -c "import pymofka_api"
+        python -c "import pydiaspora_stream_api"

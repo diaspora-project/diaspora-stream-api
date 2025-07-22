@@ -1,4 +1,4 @@
-This repository provides the Diaspora Streaming API library, an API for streaming frameworks for HPC
+This repository provides the Diaspora Streaming API library, an API for implementing streaming frameworks for HPC
 applications. The main implementation of this API is [Mofka](https://mofka.readthedocs.io/en/latest/),
 which relies on the [Mochi](https://wordpress.cels.anl.gov/mochi/) framework.
 

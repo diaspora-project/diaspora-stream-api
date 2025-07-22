@@ -3,13 +3,13 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "mofka/Exception.hpp"
-#include "mofka/TopicHandle.hpp"
-#include "mofka/Driver.hpp"
+#include "diaspora/Exception.hpp"
+#include "diaspora/TopicHandle.hpp"
+#include "diaspora/Driver.hpp"
 #include "PimplUtil.hpp"
 #include <limits>
 
-namespace mofka {
+namespace diaspora {
 
 Driver TopicHandle::driver() const {
     return Driver(self->driver());

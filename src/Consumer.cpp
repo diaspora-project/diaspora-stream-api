@@ -3,16 +3,16 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "mofka/Consumer.hpp"
-#include "mofka/Exception.hpp"
-#include "mofka/TopicHandle.hpp"
-#include "mofka/Future.hpp"
+#include "diaspora/Consumer.hpp"
+#include "diaspora/Exception.hpp"
+#include "diaspora/TopicHandle.hpp"
+#include "diaspora/Future.hpp"
 
 #include <limits>
 
 using namespace std::string_literals;
 
-namespace mofka {
+namespace diaspora {
 
 Consumer::~Consumer() {
     if(self.use_count() == 1)

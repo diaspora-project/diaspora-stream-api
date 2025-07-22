@@ -1,9 +1,9 @@
-#include <mofka/Consumer.hpp>
-#include <mofka/Producer.hpp>
-#include <mofka/TopicHandle.hpp>
-#include <mofka/ThreadPool.hpp>
-#include <mofka/Driver.hpp>
-#include <mofka/BufferWrapperArchive.hpp>
+#include <diaspora/Consumer.hpp>
+#include <diaspora/Producer.hpp>
+#include <diaspora/TopicHandle.hpp>
+#include <diaspora/ThreadPool.hpp>
+#include <diaspora/Driver.hpp>
+#include <diaspora/BufferWrapperArchive.hpp>
 
 #include <queue>
 #include <vector>
@@ -27,12 +27,12 @@ struct FutureState {
 
     std::mutex                        mutex;
     std::condition_variable           cv;
-    std::variant<T, mofka::Exception> value;
+    std::variant<T, diaspora::Exception> value;
     bool                              is_set = false;
 
     template<typename U>
     void set(U u) {
-        if(is_set) throw mofka::Exception{"Promise already set"};
+        if(is_set) throw diaspora::Exception{"Promise already set"};
         {
             std::unique_lock lock{mutex};
             value = std::move(u);
@@ -49,7 +49,7 @@ struct FutureState {
         if(std::holds_alternative<T>(value))
             return std::get<T>(value);
         else
-            throw std::get<mofka::Exception>(value);
+            throw std::get<diaspora::Exception>(value);
     }
 
     bool test() {
@@ -59,7 +59,7 @@ struct FutureState {
 };
 
 
-class SimpleThreadPool final : public mofka::ThreadPoolInterface {
+class SimpleThreadPool final : public diaspora::ThreadPoolInterface {
 
     struct Work {
 
@@ -83,7 +83,7 @@ class SimpleThreadPool final : public mofka::ThreadPoolInterface {
 
     public:
 
-    SimpleThreadPool(mofka::ThreadCount count) {
+    SimpleThreadPool(diaspora::ThreadCount count) {
         m_threads.reserve(count.count);
         for(size_t i = 0; i < count.count; ++i) {
             m_threads.emplace_back([this]() {
@@ -106,8 +106,8 @@ class SimpleThreadPool final : public mofka::ThreadPoolInterface {
         for(auto& th : m_threads) th.join();
     }
 
-    mofka::ThreadCount threadCount() const override {
-        return mofka::ThreadCount{m_threads.size()};
+    diaspora::ThreadCount threadCount() const override {
+        return diaspora::ThreadCount{m_threads.size()};
     }
 
     void pushWork(std::function<void()> func,
@@ -130,37 +130,37 @@ class SimpleThreadPool final : public mofka::ThreadPoolInterface {
 };
 
 
-class SimpleEvent : public mofka::EventInterface {
+class SimpleEvent : public diaspora::EventInterface {
 
-    mofka::Metadata      m_metadata;
-    mofka::DataView      m_data;
-    mofka::PartitionInfo m_partition;
-    mofka::EventID       m_id;
+    diaspora::Metadata      m_metadata;
+    diaspora::DataView      m_data;
+    diaspora::PartitionInfo m_partition;
+    diaspora::EventID       m_id;
 
     public:
 
-    SimpleEvent(mofka::Metadata metadata,
-                mofka::DataView data,
-                mofka::PartitionInfo partition,
-                mofka::EventID id)
+    SimpleEvent(diaspora::Metadata metadata,
+                diaspora::DataView data,
+                diaspora::PartitionInfo partition,
+                diaspora::EventID id)
     : m_metadata(std::move(metadata))
     , m_data(std::move(data))
     , m_partition(std::move(partition))
     , m_id(id) {}
 
-    mofka::Metadata metadata() const override {
+    diaspora::Metadata metadata() const override {
         return m_metadata;
     }
 
-    mofka::DataView data() const override {
+    diaspora::DataView data() const override {
         return m_data;
     }
 
-    mofka::PartitionInfo partition() const override {
+    diaspora::PartitionInfo partition() const override {
         return m_partition;
     }
 
-    mofka::EventID id() const override {
+    diaspora::EventID id() const override {
         return m_id;
     }
 
@@ -169,12 +169,12 @@ class SimpleEvent : public mofka::EventInterface {
 };
 
 
-class SimpleProducer final : public mofka::ProducerInterface {
+class SimpleProducer final : public diaspora::ProducerInterface {
 
     const std::string                        m_name;
-    const mofka::BatchSize                   m_batch_size;
-    const mofka::MaxNumBatches               m_max_num_batches;
-    const mofka::Ordering                    m_ordering;
+    const diaspora::BatchSize                   m_batch_size;
+    const diaspora::MaxNumBatches               m_max_num_batches;
+    const diaspora::Ordering                    m_ordering;
     const std::shared_ptr<SimpleThreadPool>  m_thread_pool;
     const std::shared_ptr<SimpleTopicHandle> m_topic;
 
@@ -182,9 +182,9 @@ class SimpleProducer final : public mofka::ProducerInterface {
 
     SimpleProducer(
         std::string name,
-        mofka::BatchSize batch_size,
-        mofka::MaxNumBatches max_num_batches,
-        mofka::Ordering ordering,
+        diaspora::BatchSize batch_size,
+        diaspora::MaxNumBatches max_num_batches,
+        diaspora::Ordering ordering,
         std::shared_ptr<SimpleThreadPool> thread_pool,
         std::shared_ptr<SimpleTopicHandle> topic)
     : m_name{std::move(name)}
@@ -198,42 +198,42 @@ class SimpleProducer final : public mofka::ProducerInterface {
         return m_name;
     }
 
-    mofka::BatchSize batchSize() const override {
+    diaspora::BatchSize batchSize() const override {
         return m_batch_size;
     }
 
-    mofka::MaxNumBatches maxNumBatches() const override {
+    diaspora::MaxNumBatches maxNumBatches() const override {
         return m_max_num_batches;
     }
 
-    mofka::Ordering ordering() const override {
+    diaspora::Ordering ordering() const override {
         return m_ordering;
     }
 
-    std::shared_ptr<mofka::ThreadPoolInterface> threadPool() const override {
+    std::shared_ptr<diaspora::ThreadPoolInterface> threadPool() const override {
         return m_thread_pool;
     }
 
-    std::shared_ptr<mofka::TopicHandleInterface> topic() const override;
+    std::shared_ptr<diaspora::TopicHandleInterface> topic() const override;
 
-    mofka::Future<mofka::EventID> push(
-            mofka::Metadata metadata,
-            mofka::DataView data,
+    diaspora::Future<diaspora::EventID> push(
+            diaspora::Metadata metadata,
+            diaspora::DataView data,
             std::optional<size_t> partition) override;
 
     void flush() override {}
 };
 
 
-class SimpleConsumer final : public mofka::ConsumerInterface {
+class SimpleConsumer final : public diaspora::ConsumerInterface {
 
     const std::string                        m_name;
-    const mofka::BatchSize                   m_batch_size;
-    const mofka::MaxNumBatches               m_max_num_batches;
+    const diaspora::BatchSize                   m_batch_size;
+    const diaspora::MaxNumBatches               m_max_num_batches;
     const std::shared_ptr<SimpleThreadPool>  m_thread_pool;
     const std::shared_ptr<SimpleTopicHandle> m_topic;
-    const mofka::DataAllocator                  m_data_allocator;
-    const mofka::DataSelector                m_data_selector;
+    const diaspora::DataAllocator                  m_data_allocator;
+    const diaspora::DataSelector                m_data_selector;
 
     size_t                                   m_next_offset = 0;
 
@@ -241,12 +241,12 @@ class SimpleConsumer final : public mofka::ConsumerInterface {
 
     SimpleConsumer(
         std::string name,
-        mofka::BatchSize batch_size,
-        mofka::MaxNumBatches max_num_batches,
+        diaspora::BatchSize batch_size,
+        diaspora::MaxNumBatches max_num_batches,
         std::shared_ptr<SimpleThreadPool> thread_pool,
         std::shared_ptr<SimpleTopicHandle> topic,
-        mofka::DataAllocator data_allocator,
-        mofka::DataSelector data_selector)
+        diaspora::DataAllocator data_allocator,
+        diaspora::DataSelector data_selector)
     : m_name{std::move(name)}
     , m_batch_size(batch_size)
     , m_max_num_batches(max_num_batches)
@@ -260,40 +260,40 @@ class SimpleConsumer final : public mofka::ConsumerInterface {
         return m_name;
     }
 
-    mofka::BatchSize batchSize() const override {
+    diaspora::BatchSize batchSize() const override {
         return m_batch_size;
     }
 
-    mofka::MaxNumBatches maxNumBatches() const override {
+    diaspora::MaxNumBatches maxNumBatches() const override {
         return m_max_num_batches;
     }
 
-    std::shared_ptr<mofka::ThreadPoolInterface> threadPool() const override {
+    std::shared_ptr<diaspora::ThreadPoolInterface> threadPool() const override {
         return m_thread_pool;
     }
 
-    std::shared_ptr<mofka::TopicHandleInterface> topic() const override;
+    std::shared_ptr<diaspora::TopicHandleInterface> topic() const override;
 
-    const mofka::DataAllocator& dataAllocator() const override {
+    const diaspora::DataAllocator& dataAllocator() const override {
         return m_data_allocator;
     }
 
-    const mofka::DataSelector& dataSelector() const override {
+    const diaspora::DataSelector& dataSelector() const override {
         return m_data_selector;
     }
 
-    void process(mofka::EventProcessor processor,
-                 std::shared_ptr<mofka::ThreadPoolInterface> threadPool,
-                 mofka::NumEvents maxEvents) override;
+    void process(diaspora::EventProcessor processor,
+                 std::shared_ptr<diaspora::ThreadPoolInterface> threadPool,
+                 diaspora::NumEvents maxEvents) override;
 
     void unsubscribe() override;
 
-    mofka::Future<mofka::Event> pull() override;
+    diaspora::Future<diaspora::Event> pull() override;
 
 };
 
 
-class SimpleTopicHandle final : public mofka::TopicHandleInterface,
+class SimpleTopicHandle final : public diaspora::TopicHandleInterface,
                                 public std::enable_shared_from_this<SimpleTopicHandle> {
 
     friend class SimpleProducer;
@@ -305,10 +305,10 @@ class SimpleTopicHandle final : public mofka::TopicHandleInterface,
     };
 
     const std::string                       m_name;
-    const std::vector<mofka::PartitionInfo> m_pinfo = {mofka::PartitionInfo("{}")};
-    const mofka::Validator                  m_validator;
-    const mofka::PartitionSelector          m_partition_selector;
-    const mofka::Serializer                 m_serializer;
+    const std::vector<diaspora::PartitionInfo> m_pinfo = {diaspora::PartitionInfo("{}")};
+    const diaspora::Validator                  m_validator;
+    const diaspora::PartitionSelector          m_partition_selector;
+    const diaspora::Serializer                 m_serializer;
     const std::shared_ptr<SimpleDriver>     m_driver;
 
     Partition                               m_partition;
@@ -318,9 +318,9 @@ class SimpleTopicHandle final : public mofka::TopicHandleInterface,
 
     SimpleTopicHandle(
         std::string name,
-        mofka::Validator validator,
-        mofka::PartitionSelector partition_selector,
-        mofka::Serializer serializer,
+        diaspora::Validator validator,
+        diaspora::PartitionSelector partition_selector,
+        diaspora::Serializer serializer,
         std::shared_ptr<SimpleDriver> driver)
     : m_name{std::move(name)}
     , m_validator(std::move(validator))
@@ -333,21 +333,21 @@ class SimpleTopicHandle final : public mofka::TopicHandleInterface,
         return m_name;
     }
 
-    std::shared_ptr<mofka::DriverInterface> driver() const override;
+    std::shared_ptr<diaspora::DriverInterface> driver() const override;
 
-    const std::vector<mofka::PartitionInfo>& partitions() const override {
+    const std::vector<diaspora::PartitionInfo>& partitions() const override {
         return m_pinfo;
     }
 
-    mofka::Validator validator() const override {
+    diaspora::Validator validator() const override {
         return m_validator;
     }
 
-    mofka::PartitionSelector selector() const override {
+    diaspora::PartitionSelector selector() const override {
         return m_partition_selector;
     }
 
-    mofka::Serializer serializer() const override {
+    diaspora::Serializer serializer() const override {
         return m_serializer;
     }
 
@@ -355,38 +355,38 @@ class SimpleTopicHandle final : public mofka::TopicHandleInterface,
         m_is_complete = true;
     }
 
-    std::shared_ptr<mofka::ProducerInterface>
+    std::shared_ptr<diaspora::ProducerInterface>
         makeProducer(std::string_view name,
-                     mofka::BatchSize batch_size,
-                     mofka::MaxNumBatches max_batch,
-                     mofka::Ordering ordering,
-                     std::shared_ptr<mofka::ThreadPoolInterface> thread_pool,
-                     mofka::Metadata options) override;
+                     diaspora::BatchSize batch_size,
+                     diaspora::MaxNumBatches max_batch,
+                     diaspora::Ordering ordering,
+                     std::shared_ptr<diaspora::ThreadPoolInterface> thread_pool,
+                     diaspora::Metadata options) override;
 
-    std::shared_ptr<mofka::ConsumerInterface>
+    std::shared_ptr<diaspora::ConsumerInterface>
         makeConsumer(std::string_view name,
-                     mofka::BatchSize batch_size,
-                     mofka::MaxNumBatches max_batch,
-                     std::shared_ptr<mofka::ThreadPoolInterface> thread_pool,
-                     mofka::DataAllocator data_allocator,
-                     mofka::DataSelector data_selector,
+                     diaspora::BatchSize batch_size,
+                     diaspora::MaxNumBatches max_batch,
+                     std::shared_ptr<diaspora::ThreadPoolInterface> thread_pool,
+                     diaspora::DataAllocator data_allocator,
+                     diaspora::DataSelector data_selector,
                      const std::vector<size_t>& targets,
-                     mofka::Metadata options) override;
+                     diaspora::Metadata options) override;
 };
 
-inline std::shared_ptr<mofka::TopicHandleInterface> SimpleProducer::topic() const {
+inline std::shared_ptr<diaspora::TopicHandleInterface> SimpleProducer::topic() const {
     return m_topic;
 }
 
-inline std::shared_ptr<mofka::TopicHandleInterface> SimpleConsumer::topic() const {
+inline std::shared_ptr<diaspora::TopicHandleInterface> SimpleConsumer::topic() const {
     return m_topic;
 }
 
-inline mofka::Future<mofka::EventID> SimpleProducer::push(
-        mofka::Metadata metadata,
-        mofka::DataView data,
+inline diaspora::Future<diaspora::EventID> SimpleProducer::push(
+        diaspora::Metadata metadata,
+        diaspora::DataView data,
         std::optional<size_t> partition) {
-    auto state = std::make_shared<FutureState<mofka::EventID>>();
+    auto state = std::make_shared<FutureState<diaspora::EventID>>();
     m_thread_pool->pushWork(
         [topic=m_topic, state,
          metadata=std::move(metadata),
@@ -397,13 +397,13 @@ inline mofka::Future<mofka::EventID> SimpleProducer::push(
                 topic->validator().validate(metadata, data);
                 // serialization
                 std::vector<char> metadata_buffer, data_buffer;
-                mofka::BufferWrapperOutputArchive archive(metadata_buffer);
+                diaspora::BufferWrapperOutputArchive archive(metadata_buffer);
                 topic->serializer().serialize(archive, metadata);
                 data_buffer.resize(data.size());
                 data.read(data_buffer.data(), data_buffer.size());
                 // partition selection
                 auto index = topic->m_partition_selector.selectPartitionFor(metadata, partition);
-                if(index != 0) throw mofka::Exception{"Invalid index returned by PartitionSelector"};
+                if(index != 0) throw diaspora::Exception{"Invalid index returned by PartitionSelector"};
                 auto& metadata_vector = topic->m_partition.metadata;
                 auto& data_vector = topic->m_partition.data;
                 metadata_vector.push_back(std::move(metadata_buffer));
@@ -411,33 +411,33 @@ inline mofka::Future<mofka::EventID> SimpleProducer::push(
                 auto event_id = metadata_vector.size()-1;
                 // set the ID
                 state->set(event_id);
-            } catch(const mofka::Exception& ex) {
+            } catch(const diaspora::Exception& ex) {
                 state->set(ex);
             }
         });
-    return mofka::Future<mofka::EventID>{
+    return diaspora::Future<diaspora::EventID>{
         [state] { return state->wait(); },
         [state] { return state->test(); }
     };
 }
 
-class SimpleDriver : public mofka::DriverInterface,
+class SimpleDriver : public diaspora::DriverInterface,
                      public std::enable_shared_from_this<SimpleDriver> {
 
-    std::shared_ptr<mofka::ThreadPoolInterface> m_default_thread_pool =
-        std::make_shared<SimpleThreadPool>(mofka::ThreadCount{0});
+    std::shared_ptr<diaspora::ThreadPoolInterface> m_default_thread_pool =
+        std::make_shared<SimpleThreadPool>(diaspora::ThreadCount{0});
     std::unordered_map<std::string, std::shared_ptr<SimpleTopicHandle>> m_topics;
 
     public:
 
     void createTopic(std::string_view name,
-                     const mofka::Metadata& options,
-                     std::shared_ptr<mofka::ValidatorInterface> validator,
-                     std::shared_ptr<mofka::PartitionSelectorInterface> selector,
-                     std::shared_ptr<mofka::SerializerInterface> serializer) override {
+                     const diaspora::Metadata& options,
+                     std::shared_ptr<diaspora::ValidatorInterface> validator,
+                     std::shared_ptr<diaspora::PartitionSelectorInterface> selector,
+                     std::shared_ptr<diaspora::SerializerInterface> serializer) override {
         (void)options;
-        if(m_topics.count(std::string{name})) throw mofka::Exception{"Topic already exists"};
-        std::vector<mofka::PartitionInfo> pinfo{mofka::PartitionInfo{"{}"}};
+        if(m_topics.count(std::string{name})) throw diaspora::Exception{"Topic already exists"};
+        std::vector<diaspora::PartitionInfo> pinfo{diaspora::PartitionInfo{"{}"}};
         if(selector) selector->setPartitions(pinfo);
         m_topics.emplace(
             std::piecewise_construct,
@@ -454,10 +454,10 @@ class SimpleDriver : public mofka::DriverInterface,
         );
     }
 
-    std::shared_ptr<mofka::TopicHandleInterface> openTopic(std::string_view name) const override {
+    std::shared_ptr<diaspora::TopicHandleInterface> openTopic(std::string_view name) const override {
         auto it = m_topics.find(std::string{name});
         if(it == m_topics.end())
-            throw mofka::Exception{"Could not find topic \"" + std::string{name} + "\""};
+            throw diaspora::Exception{"Could not find topic \"" + std::string{name} + "\""};
         return it->second;
     }
 
@@ -465,56 +465,56 @@ class SimpleDriver : public mofka::DriverInterface,
         return m_topics.count(std::string{name});
     }
 
-    std::shared_ptr<mofka::ThreadPoolInterface> defaultThreadPool() const override {
+    std::shared_ptr<diaspora::ThreadPoolInterface> defaultThreadPool() const override {
         return m_default_thread_pool;
     }
 
-    std::shared_ptr<mofka::ThreadPoolInterface> makeThreadPool(mofka::ThreadCount count) const override {
+    std::shared_ptr<diaspora::ThreadPoolInterface> makeThreadPool(diaspora::ThreadCount count) const override {
         return std::make_shared<SimpleThreadPool>(count);
     }
 
-    static inline std::shared_ptr<mofka::DriverInterface> create(const mofka::Metadata&) {
+    static inline std::shared_ptr<diaspora::DriverInterface> create(const diaspora::Metadata&) {
         return std::make_shared<SimpleDriver>();
     }
 };
 
 
-inline std::shared_ptr<mofka::DriverInterface> SimpleTopicHandle::driver() const {
+inline std::shared_ptr<diaspora::DriverInterface> SimpleTopicHandle::driver() const {
     return m_driver;
 }
 
-inline std::shared_ptr<mofka::ProducerInterface>
+inline std::shared_ptr<diaspora::ProducerInterface>
     SimpleTopicHandle::makeProducer(std::string_view name,
-        mofka::BatchSize batch_size,
-        mofka::MaxNumBatches max_batch,
-        mofka::Ordering ordering,
-        std::shared_ptr<mofka::ThreadPoolInterface> thread_pool,
-        mofka::Metadata options) {
+        diaspora::BatchSize batch_size,
+        diaspora::MaxNumBatches max_batch,
+        diaspora::Ordering ordering,
+        std::shared_ptr<diaspora::ThreadPoolInterface> thread_pool,
+        diaspora::Metadata options) {
     (void)options;
-    if(!thread_pool) thread_pool = m_driver->makeThreadPool(mofka::ThreadCount{0});
+    if(!thread_pool) thread_pool = m_driver->makeThreadPool(diaspora::ThreadCount{0});
     auto simple_thread_pool = std::dynamic_pointer_cast<SimpleThreadPool>(thread_pool);
     if(!simple_thread_pool)
-        throw mofka::Exception{"ThreadPool should be an instance of SimpleThreadPool"};
+        throw diaspora::Exception{"ThreadPool should be an instance of SimpleThreadPool"};
     return std::make_shared<SimpleProducer>(
             std::string{name}, batch_size, max_batch, ordering, simple_thread_pool,
             shared_from_this());
 }
 
-inline std::shared_ptr<mofka::ConsumerInterface>
+inline std::shared_ptr<diaspora::ConsumerInterface>
     SimpleTopicHandle::makeConsumer(std::string_view name,
-        mofka::BatchSize batch_size,
-        mofka::MaxNumBatches max_batch,
-        std::shared_ptr<mofka::ThreadPoolInterface> thread_pool,
-        mofka::DataAllocator data_allocator,
-        mofka::DataSelector data_selector,
+        diaspora::BatchSize batch_size,
+        diaspora::MaxNumBatches max_batch,
+        std::shared_ptr<diaspora::ThreadPoolInterface> thread_pool,
+        diaspora::DataAllocator data_allocator,
+        diaspora::DataSelector data_selector,
         const std::vector<size_t>& targets,
-        mofka::Metadata options) {
+        diaspora::Metadata options) {
     (void)options;
     (void)targets;
-    if(!thread_pool) thread_pool = m_driver->makeThreadPool(mofka::ThreadCount{0});
+    if(!thread_pool) thread_pool = m_driver->makeThreadPool(diaspora::ThreadCount{0});
     auto simple_thread_pool = std::dynamic_pointer_cast<SimpleThreadPool>(thread_pool);
     if(!simple_thread_pool)
-        throw mofka::Exception{"ThreadPool should be an instance of SimpleThreadPool"};
+        throw diaspora::Exception{"ThreadPool should be an instance of SimpleThreadPool"};
     return std::make_shared<SimpleConsumer>(
             std::string{name}, batch_size, max_batch, simple_thread_pool,
             shared_from_this(), std::move(data_allocator),
@@ -523,36 +523,36 @@ inline std::shared_ptr<mofka::ConsumerInterface>
 
 void SimpleConsumer::unsubscribe() {}
 
-mofka::Future<mofka::Event> SimpleConsumer::pull() {
+diaspora::Future<diaspora::Event> SimpleConsumer::pull() {
     if(m_next_offset == m_topic->m_partition.metadata.size()) {
-        return mofka::Future<mofka::Event>{
-            []() { return mofka::Event(std::make_shared<SimpleEvent>(
-                        mofka::Metadata{}, mofka::DataView{}, mofka::PartitionInfo{},
-                        mofka::NoMoreEvents));},
+        return diaspora::Future<diaspora::Event>{
+            []() { return diaspora::Event(std::make_shared<SimpleEvent>(
+                        diaspora::Metadata{}, diaspora::DataView{}, diaspora::PartitionInfo{},
+                        diaspora::NoMoreEvents));},
             []() { return true; }
         };
     } else {
         // get the metadata and data from the topic
         auto& metadata_buffer = m_topic->m_partition.metadata[m_next_offset];
         auto& data_buffer     = m_topic->m_partition.data[m_next_offset];
-        mofka::Metadata metadata;
+        diaspora::Metadata metadata;
         // deserialize metadata
-        mofka::BufferWrapperInputArchive archive(
+        diaspora::BufferWrapperInputArchive archive(
             std::string_view{metadata_buffer.data(), metadata_buffer.size()});
         m_topic->m_serializer.deserialize(archive, metadata);
         // invoke the data selector
         auto data_descriptor = m_data_selector(
-            metadata, mofka::DataDescriptor("", data_buffer.size()));
+            metadata, diaspora::DataDescriptor("", data_buffer.size()));
         // invoke the data allocator
         auto data_view = m_data_allocator(metadata, data_descriptor);
 
         // copy the data to target destination
         data_view.write(data_buffer.data(), data_buffer.size());
         m_next_offset += 1;
-        return mofka::Future<mofka::Event>{
+        return diaspora::Future<diaspora::Event>{
             [metadata=std::move(metadata), data=std::move(data_view), event_id=m_next_offset-1]() {
-                return mofka::Event(std::make_shared<SimpleEvent>(
-                        std::move(metadata), std::move(data), mofka::PartitionInfo{},
+                return diaspora::Event(std::make_shared<SimpleEvent>(
+                        std::move(metadata), std::move(data), diaspora::PartitionInfo{},
                         event_id));},
             []() { return true; }
         };
@@ -560,9 +560,9 @@ mofka::Future<mofka::Event> SimpleConsumer::pull() {
 }
 
 inline void SimpleConsumer::process(
-        mofka::EventProcessor processor,
-        std::shared_ptr<mofka::ThreadPoolInterface> threadPool,
-        mofka::NumEvents maxEvents) {
+        diaspora::EventProcessor processor,
+        std::shared_ptr<diaspora::ThreadPoolInterface> threadPool,
+        diaspora::NumEvents maxEvents) {
     if(!threadPool) threadPool = m_topic->driver()->defaultThreadPool();
     size_t                  pending_events = 0;
     std::mutex              pending_mutex;
@@ -582,7 +582,7 @@ inline void SimpleConsumer::process(
                     pending_cv.notify_all();
             });
         }
-    } catch(const mofka::StopEventProcessor&) {}
+    } catch(const diaspora::StopEventProcessor&) {}
     std::unique_lock lock{pending_mutex};
     while(pending_events) pending_cv.wait(lock);
 }

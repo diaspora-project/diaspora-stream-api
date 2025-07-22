@@ -3,15 +3,15 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_SCHEMA_SERIALIZER_H
-#define MOFKA_SCHEMA_SERIALIZER_H
+#ifndef DIASPORA_SCHEMA_SERIALIZER_H
+#define DIASPORA_SCHEMA_SERIALIZER_H
 
 #include "JsonUtil.hpp"
-#include "mofka/Serializer.hpp"
-#include "mofka/Json.hpp"
+#include "diaspora/Serializer.hpp"
+#include "diaspora/Json.hpp"
 #include <functional>
 
-namespace mofka {
+namespace diaspora {
 
 class SchemaSerializer : public SerializerInterface {
 
@@ -40,7 +40,7 @@ class SchemaSerializer : public SerializerInterface {
     void deserialize(Archive& archive, Metadata& metadata) const override {
         json j;
         m_deserialize(archive, j);
-        metadata = mofka::Metadata{std::move(j)};
+        metadata = diaspora::Metadata{std::move(j)};
     }
 
     Metadata metadata() const override {

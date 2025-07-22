@@ -7,25 +7,25 @@
 #include <catch2/catch_all.hpp>
 #include "SimpleBackend.hpp"
 
-MOFKA_REGISTER_DRIVER(simple, SimpleDriver);
+DIASPORA_REGISTER_DRIVER(simple, SimpleDriver);
 
-TEST_CASE("Mofka API test", "[mofka-api]") {
+TEST_CASE("Diaspora API test", "[diaspora-api]") {
 
     SECTION("Create invalid Driver") {
 
         REQUIRE_THROWS_AS(
-            mofka::DriverFactory::create("unknown", {}),
-            mofka::Exception);
+            diaspora::DriverFactory::create("unknown", {}),
+            diaspora::Exception);
 
         REQUIRE_THROWS_AS(
-            mofka::DriverFactory::create("unknown:libunknown.so", {}),
-            mofka::Exception);
+            diaspora::DriverFactory::create("unknown:libunknown.so", {}),
+            diaspora::Exception);
 
     }
 
     SECTION("Create Driver") {
 
-        auto driver = mofka::DriverFactory::create("simple", {});
+        auto driver = diaspora::DriverFactory::create("simple", {});
         REQUIRE(static_cast<bool>(driver));
 
     }

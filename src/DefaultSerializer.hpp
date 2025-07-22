@@ -3,14 +3,14 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_DEFAULT_SERIALIZER_H
-#define MOFKA_DEFAULT_SERIALIZER_H
+#ifndef DIASPORA_DEFAULT_SERIALIZER_H
+#define DIASPORA_DEFAULT_SERIALIZER_H
 
 #include "JsonUtil.hpp"
-#include "mofka/Serializer.hpp"
-#include "mofka/Json.hpp"
+#include "diaspora/Serializer.hpp"
+#include "diaspora/Json.hpp"
 
-namespace mofka {
+namespace diaspora {
 
 class DefaultSerializer : public SerializerInterface {
 

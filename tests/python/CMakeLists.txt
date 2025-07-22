@@ -1,5 +1,5 @@
 add_library (simple-backend SHARED SimpleBackend.cpp)
-target_link_libraries (simple-backend PUBLIC mofka::api)
+target_link_libraries (simple-backend PUBLIC diaspora-stream-api)
 
 set (python-module-dir ${CMAKE_SOURCE_DIR}/python)
 file (GLOB_RECURSE python-test-files "${python-module-dir}/test_*.py")

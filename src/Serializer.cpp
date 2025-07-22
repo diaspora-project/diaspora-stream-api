@@ -4,16 +4,16 @@
  * See COPYRIGHT in top-level directory.
  */
 #include "JsonUtil.hpp"
-#include "mofka/Exception.hpp"
-#include "mofka/Serializer.hpp"
+#include "diaspora/Exception.hpp"
+#include "diaspora/Serializer.hpp"
 #include "PimplUtil.hpp"
 #include "DefaultSerializer.hpp"
 #include "SchemaSerializer.hpp"
 
-namespace mofka {
+namespace diaspora {
 
-MOFKA_REGISTER_SERIALIZER(default, DefaultSerializer);
-MOFKA_REGISTER_SERIALIZER(schema, SchemaSerializer);
+DIASPORA_REGISTER_SERIALIZER(default, DefaultSerializer);
+DIASPORA_REGISTER_SERIALIZER(schema, SchemaSerializer);
 
 Serializer::Serializer()
 : self(std::make_shared<DefaultSerializer>()) {}

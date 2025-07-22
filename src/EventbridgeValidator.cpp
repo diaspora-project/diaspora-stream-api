@@ -10,9 +10,9 @@
 #include <sstream>
 #include <optional>
 
-namespace mofka {
+namespace diaspora {
 
-MOFKA_REGISTER_VALIDATOR(eventbridge, EventbridgeValidator);
+DIASPORA_REGISTER_VALIDATOR(eventbridge, EventbridgeValidator);
 
 using json = nlohmann::json;
 

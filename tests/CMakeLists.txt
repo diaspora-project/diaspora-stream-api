@@ -1,10 +1,10 @@
-file (GLOB mofka-test-sources ${CMAKE_CURRENT_SOURCE_DIR}/*Test.cpp)
+file (GLOB diaspora-test-sources ${CMAKE_CURRENT_SOURCE_DIR}/*Test.cpp)
 
-foreach (test-source ${mofka-test-sources})
+foreach (test-source ${diaspora-test-sources})
     get_filename_component (name ${test-source} NAME_WE)
     add_executable (${name} ${test-source})
     target_link_libraries (${name}
-        PRIVATE Catch2::Catch2WithMain mofka-api coverage_config warnings_config)
+        PRIVATE Catch2::Catch2WithMain diaspora-stream-api coverage_config warnings_config)
     add_test (NAME ${name} COMMAND ./${name})
     set_property (TEST ${name} PROPERTY
                   ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}:$ENV{LD_LIBRARY_PATH}")
@@ -15,9 +15,9 @@ if (ENABLE_PYTHON)
     add_subdirectory (python)
 
     set (PYTHON_MODULE_DIR ${CMAKE_SOURCE_DIR}/python)
-    file (GLOB_RECURSE PYTHON_MOFKA_TEST_FILES "${PYTHON_MODULE_DIR}/test_mofka_*.py")
+    file (GLOB_RECURSE PYTHON_DIASPORA_STREAM_TEST_FILES "${PYTHON_MODULE_DIR}/test_diaspora_*.py")
 
-    foreach (PYTHON_TEST_FILE ${PYTHON_MOFKA_TEST_FILES})
+    foreach (PYTHON_TEST_FILE ${PYTHON_DIASPORA_STREAM_TEST_FILES})
         file (RELATIVE_PATH PYTHON_TEST_FILE_REL ${PYTHON_MODULE_DIR} ${PYTHON_TEST_FILE})
         string (REPLACE ".py" "" PYTHON_TEST_FILE_BASE ${PYTHON_TEST_FILE_REL})
         string (REPLACE "/" "." PYTHON_TEST_NAME ${PYTHON_TEST_FILE_BASE})

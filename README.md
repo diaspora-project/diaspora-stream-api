@@ -1,19 +1,14 @@
-<p align="center">
-<img src="img/MofkaLogo-light.svg#gh-light-mode-only" height="220" width="210" />
-<img src="img/MofkaLogo-dark.svg#gh-dark-mode-only" height="220" width="210" />
-</p>
-
-This repository provides the Mofka API library, an API for streaming frameworks for HPC
+This repository provides the Diaspora Streaming API library, an API for streaming frameworks for HPC
 applications. The main implementation of this API is [Mofka](https://mofka.readthedocs.io/en/latest/),
 which relies on the [Mochi](https://wordpress.cels.anl.gov/mochi/) framework.
 
 Please refer to the [ReadTheDocs](https://mofka.readthedocs.io/) for more information on
-how to use Mofka and/or the Mofka API.
+how to use Mofka and/or the Streaming API.
 
 Using this API
 ==============
 
-To implement a streaming service using the Mofka API, you will need to implement classes
+To implement a streaming service using the Diaspora Streaming API, you will need to implement classes
 inheriting from the following virtual classes:
 
 - `DriverInterface`: represents a connection to your service and provides methods to create and
@@ -34,4 +29,4 @@ Consumer, and Event). These classes are simple wrappers around a `shared_ptr` to
 interfaces, and will be what the user of your service uses.
 
 The [tests/SimpleBackend.hpp](tests/SimpleBackend.hpp) is an example of implementation of the
-Mofka API, implementing single-partition queues that are local to a process.
+Streaming API, implementing single-partition queues that are local to a process.

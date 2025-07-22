@@ -4,20 +4,20 @@
  * See COPYRIGHT in top-level directory.
  */
 #include "JsonUtil.hpp"
-#include "mofka/Exception.hpp"
-#include "mofka/Validator.hpp"
+#include "diaspora/Exception.hpp"
+#include "diaspora/Validator.hpp"
 #include "PimplUtil.hpp"
 #include "DefaultValidator.hpp"
 #include "SchemaValidator.hpp"
 #include <unordered_map>
 
-namespace mofka {
+namespace diaspora {
 
 Validator::Validator()
 : self(std::make_shared<DefaultValidator>()) {}
 
-MOFKA_REGISTER_VALIDATOR(default, DefaultValidator);
-MOFKA_REGISTER_VALIDATOR(schema, SchemaValidator);
+DIASPORA_REGISTER_VALIDATOR(default, DefaultValidator);
+DIASPORA_REGISTER_VALIDATOR(schema, SchemaValidator);
 
 Validator Validator::FromMetadata(const Metadata& metadata) {
     auto& json = metadata.json();

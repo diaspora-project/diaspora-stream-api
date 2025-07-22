@@ -3,15 +3,15 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_API_DEFAULT_PARTITION_SELECTOR_H
-#define MOFKA_API_DEFAULT_PARTITION_SELECTOR_H
+#ifndef DIASPORA_API_DEFAULT_PARTITION_SELECTOR_H
+#define DIASPORA_API_DEFAULT_PARTITION_SELECTOR_H
 
-#include "mofka/Metadata.hpp"
-#include "mofka/PartitionSelector.hpp"
-#include "mofka/Json.hpp"
+#include "diaspora/Metadata.hpp"
+#include "diaspora/PartitionSelector.hpp"
+#include "diaspora/Json.hpp"
 #include "JsonUtil.hpp"
 
-namespace mofka {
+namespace diaspora {
 
 class DefaultPartitionSelector : public PartitionSelectorInterface {
 

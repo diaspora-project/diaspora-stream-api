@@ -3,8 +3,8 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_PIMPL_UTIL_HPP
-#define MOFKA_PIMPL_UTIL_HPP
+#ifndef DIASPORA_PIMPL_UTIL_HPP
+#define DIASPORA_PIMPL_UTIL_HPP
 
 #include <memory>
 
@@ -31,7 +31,7 @@
     T::T() = default;                        \
     PIMPL_DEFINE_COMMON_FUNCTIONS_NO_CTOR(T)
 
-namespace mofka {
+namespace diaspora {
 
 template<typename T>
 using SP = std::shared_ptr<T>;

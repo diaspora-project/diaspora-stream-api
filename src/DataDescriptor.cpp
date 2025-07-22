@@ -3,12 +3,12 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "mofka/DataDescriptor.hpp"
-#include "mofka/Exception.hpp"
+#include "diaspora/DataDescriptor.hpp"
+#include "diaspora/Exception.hpp"
 
 #include <cmath>
 
-namespace mofka {
+namespace diaspora {
 
 
 std::vector<DataDescriptor::Segment> DataDescriptor::flatten() const {

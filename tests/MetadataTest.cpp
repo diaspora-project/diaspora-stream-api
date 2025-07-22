@@ -5,20 +5,20 @@
  */
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
-#include <mofka/Metadata.hpp>
+#include <diaspora/Metadata.hpp>
 
-TEST_CASE("Mofka API Metadata test", "[metadata]") {
+TEST_CASE("Diaspora API Metadata test", "[metadata]") {
 
     SECTION("Default Metadata object") {
 
-        auto md = mofka::Metadata{};
+        auto md = diaspora::Metadata{};
         REQUIRE(md.json().is_object());
         REQUIRE(md.dump() == "{}");
 
         SECTION("Modify metadata using string accessor") {
             md = R"({"x":1,"y":2.3})";
             REQUIRE(md.json().is_object());
-            REQUIRE(((const mofka::Metadata&)md).json().is_object());
+            REQUIRE(((const diaspora::Metadata&)md).json().is_object());
             REQUIRE(md.json().contains("x"));
             REQUIRE(md.json().contains("y"));
             REQUIRE(md.dump() == R"({"x":1,"y":2.3})");
@@ -38,7 +38,7 @@ TEST_CASE("Mofka API Metadata test", "[metadata]") {
 
         SECTION("string constructor") {
             std::string content{"abcd"};
-            auto md = mofka::Metadata{content, false};
+            auto md = diaspora::Metadata{content, false};
             REQUIRE(!md.json().is_object());
             REQUIRE(md.json().is_string());
             REQUIRE(md.dump() == R"("abcd")");
@@ -47,7 +47,7 @@ TEST_CASE("Mofka API Metadata test", "[metadata]") {
 
         SECTION("string_view constructor") {
             std::string_view content{"abcd"};
-            auto md = mofka::Metadata{content, false};
+            auto md = diaspora::Metadata{content, false};
             REQUIRE(!md.json().is_object());
             REQUIRE(md.json().is_string());
             REQUIRE(md.dump() == R"("abcd")");
@@ -56,7 +56,7 @@ TEST_CASE("Mofka API Metadata test", "[metadata]") {
 
         SECTION("const char* constructor") {
             const char* content = "abcd";
-            auto md = mofka::Metadata{content, false};
+            auto md = diaspora::Metadata{content, false};
             REQUIRE(!md.json().is_object());
             REQUIRE(md.json().is_string());
             REQUIRE(md.dump() == R"("abcd")");
@@ -69,7 +69,7 @@ TEST_CASE("Mofka API Metadata test", "[metadata]") {
 
         SECTION("string constructor") {
             std::string content{R"({"x":1,"y":2.3})"};
-            auto md = mofka::Metadata{content, true};
+            auto md = diaspora::Metadata{content, true};
             REQUIRE(md.json().is_object());
             REQUIRE(md.json().contains("x"));
             REQUIRE(md.json().contains("y"));
@@ -78,7 +78,7 @@ TEST_CASE("Mofka API Metadata test", "[metadata]") {
 
         SECTION("string_view constructor") {
             std::string_view content{R"({"x":1,"y":2.3})"};
-            auto md = mofka::Metadata{content, true};
+            auto md = diaspora::Metadata{content, true};
             REQUIRE(md.json().is_object());
             REQUIRE(md.json().contains("x"));
             REQUIRE(md.json().contains("y"));
@@ -87,7 +87,7 @@ TEST_CASE("Mofka API Metadata test", "[metadata]") {
 
         SECTION("const char* constructor") {
             const char* content = R"({"x":1,"y":2.3})";
-            auto md = mofka::Metadata{content, true};
+            auto md = diaspora::Metadata{content, true};
             REQUIRE(md.json().is_object());
             REQUIRE(md.json().contains("x"));
             REQUIRE(md.json().contains("y"));
@@ -96,29 +96,29 @@ TEST_CASE("Mofka API Metadata test", "[metadata]") {
 
         SECTION("string constructor (invalid JSON)") {
             std::string content{R"({"x":1,"y":)"};
-            REQUIRE_THROWS_AS(mofka::Metadata(content, true), mofka::Exception);
+            REQUIRE_THROWS_AS(diaspora::Metadata(content, true), diaspora::Exception);
         }
 
         SECTION("string_view constructor (invalid JSON)") {
             std::string_view content{R"({"x":1,"y":)"};
-            REQUIRE_THROWS_AS(mofka::Metadata(content, true), mofka::Exception);
+            REQUIRE_THROWS_AS(diaspora::Metadata(content, true), diaspora::Exception);
         }
 
         SECTION("const char* constructor (invalid JSON)") {
             const char* content = R"({"x":1,"y":)";
-            REQUIRE_THROWS_AS(mofka::Metadata(content, true), mofka::Exception);
+            REQUIRE_THROWS_AS(diaspora::Metadata(content, true), diaspora::Exception);
         }
 
     }
 
     SECTION("JSON constructor") {
         auto content = nlohmann::json::parse(R"({"x":1,"y":2.3})");
-        auto md = mofka::Metadata{content};
+        auto md = diaspora::Metadata{content};
         REQUIRE(md.json().is_object());
         REQUIRE(md.json().contains("x"));
         REQUIRE(md.json().contains("y"));
         REQUIRE(md.dump() == R"({"x":1,"y":2.3})");
-        REQUIRE_THROWS_AS(md.string(), mofka::Exception);
+        REQUIRE_THROWS_AS(md.string(), diaspora::Exception);
     }
 
 }

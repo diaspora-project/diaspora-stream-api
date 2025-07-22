@@ -3,15 +3,15 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include <mofka/Factory.hpp>
-#include <mofka/Exception.hpp>
+#include <diaspora/Factory.hpp>
+#include <diaspora/Exception.hpp>
 #include <dlfcn.h>
 #include <unordered_map>
 #include <functional>
 #include <memory>
 #include <vector>
 
-namespace mofka {
+namespace diaspora {
 
 template <typename Base, typename... Args>
 class Factory;

@@ -5,5 +5,5 @@
  */
 #include "../SimpleBackend.hpp"
 
-MOFKA_REGISTER_DRIVER(simple, SimpleDriver);
+DIASPORA_REGISTER_DRIVER(simple, SimpleDriver);
 

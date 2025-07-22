@@ -3,8 +3,8 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_JSON_UTIL_H
-#define MOFKA_JSON_UTIL_H
+#ifndef DIASPORA_JSON_UTIL_H
+#define DIASPORA_JSON_UTIL_H
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json-schema.hpp>
@@ -14,7 +14,7 @@
 #include <string_view>
 #include <iostream>
 
-namespace mofka {
+namespace diaspora {
 
 static inline bool ValidateIsJson(std::string_view json) {
     std::stack<char> brackets;

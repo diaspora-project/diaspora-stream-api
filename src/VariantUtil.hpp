@@ -3,10 +3,10 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_VARIANT_UTIL_HPP
-#define MOFKA_VARIANT_UTIL_HPP
+#ifndef DIASPORA_VARIANT_UTIL_HPP
+#define DIASPORA_VARIANT_UTIL_HPP
 
-namespace mofka {
+namespace diaspora {
 
 template<class... Ts>
 struct Overloaded : Ts... { using Ts::operator()...; };

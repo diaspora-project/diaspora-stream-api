@@ -3,15 +3,15 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef MOFKA_EVENTBRIDGE_VALIDATOR_H
-#define MOFKA_EVENTBRIDGE_VALIDATOR_H
+#ifndef DIASPORA_EVENTBRIDGE_VALIDATOR_H
+#define DIASPORA_EVENTBRIDGE_VALIDATOR_H
 
 #include "JsonUtil.hpp"
-#include "mofka/Metadata.hpp"
-#include "mofka/Validator.hpp"
-#include "mofka/Json.hpp"
+#include "diaspora/Metadata.hpp"
+#include "diaspora/Validator.hpp"
+#include "diaspora/Json.hpp"
 
-namespace mofka {
+namespace diaspora {
 
 class EventbridgeValidator : public ValidatorInterface {
 

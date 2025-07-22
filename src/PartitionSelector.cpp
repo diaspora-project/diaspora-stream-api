@@ -4,18 +4,18 @@
  * See COPYRIGHT in top-level directory.
  */
 #include "JsonUtil.hpp"
-#include "mofka/Exception.hpp"
-#include "mofka/PartitionSelector.hpp"
+#include "diaspora/Exception.hpp"
+#include "diaspora/PartitionSelector.hpp"
 #include "PimplUtil.hpp"
 #include "DefaultPartitionSelector.hpp"
 #include <unordered_map>
 
-namespace mofka {
+namespace diaspora {
 
 PartitionSelector::PartitionSelector()
 : self(std::make_shared<DefaultPartitionSelector>()) {}
 
-MOFKA_REGISTER_PARTITION_SELECTOR(default, DefaultPartitionSelector);
+DIASPORA_REGISTER_PARTITION_SELECTOR(default, DefaultPartitionSelector);
 
 PartitionSelector PartitionSelector::FromMetadata(const Metadata& metadata) {
     auto& json = metadata.json();

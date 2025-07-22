@@ -13,7 +13,7 @@ requires-python = ">=3.7"
 dependencies = []
 
 [tool.scikit-build]
-wheel.packages = ["python/diaspora_stream_api"]
+wheel.packages = ["python/diaspora_stream"]
 build-dir = "build"
 cmake.minimum-version = "3.15"
 cmake.args = ["-DENABLE_PYTHON=ON"]

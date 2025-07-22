@@ -6,6 +6,10 @@ set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing ()
 
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+    cmake_policy (SET CMP0135 NEW)
+endif ()
+
 # library version set here (e.g. for shared libs).
 set (DIASPORA_STREAM_API_VERSION_MAJOR 0)
 set (DIASPORA_STREAM_API_VERSION_MINOR 1)
@@ -90,7 +94,7 @@ else ()
     install (DIRECTORY ${nlohmann_json_SOURCE_DIR}/include/nlohmann
              DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     install (TARGETS nlohmann_json nlohmann_json_schema_validator
-             EXPORT mofka-api-targets
+             EXPORT diaspora-stream-api-targets
              ARCHIVE DESTINATION lib
              LIBRARY DESTINATION lib
              RUNTIME DESTINATION bin

@@ -190,6 +190,6 @@ using SerializerFactory = Factory<SerializerInterface, const Metadata&>;
 }
 
 #define DIASPORA_REGISTER_SERIALIZER(__prefix__, __name__, __type__) \
-    DIASPORA_REGISTER_IMPLEMENTATION_FOR(__prefix__, SerializerFactory, __type__, __name__)
+    DIASPORA_REGISTER_IMPLEMENTATION_FOR(__prefix__, ::diaspora::SerializerFactory, __type__, __name__)
 
 #endif

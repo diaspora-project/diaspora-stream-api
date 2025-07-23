@@ -185,7 +185,7 @@ class Driver {
 };
 
 #define DIASPORA_REGISTER_DRIVER(__prefix__, __name__, __type__) \
-    DIASPORA_REGISTER_IMPLEMENTATION_FOR(__prefix__, DriverFactory, __type__, __name__)
+    DIASPORA_REGISTER_IMPLEMENTATION_FOR(__prefix__, ::diaspora::DriverFactory, __type__, __name__)
 
 }
 

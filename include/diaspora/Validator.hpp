@@ -168,7 +168,7 @@ class Validator {
 using ValidatorFactory = Factory<ValidatorInterface, const Metadata&>;
 
 #define DIASPORA_REGISTER_VALIDATOR(__prefix__, __name__, __type__) \
-    DIASPORA_REGISTER_IMPLEMENTATION_FOR(__prefix__, ValidatorFactory, __type__, __name__)
+    DIASPORA_REGISTER_IMPLEMENTATION_FOR(__prefix__, ::diaspora::ValidatorFactory, __type__, __name__)
 
 }
 

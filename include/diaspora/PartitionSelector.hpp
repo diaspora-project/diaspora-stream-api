@@ -184,7 +184,7 @@ class PartitionSelector {
 using PartitionSelectorFactory = Factory<PartitionSelectorInterface, const Metadata&>;
 
 #define DIASPORA_REGISTER_PARTITION_SELECTOR(__prefix__, __name__, __type__) \
-    DIASPORA_REGISTER_IMPLEMENTATION_FOR(__prefix__, PartitionSelectorFactory, __type__, __name__)
+    DIASPORA_REGISTER_IMPLEMENTATION_FOR(__prefix__, ::diaspora::PartitionSelectorFactory, __type__, __name__)
 
 }
 

@@ -12,7 +12,7 @@
 
 namespace diaspora {
 
-DIASPORA_REGISTER_VALIDATOR(eventbridge, EventbridgeValidator);
+DIASPORA_REGISTER_VALIDATOR(diaspora, eventbridge, EventbridgeValidator);
 
 using json = nlohmann::json;
 

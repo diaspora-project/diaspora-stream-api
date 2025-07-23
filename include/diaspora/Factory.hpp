@@ -55,8 +55,8 @@ struct Registrar {
 
 }
 
-#define DIASPORA_REGISTER_IMPLEMENTATION_FOR(__factory__, __derived__, __name__) \
-    static ::diaspora::Registrar<::diaspora::__factory__, __derived__> \
-    __diasporaRegistrarFor ## __factory__ ## _ ## __derived__ ## _ ## __name__{#__name__}
+#define DIASPORA_REGISTER_IMPLEMENTATION_FOR(__prefix__, __factory__, __derived__, __name__) \
+    static ::diaspora::Registrar<__factory__, __derived__> \
+    __diasporaRegistrarFor ## __prefix__ ## _ ## __derived__ ## _ ## __name__{#__name__}
 
 #endif

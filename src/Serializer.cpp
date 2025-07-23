@@ -12,8 +12,8 @@
 
 namespace diaspora {
 
-DIASPORA_REGISTER_SERIALIZER(default, DefaultSerializer);
-DIASPORA_REGISTER_SERIALIZER(schema, SchemaSerializer);
+DIASPORA_REGISTER_SERIALIZER(diaspora, default, DefaultSerializer);
+DIASPORA_REGISTER_SERIALIZER(diaspora, schema, SchemaSerializer);
 
 Serializer::Serializer()
 : self(std::make_shared<DefaultSerializer>()) {}

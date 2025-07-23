@@ -15,7 +15,7 @@ namespace diaspora {
 PartitionSelector::PartitionSelector()
 : self(std::make_shared<DefaultPartitionSelector>()) {}
 
-DIASPORA_REGISTER_PARTITION_SELECTOR(default, DefaultPartitionSelector);
+DIASPORA_REGISTER_PARTITION_SELECTOR(diaspora, default, DefaultPartitionSelector);
 
 PartitionSelector PartitionSelector::FromMetadata(const Metadata& metadata) {
     auto& json = metadata.json();

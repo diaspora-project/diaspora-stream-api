@@ -45,7 +45,7 @@ class EventInterface {
      * @brief Returns information about the partition
      * this Event originates from.
      */
-    virtual const PartitionInfo& partition() const = 0;
+    virtual PartitionInfo partition() const = 0;
 
     /**
      * @brief Returns the EventID.
@@ -121,7 +121,7 @@ class Event {
      * @brief Returns information about the partition
      * this Event originates from.
      */
-    inline const PartitionInfo& partition() const {
+    inline PartitionInfo partition() const {
         return self->partition();
     }
 

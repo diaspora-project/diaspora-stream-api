@@ -156,7 +156,7 @@ class SimpleEvent : public diaspora::EventInterface {
         return m_data;
     }
 
-    const diaspora::PartitionInfo& partition() const override {
+    diaspora::PartitionInfo partition() const override {
         return m_partition;
     }
 

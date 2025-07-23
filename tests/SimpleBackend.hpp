@@ -148,15 +148,15 @@ class SimpleEvent : public diaspora::EventInterface {
     , m_partition(std::move(partition))
     , m_id(id) {}
 
-    diaspora::Metadata metadata() const override {
+    const diaspora::Metadata& metadata() const override {
         return m_metadata;
     }
 
-    diaspora::DataView data() const override {
+    const diaspora::DataView& data() const override {
         return m_data;
     }
 
-    diaspora::PartitionInfo partition() const override {
+    const diaspora::PartitionInfo& partition() const override {
         return m_partition;
     }
 

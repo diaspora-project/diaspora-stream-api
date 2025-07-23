@@ -34,18 +34,18 @@ class EventInterface {
     /**
      * @brief Get an Event's Metadata.
      */
-    virtual Metadata metadata() const = 0;
+    virtual const Metadata& metadata() const = 0;
 
     /**
      * @brief Get an Event's data.
      */
-    virtual DataView data() const = 0;
+    virtual const DataView& data() const = 0;
 
     /**
      * @brief Returns information about the partition
      * this Event originates from.
      */
-    virtual PartitionInfo partition() const = 0;
+    virtual const PartitionInfo& partition() const = 0;
 
     /**
      * @brief Returns the EventID.
@@ -106,14 +106,14 @@ class Event {
     /**
      * @brief Get event Event's Metadata.
      */
-    inline Metadata metadata() const {
+    inline const Metadata& metadata() const {
         return self->metadata();
     }
 
     /**
      * @brief Get event Event's Data.
      */
-    inline DataView data() const {
+    inline const DataView& data() const {
         return self->data();
     }
 
@@ -121,7 +121,7 @@ class Event {
      * @brief Returns information about the partition
      * this Event originates from.
      */
-    inline PartitionInfo partition() const {
+    inline const PartitionInfo& partition() const {
         return self->partition();
     }
 

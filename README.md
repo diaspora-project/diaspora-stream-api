@@ -14,7 +14,7 @@ inheriting from the following virtual classes:
 - `DriverInterface`: represents a connection to your service and provides methods to create and
   open topics. In addition to the pure virtual functions to implement, your class must provide a
   `static std::shared_ptr<DriverInterface> create(const Metadata&)` factory method. Additionally,
-  your library must call `MOFKA_REGISTER_DRIVER(you_backend_name, YourBackendType)` in one of its
+  your library must call `DIASPORA_REGISTER_DRIVER(you_backend_name, YourBackendType)` in one of its
   .cpp files.
 - `ThreadPoolInterface`: represents a set of threads to which work can be submitted.
 - `TopicHandleInterface`: represents a topic managed by your service, and provides functions
@@ -30,3 +30,6 @@ interfaces, and will be what the user of your service uses.
 
 The [tests/SimpleBackend.hpp](tests/SimpleBackend.hpp) is an example of implementation of the
 Streaming API, implementing single-partition queues that are local to a process.
+
+[This template](https://github.com/diaspora-project/diaspora-stream-template-cpp) provides everything
+you need to get started with an implementation of this API.

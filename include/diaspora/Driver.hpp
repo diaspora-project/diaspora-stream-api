@@ -184,8 +184,8 @@ class Driver {
     std::shared_ptr<DriverInterface> self;
 };
 
-#define DIASPORA_REGISTER_DRIVER(__name__, __type__) \
-    DIASPORA_REGISTER_IMPLEMENTATION_FOR(DriverFactory, __type__, __name__)
+#define DIASPORA_REGISTER_DRIVER(__prefix__, __name__, __type__) \
+    DIASPORA_REGISTER_IMPLEMENTATION_FOR(__prefix__, DriverFactory, __type__, __name__)
 
 }
 

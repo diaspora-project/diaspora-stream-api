@@ -7,7 +7,7 @@
 #include <catch2/catch_all.hpp>
 #include "SimpleBackend.hpp"
 
-DIASPORA_REGISTER_DRIVER(simple, SimpleDriver);
+DIASPORA_REGISTER_DRIVER(_, simple, SimpleDriver);
 
 TEST_CASE("Diaspora API test", "[diaspora-api]") {
 

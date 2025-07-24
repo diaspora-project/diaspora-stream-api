@@ -27,9 +27,30 @@ class Factory {
 
     public:
 
-    static std::shared_ptr<Base> create(const std::string& key, Args&&... args);
+    static std::shared_ptr<Base> create(const std::string& key, Args&&... args) {
+        auto& factory = instance();
+        std::string name = key;
+        std::size_t found = key.find(":");
+        if (found != std::string::npos) {
+            name = key.substr(0, found);
+            const auto path = key.substr(found + 1);
+            auto it = factory.m_creator_fn.find(name);
+            if (it == factory.m_creator_fn.end()) {
+                if(dlopen(path.c_str(), RTLD_NOW) == nullptr) {
+                    throw Exception(
+                            std::string{"Could not dlopen "} + path + ":" + dlerror());
+                }
+            }
+        }
+        auto it = factory.m_creator_fn.find(name);
+        if (it != factory.m_creator_fn.end()) {
+            return it->second(std::forward<Args>(args)...);
+        } else {
+            throw Exception(std::string("Factory method not found for type ") +  name);
+        }
+    }
 
-private:
+    private:
 
     template <typename FactoryType, typename Derived>
     friend struct Registrar;
@@ -38,7 +59,9 @@ private:
 
     static Factory& instance();
 
-    void registerCreator(const std::string& key, CreatorFunction creator);
+    void registerCreator(const std::string& key, CreatorFunction creator) {
+        m_creator_fn[key] = std::move(creator);
+    }
 
     std::unordered_map<std::string, CreatorFunction> m_creator_fn;
 };
@@ -54,6 +77,14 @@ struct Registrar {
 };
 
 }
+
+#define DIASPORA_INSTANTIATE_FACTORY(__type__, ...)            \
+    template class ::diaspora::Factory<__type__, __VA_ARGS__>; \
+    template<> ::diaspora::Factory<__type__, __VA_ARGS__>&     \
+    ::diaspora::Factory<__type__, __VA_ARGS__>::instance() {   \
+        static Factory factory;                                \
+        return factory;                                        \
+    }
 
 #define DIASPORA_REGISTER_IMPLEMENTATION_FOR(__prefix__, __factory__, __derived__, __name__) \
     static ::diaspora::Registrar<__factory__, __derived__> \

@@ -85,11 +85,9 @@ class TestConsumer(unittest.TestCase):
         self.topic.mark_as_complete()
 
         def my_selector(metadata, descriptor):
-            sys.stderr.write(f"AAA {descriptor.size}\n")
             return descriptor
 
         def my_allocator(metadata, descriptor):
-            sys.stderr.write(f"BBB {descriptor.size}\n")
             buffer = bytearray(descriptor.size)
             return [buffer]
 

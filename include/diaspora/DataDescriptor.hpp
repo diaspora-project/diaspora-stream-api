@@ -65,11 +65,10 @@ class DataDescriptor {
      *
      * @return a DataDescriptor.
      */
-    DataDescriptor(std::string_view opaque, size_t size) {
-        m_location.resize(opaque.size());
-        std::memcpy(m_location.data(), opaque.data(), opaque.size());
-        m_size = size;
-    }
+    DataDescriptor(std::string_view opaque, size_t size)
+    : m_location{opaque.data(), opaque.size()}
+    , m_size(size)
+    , m_base_size(size) {}
 
     /**
      * @brief Constructor (equivalent to a DataDescriptor for no data).
@@ -244,6 +243,7 @@ class DataDescriptor {
     std::string            m_location;   /* implementation defined data location */
     std::vector<Selection> m_selections; /* stack of selections on top of the data */
     size_t                 m_size = 0;   /* size of the data after selections applied */
+    size_t                 m_base_size = 0; /* size of the data on which the selection is applied */
 };
 
 }

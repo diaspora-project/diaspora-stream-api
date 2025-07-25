@@ -704,6 +704,13 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
         .def_property_readonly("location",
             py::overload_cast<>(&diaspora::DataDescriptor::location, py::const_),
             "Opaque (backend-specific) location string.")
+        .def("flatten",
+            [](const diaspora::DataDescriptor& dd) {
+                std::vector<std::pair<size_t,size_t>> result;
+                auto f = dd.flatten();
+                for(auto& s : f) result.emplace_back(s.offset, s.size);
+                return result;
+            }, "Returns a flattened view (list of <offset, size> pairs) of the descriptor.")
         .def("make_stride_view",
             [](const diaspora::DataDescriptor& data_descriptor,
                std::size_t offset,

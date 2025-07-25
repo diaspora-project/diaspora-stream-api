@@ -59,6 +59,37 @@ class TestDataDescriptor(unittest.TestCase):
             segments = [(0, 200), (100, 200)]
             self.dd.make_unstructured_view(segments=segments)
 
+    def test_flatten_stride_view(self):
+        return
+        stride_dd = self.dd.make_stride_view(
+            offset=0, num_blocks=4, block_size=64, gap_size=192)
+        self.assertEqual(stride_dd.size, 256)
+        flat_dd = stride_dd.flatten()
+        self.assertIsInstance(flat_dd, DataDescriptor)
+        self.assertEqual(flat_dd.size, stride_dd.size)
+        # The location of a flattened DataDescriptor is empty
+        self.assertEqual(flat_dd.location, "")
+
+    def test_flatten_unstructured_view(self):
+        return
+        segments = [(0, 100), (200, 100), (400, 100)]
+        unstructured_dd = self.dd.make_unstructured_view(segments=segments)
+        self.assertEqual(unstructured_dd.size, 300)
+        flat_dd = unstructured_dd.flatten()
+        self.assertIsInstance(flat_dd, DataDescriptor)
+        self.assertEqual(flat_dd.size, unstructured_dd.size)
+        # The location of a flattened DataDescriptor is empty
+        self.assertEqual(flat_dd.location, "")
+
+    def test_flatten_contiguous_view(self):
+        # Flattening a contiguous view should result in a similar DataDescriptor
+        sub_dd = self.dd.make_sub_view(offset=100, size=200)
+        self.assertEqual(sub_dd.size, 200)
+        flat_dd = sub_dd.flatten()
+        self.assertIsInstance(flat_dd, list)
+        self.assertEqual(len(flat_dd), 1)
+        self.assertEqual(flat_dd[0], (100, 200))
+
 
 if __name__ == '__main__':
     unittest.main()

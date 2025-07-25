@@ -7,6 +7,7 @@
 #include "diaspora/Exception.hpp"
 
 #include <cmath>
+#include <iostream>
 
 namespace diaspora {
 
@@ -15,7 +16,7 @@ std::vector<DataDescriptor::Segment> DataDescriptor::flatten() const {
     std::vector<Segment> result;
 
     // Start with the base segment representing the entire memory region
-    result.push_back({0, std::numeric_limits<size_t>::max()});
+    result.push_back({0, m_base_size});
 
     // Temporary result vector used in each iteration
     std::vector<Segment> temp;
@@ -27,9 +28,9 @@ std::vector<DataDescriptor::Segment> DataDescriptor::flatten() const {
 
         if (std::holds_alternative<Segment>(sel)) {
             const Segment& s = std::get<Segment>(sel);
+            size_t s_end = s.offset + s.size;
             for (const Segment& seg : result) {
                 size_t seg_end = seg.offset + seg.size;
-                size_t s_end = s.offset + s.size;
 
                 if (s.offset >= seg_end || s_end <= seg.offset) {
                     continue; // No overlap
@@ -81,14 +82,6 @@ std::vector<DataDescriptor::Segment> DataDescriptor::flatten() const {
         }
 
         result = temp;
-    }
-
-    // Normalize offsets relative to the first segment's offset, so the final view starts at 0
-    if (!result.empty()) {
-        size_t base_offset = result.front().offset;
-        for (Segment& s : result) {
-            s.offset -= base_offset;
-        }
     }
 
     return result;

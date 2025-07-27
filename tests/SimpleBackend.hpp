@@ -541,13 +541,21 @@ diaspora::Future<diaspora::Event> SimpleConsumer::pull() {
             std::string_view{metadata_buffer.data(), metadata_buffer.size()});
         m_topic->m_serializer.deserialize(archive, metadata);
         // invoke the data selector
-        auto data_descriptor = m_data_selector(
-            metadata, diaspora::DataDescriptor("", data_buffer.size()));
+        auto data_descriptor = m_data_selector ?
+            m_data_selector(metadata, diaspora::DataDescriptor("", data_buffer.size()))
+            : diaspora::DataDescriptor{};
         // invoke the data allocator
-        auto data_view = m_data_allocator(metadata, data_descriptor);
+        auto data_view = m_data_allocator ?
+            m_data_allocator(metadata, data_descriptor)
+            : diaspora::DataView{};
 
         // copy the data to target destination
-        data_view.write(data_buffer.data(), data_buffer.size());
+        auto segments = data_descriptor.flatten();
+        size_t dest_offset = 0;
+        for(auto& s : segments) {
+            data_view.write(data_buffer.data() + s.offset, s.size, dest_offset);
+            dest_offset += s.size;
+        }
         m_next_offset += 1;
         return diaspora::Future<diaspora::Event>{
             [metadata=std::move(metadata), data=std::move(data_view), event_id=m_next_offset-1]() {

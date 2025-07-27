@@ -7,7 +7,6 @@
 #include "diaspora/Exception.hpp"
 
 #include <cmath>
-#include <iostream>
 
 namespace diaspora {
 

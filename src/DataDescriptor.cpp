@@ -182,6 +182,7 @@ void DataDescriptor::save(Archive& ar) const {
             }
         };
         ar.write(&m_size, sizeof(m_size));
+        ar.write(&m_base_size, sizeof(m_base_size));
         size_t location_size = m_location.size();
         ar.write(&location_size, sizeof(location_size));
         ar.write(m_location.data(), location_size);
@@ -193,6 +194,7 @@ void DataDescriptor::save(Archive& ar) const {
 
 void DataDescriptor::load(Archive& ar) {
         ar.read(&m_size, sizeof(m_size));
+        ar.read(&m_base_size, sizeof(m_base_size));
         size_t location_size = 0;
         ar.read(&location_size, sizeof(location_size));
         m_location.resize(location_size);

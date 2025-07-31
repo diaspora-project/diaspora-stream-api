@@ -6,6 +6,8 @@
 * The full license is in the file LICENSE, distributed with this software. *
 ****************************************************************************/
 
+// LCOV_EXCL_START
+
 #ifndef PYBIND11_JSON_HPP
 #define PYBIND11_JSON_HPP
 
@@ -220,5 +222,7 @@ namespace pybind11
         };
     }
 }
+
+// LCOV_EXCL_STOP
 
 #endif

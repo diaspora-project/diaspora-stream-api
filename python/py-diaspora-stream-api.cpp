@@ -112,30 +112,6 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
 
     py::class_<diaspora::ValidatorInterface,
                std::shared_ptr<diaspora::ValidatorInterface>>(m, "Validator")
-#if 0
-        .def_static("from_metadata",
-            [](const nlohmann::json& md){
-                return diaspora::PythonBindingHelper::GetSelf(
-                    diaspora::Validator::FromMetadata(md));
-            }, R"(
-            Create a Validator instance from some Metadata. The metadata argument
-            is expected to be a dictionary object with at least a "type" field.
-            The type can be in the form "name:library.so" if library.so must be
-            loaded to access the Validator. If the "type" field is not provided,
-            it is assumed to be "default".
-
-            Parameters
-            ----------
-
-            metadata (dict): metadata to pass to the Validator factory.
-
-            Returns
-            -------
-
-            New Validator instance.
-            )",
-            "metadata"_a=nlohmann::json::object())
-#endif
         .def_static("from_metadata",
             [](const py::kwargs& kwargs){
                 auto md = py::cast<nlohmann::json>((const py::dict&)kwargs);
@@ -176,30 +152,6 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
 
     py::class_<diaspora::SerializerInterface,
                std::shared_ptr<diaspora::SerializerInterface>>(m, "Serializer")
-#if 0
-        .def_static("from_metadata",
-            [](const nlohmann::json& md){
-                return diaspora::PythonBindingHelper::GetSelf(
-                    diaspora::Serializer::FromMetadata( md));
-            }, R"(
-            Create a Serializer instance from some Metadata. The metadata argument
-            is expected to be a dictionary object with at least a "type" field.
-            The type can be in the form "name:library.so" if library.so must be
-            loaded to access the Serializer. If the "type" field is not provided,
-            it is assumed to be "default".
-
-            Parameters
-            ----------
-
-            metadata (dict): metadata to pass to the Serializer factory.
-
-            Returns
-            -------
-
-            New Serializer instance.
-            )",
-            "metadata"_a=nlohmann::json::object())
-#endif
         .def_static("from_metadata",
             [](const py::kwargs& kwargs){
                 auto md = py::cast<nlohmann::json>((const py::dict&)kwargs);
@@ -226,30 +178,6 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
 
     py::class_<diaspora::PartitionSelectorInterface,
                std::shared_ptr<diaspora::PartitionSelectorInterface>>(m, "PartitionSelector")
-#if 0
-        .def_static("from_metadata",
-            [](const nlohmann::json& md){
-                return diaspora::PythonBindingHelper::GetSelf(
-                    diaspora::PartitionSelector::FromMetadata(md));
-            }, R"(
-            Create a PartitionSelector instance from some Metadata. The metadata argument
-            is expected to be a dictionary object with at least a "type" field.
-            The type can be in the form "name:library.so" if library.so must be
-            loaded to access the PartitionSelector. If the "type" field is not provided,
-            it is assumed to be "default".
-
-            Parameters
-            ----------
-
-            metadata (dict): metadata to pass to the PartitionSelector factory.
-
-            Returns
-            -------
-
-            New PartitionSelector instance.
-            )",
-            "metadata"_a=nlohmann::json::object())
-#endif
         .def_static("from_metadata",
             [](const py::kwargs& kwargs){
                 auto md = py::cast<nlohmann::json>((const py::dict&)kwargs);

@@ -43,11 +43,18 @@ class Factory {
             }
         }
         auto it = factory.m_creator_fn.find(name);
-        if (it != factory.m_creator_fn.end()) {
-            return it->second(std::forward<Args>(args)...);
-        } else {
-            throw Exception(std::string("Factory method not found for type ") +  name);
+        if(it == factory.m_creator_fn.end()) {
+            // assume the library may be named "lib<name>.so"
+            auto libname = std::string{"lib"} + name + ".so";
+            if(dlopen(libname.c_str(), RTLD_NOW) == nullptr) {
+                throw Exception(
+                    std::string{"Trying to load lib"} + name + ".so failed: " + dlerror());
+            }
+            it = factory.m_creator_fn.find(name);
         }
+        if (it == factory.m_creator_fn.end())
+            throw Exception(std::string("Factory method not found for type ") +  name);
+        return it->second(std::forward<Args>(args)...);
     }
 
     private:

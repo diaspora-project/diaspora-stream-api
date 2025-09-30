@@ -302,14 +302,14 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
             ----------
 
             name (str): Name of the backend.
-            metadata (dict): Backend-specific configuration.
+            options (dict): Backend-specific configuration.
 
             Returns
             -------
 
             A Driver instance.
             )"
-            "name"_a, "metadata"_a=nlohmann::json::object())
+            "name"_a, "options"_a=nlohmann::json::object())
     ;
 
     py::class_<diaspora::TopicHandleInterface,

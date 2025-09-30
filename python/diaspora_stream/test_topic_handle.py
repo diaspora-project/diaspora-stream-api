@@ -11,7 +11,7 @@ class TestTopicHandle(unittest.TestCase):
         backend = os.environ.get("DIASPORA_TEST_BACKEND", "simple:libdiaspora-simple-backend.so")
         backend_args = json.loads(os.environ.get("DIASPORA_TEST_BACKEND_ARGS", "{}"))
         topic_args = json.loads(os.environ.get("DIASPORA_TEST_TOPIC_ARGS", "{}"))
-        cls.driver = Driver.new(backend, metadata=backend_args)
+        cls.driver = Driver.new(backend, options=backend_args)
         cls.driver.create_topic("my_topic", options=topic_args)
         cls.topic = cls.driver.open_topic("my_topic")
 

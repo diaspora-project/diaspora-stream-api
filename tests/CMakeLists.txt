@@ -2,13 +2,18 @@ file (GLOB diaspora-test-sources ${CMAKE_CURRENT_SOURCE_DIR}/*Test.cpp)
 
 foreach (test-source ${diaspora-test-sources})
     get_filename_component (name ${test-source} NAME_WE)
-    add_executable (${name} ${test-source})
-    target_link_libraries (${name}
+    add_executable (Diaspora${name} ${test-source})
+    target_link_libraries (Diaspora${name}
         PRIVATE Catch2::Catch2WithMain diaspora-stream-api coverage_config warnings_config)
-    add_test (NAME ${name} COMMAND ./${name})
-    set_property (TEST ${name} PROPERTY
+    add_test (NAME Diaspora${name} COMMAND ./Diaspora${name})
+    set_property (TEST Diaspora${name} PROPERTY
                   ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}:$ENV{LD_LIBRARY_PATH}")
+    install (TARGETS Diaspora${name}
+             DESTINATION bin)
 endforeach ()
+
+install (FILES diaspora-run-tests.sh
+         DESTINATION bin PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE)
 
 if (ENABLE_PYTHON)
 

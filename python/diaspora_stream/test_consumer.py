@@ -1,21 +1,26 @@
 import unittest
 import time
 import sys
+import os
+import json
 from diaspora_stream.api import Driver, Consumer, Producer, TopicHandle, Exception
 
 class TestConsumer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.driver = Driver.new("simple:libsimple-backend.so")
+        backend = os.environ.get("DIASPORA_TEST_BACKEND", "simple:libsimple-backend.so")
+        backend_args = json.loads(os.environ.get("DIASPORA_TEST_BACKEND_ARGS", "{}"))
+        cls.driver = Driver.new(backend, metadata=backend_args)
 
     @classmethod
     def tearDownClass(cls):
         del cls.driver
 
     def setUp(self):
+        topic_args = json.loads(os.environ.get("DIASPORA_TEST_TOPIC_ARGS", "{}"))
         self.topic_name = f"my_topic_{time.time_ns()}"
-        self.driver.create_topic(self.topic_name)
+        self.driver.create_topic(self.topic_name, options=topic_args)
         self.topic = self.driver.open_topic(self.topic_name)
 
     def tearDown(self):

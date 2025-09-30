@@ -3,6 +3,7 @@
  *
  * See COPYRIGHT in top-level directory.
  */
+#include <cstdlib>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 #include "SimpleBackend.hpp"
@@ -25,7 +26,12 @@ TEST_CASE("Diaspora API test", "[diaspora-api]") {
 
     SECTION("Create Driver") {
 
-        auto driver = diaspora::DriverFactory::create("simple", {});
+        const char* backend = std::getenv("DIASPORA_TEST_BACKEND");
+        const char* args    = std::getenv("DIASPORA_TEST_BACKEND_ARGS");
+        backend = backend ? backend : "simple";
+        args    = args ? args : "{}";
+
+        auto driver = diaspora::DriverFactory::create(backend, diaspora::Metadata{args});
         REQUIRE(static_cast<bool>(driver));
 
     }

@@ -1,4 +1,6 @@
 import unittest
+import os
+import json
 from diaspora_stream.api import Driver, Exception, TopicHandle, ThreadPool
 
 
@@ -6,7 +8,9 @@ class TestDriver(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.driver = Driver.new("simple:libsimple-backend.so")
+        backend = os.environ.get("DIASPORA_TEST_BACKEND", "simple:libsimple-backend.so")
+        backend_args = json.loads(os.environ.get("DIASPORA_TEST_BACKEND_ARGS", "{}"))
+        cls.driver = Driver.new(backend, metadata=backend_args)
 
     @classmethod
     def tearDownClass(cls):
@@ -16,10 +20,11 @@ class TestDriver(unittest.TestCase):
         self.assertIsInstance(self.driver, Driver)
 
     def test_driver_create_open_topic(self):
+        topic_args = json.loads(os.environ.get("DIASPORA_TEST_TOPIC_ARGS", "{}"))
         self.assertFalse(self.driver.topic_exists("my_topic"))
         with self.assertRaises(Exception):
             self.driver.open_topic("my_topic")
-        self.driver.create_topic("my_topic")
+        self.driver.create_topic("my_topic", options=topic_args)
         self.assertTrue(self.driver.topic_exists("my_topic"))
         topic = self.driver.open_topic("my_topic")
         self.assertIsInstance(topic, TopicHandle)

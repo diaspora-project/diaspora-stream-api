@@ -1,4 +1,6 @@
 import unittest
+import os
+import json
 from diaspora_stream.api import Driver, Exception, TopicHandle, ThreadPool, Ordering
 
 
@@ -6,8 +8,11 @@ class TestProducer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.driver = Driver.new("simple:libsimple-backend.so")
-        cls.driver.create_topic("my_topic")
+        backend = os.environ.get("DIASPORA_TEST_BACKEND", "simple:libsimple-backend.so")
+        backend_args = json.loads(os.environ.get("DIASPORA_TEST_BACKEND_ARGS", "{}"))
+        topic_args = json.loads(os.environ.get("DIASPORA_TEST_TOPIC_ARGS", "{}"))
+        cls.driver = Driver.new(backend, metadata=backend_args)
+        cls.driver.create_topic("my_topic", options=topic_args)
         cls.topic = cls.driver.open_topic("my_topic")
 
     @classmethod

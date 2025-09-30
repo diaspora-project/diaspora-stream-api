@@ -3,6 +3,7 @@
  *
  * See COPYRIGHT in top-level directory.
  */
+#include <cstdlib>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 #include <diaspora/Driver.hpp>
@@ -13,11 +14,18 @@ DIASPORA_REGISTER_DRIVER(_, simple, SimpleDriver);
 
 TEST_CASE("Event consumer test", "[event-consumer]") {
 
-    diaspora::Metadata options;
-    diaspora::Driver driver = diaspora::Driver::New("simple", options);
+    const char* backend      = std::getenv("DIASPORA_TEST_BACKEND");
+    const char* backend_args = std::getenv("DIASPORA_TEST_BACKEND_ARGS");
+    const char* topic_args   = std::getenv("DIASPORA_TEST_TOPIC_ARGS");
+    backend                  = backend ? backend : "simple";
+    backend_args             = backend_args ? backend_args : "{}";
+    topic_args               = topic_args ? topic_args : "{}";
+
+    diaspora::Metadata options{backend_args};
+    diaspora::Driver driver = diaspora::Driver::New(backend, options);
     REQUIRE(static_cast<bool>(driver));
 
-    driver.createTopic("mytopic");
+    driver.createTopic("mytopic", diaspora::Metadata{topic_args});
     auto topic = driver.openTopic("mytopic");
 
     std::string seg1 = "abcdefghijklmnopqrstuvwxyz";

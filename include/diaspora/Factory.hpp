@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <functional>
 #include <memory>
+#include <iostream>
 #include <vector>
 
 namespace diaspora {
@@ -30,10 +31,10 @@ class Factory {
     static std::shared_ptr<Base> create(const std::string& key, Args&&... args) {
         auto& factory = instance();
         std::string name = key;
-        std::size_t found = key.find(":");
-        if (found != std::string::npos) {
-            name = key.substr(0, found);
-            const auto path = key.substr(found + 1);
+        std::size_t col = key.find(":");
+        if (col != std::string::npos) {
+            name = key.substr(0, col);
+            const auto path = key.substr(col + 1);
             auto it = factory.m_creator_fn.find(name);
             if (it == factory.m_creator_fn.end()) {
                 if(dlopen(path.c_str(), RTLD_NOW) == nullptr) {
@@ -43,7 +44,7 @@ class Factory {
             }
         }
         auto it = factory.m_creator_fn.find(name);
-        if(it == factory.m_creator_fn.end()) {
+        if(it == factory.m_creator_fn.end() && col == std::string::npos) {
             // assume the library may be named "lib<name>.so"
             auto libname = std::string{"lib"} + name + ".so";
             if(dlopen(libname.c_str(), RTLD_NOW) == nullptr) {

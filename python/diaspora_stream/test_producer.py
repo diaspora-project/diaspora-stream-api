@@ -8,7 +8,7 @@ class TestProducer(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        backend = os.environ.get("DIASPORA_TEST_BACKEND", "simple:libsimple-backend.so")
+        backend = os.environ.get("DIASPORA_TEST_BACKEND", "simple:libdiaspora-simple-backend.so")
         backend_args = json.loads(os.environ.get("DIASPORA_TEST_BACKEND_ARGS", "{}"))
         topic_args = json.loads(os.environ.get("DIASPORA_TEST_TOPIC_ARGS", "{}"))
         cls.driver = Driver.new(backend, metadata=backend_args)

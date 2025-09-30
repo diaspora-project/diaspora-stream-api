@@ -1,5 +1,5 @@
-add_library (simple-backend SHARED SimpleBackend.cpp)
-target_link_libraries (simple-backend PUBLIC diaspora-stream-api)
+add_library (diaspora-simple-backend SHARED SimpleBackend.cpp)
+target_link_libraries (diaspora-simple-backend PUBLIC diaspora-stream-api)
 
 set (python-module-dir ${CMAKE_SOURCE_DIR}/python)
 file (GLOB_RECURSE python-test-files "${python-module-dir}/test_*.py")
@@ -19,3 +19,7 @@ foreach (python-test-filename ${python-test-files})
     set_property (TEST ${python-test-name} PROPERTY ENVIRONMENT
                   PYTHONPATH=${python-path-env};LD_LIBRARY_PATH=${ld-library-path-env})
 endforeach ()
+
+install (TARGETS diaspora-simple-backend
+         ARCHIVE DESTINATION lib
+         LIBRARY DESTINATION lib)

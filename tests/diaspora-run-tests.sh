@@ -2,7 +2,6 @@
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-export DIASPORA_TEST_BACKEND="simple"
 BEFORE_COMMAND=""
 AFTER_COMMAND=""
 
@@ -36,6 +35,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Binary tests
 for test_file in ${SCRIPT_DIR}/Diaspora*Test ; do
     echo "Running test file ${test_file}"
     if [ -n "$BEFORE_COMMAND" ]; then
@@ -46,3 +46,7 @@ for test_file in ${SCRIPT_DIR}/Diaspora*Test ; do
         eval "$AFTER_COMMAND"
     fi
 done
+
+# Python tests
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SCRIPT_DIR/../lib \
+    python -m unittest discover diaspora_stream

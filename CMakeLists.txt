@@ -32,6 +32,7 @@ add_library (warnings_config INTERFACE)
 option (ENABLE_TESTS     "Build tests" OFF)
 option (ENABLE_COVERAGE  "Build with coverage" OFF)
 option (ENABLE_PYTHON    "Build the Python module" OFF)
+option (ENABLE_BENCHMARKS "Build benchmarks" OFF)
 
 # add our cmake module directory to the path
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
@@ -122,4 +123,9 @@ if (ENABLE_TESTS)
         FetchContent_MakeAvailable (Catch2)
     endif ()
     add_subdirectory (tests)
+endif ()
+
+if (ENABLE_BENCHMARKS)
+    find_package (TCLAP REQUIRED)
+    add_subdirectory (benchmarks)
 endif ()

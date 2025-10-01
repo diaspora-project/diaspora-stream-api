@@ -172,11 +172,12 @@ class SimpleEvent : public diaspora::EventInterface {
 class SimpleProducer final : public diaspora::ProducerInterface {
 
     const std::string                        m_name;
-    const diaspora::BatchSize                   m_batch_size;
-    const diaspora::MaxNumBatches               m_max_num_batches;
-    const diaspora::Ordering                    m_ordering;
+    const diaspora::BatchSize                m_batch_size;
+    const diaspora::MaxNumBatches            m_max_num_batches;
+    const diaspora::Ordering                 m_ordering;
     const std::shared_ptr<SimpleThreadPool>  m_thread_pool;
     const std::shared_ptr<SimpleTopicHandle> m_topic;
+    diaspora::Future<diaspora::EventID>      m_last_event_pushed;
 
     public:
 
@@ -221,20 +222,21 @@ class SimpleProducer final : public diaspora::ProducerInterface {
             diaspora::DataView data,
             std::optional<size_t> partition) override;
 
-    void flush() override {}
+    void flush() override {
+        if(m_last_event_pushed) m_last_event_pushed.wait();
+    }
 };
 
 
 class SimpleConsumer final : public diaspora::ConsumerInterface {
 
     const std::string                        m_name;
-    const diaspora::BatchSize                   m_batch_size;
-    const diaspora::MaxNumBatches               m_max_num_batches;
+    const diaspora::BatchSize                m_batch_size;
+    const diaspora::MaxNumBatches            m_max_num_batches;
     const std::shared_ptr<SimpleThreadPool>  m_thread_pool;
     const std::shared_ptr<SimpleTopicHandle> m_topic;
-    const diaspora::DataAllocator                  m_data_allocator;
-    const diaspora::DataSelector                m_data_selector;
-
+    const diaspora::DataAllocator            m_data_allocator;
+    const diaspora::DataSelector             m_data_selector;
     size_t                                   m_next_offset = 0;
 
     public:
@@ -415,10 +417,12 @@ inline diaspora::Future<diaspora::EventID> SimpleProducer::push(
                 state->set(ex);
             }
         });
-    return diaspora::Future<diaspora::EventID>{
+    auto future = diaspora::Future<diaspora::EventID>{
         [state] { return state->wait(); },
         [state] { return state->test(); }
     };
+    m_last_event_pushed = future;
+    return future;
 }
 
 class SimpleDriver : public diaspora::DriverInterface,

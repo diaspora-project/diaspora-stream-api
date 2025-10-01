@@ -127,5 +127,6 @@ endif ()
 
 if (ENABLE_BENCHMARKS)
     find_package (TCLAP REQUIRED)
+    find_package (MPI REQUIRED)
     add_subdirectory (benchmarks)
 endif ()

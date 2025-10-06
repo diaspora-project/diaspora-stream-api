@@ -93,7 +93,7 @@ void run_benchmark(const Options& options)
             throw std::runtime_error("Could not open config file: " + options.configFile);
         }
         std::string configContent((std::istreambuf_iterator<char>(configFileStream)),
-                                    std::istreambuf_iterator<char>());
+                                   std::istreambuf_iterator<char>());
         driver_opts = diaspora::Metadata{configContent};
     }
 

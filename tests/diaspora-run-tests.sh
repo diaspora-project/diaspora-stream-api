@@ -36,6 +36,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+echo "DIASPORA_TEST_BACKEND: ${DIASPORA_TEST_BACKEND}"
+echo "DIASPORA_TEST_BACKEND_ARGS: ${DIASPORA_TEST_BACKEND_ARGS}"
+echo "DIASPORA_TEST_TOPIC_ARGS: ${DIASPORA_TEST_TOPIC_ARGS}"
+echo "BEFORE_COMMAND: ${BEFORE_COMMAND}"
+echo "AFTER_COMMAND: ${AFTER_COMMAND}"
+
 # Binary tests
 for test_file in ${SCRIPT_DIR}/Diaspora*Test ; do
     echo "Running test file ${test_file}"
@@ -58,10 +64,45 @@ for test_file in ${SCRIPT_DIR}/Diaspora*Test ; do
 done
 
 # Python tests
+if false; then
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SCRIPT_DIR/../lib \
     python -m unittest discover diaspora_stream
 if [ "$?" -ne 0 ]; then
     RET=1
 fi
+
+exit $RET
+fi
+
+# Discover all tests
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SCRIPT_DIR/../lib \
+DIASPORA_STREAM_PATH=$(python -c \
+    "import diaspora_stream, os; print(os.path.dirname(os.path.abspath(diaspora_stream.__file__)))")
+
+# Run each test individually
+for test_file in $DIASPORA_STREAM_PATH/test_*.py; do
+    echo "------------------------------------------------------------"
+    echo "Running test: $test_file"
+    echo "------------------------------------------------------------"
+    filename=$(basename $test_file)
+    test_name="diaspora_stream.${filename%.*}"
+    if [ -n "$BEFORE_COMMAND" ]; then
+        eval "$BEFORE_COMMAND"
+        if [ "$?" -ne 0 ]; then
+            RET=1
+        fi
+    fi
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SCRIPT_DIR/../lib \
+    python -m unittest -v $test_name
+    if [ "$?" -ne 0 ]; then
+        RET=1
+    fi
+    if [ -n "$AFTER_COMMAND" ]; then
+        eval "$AFTER_COMMAND"
+        if [ "$?" -ne 0 ]; then
+            RET=1
+        fi
+    fi
+done
 
 exit $RET

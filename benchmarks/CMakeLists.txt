@@ -15,3 +15,4 @@ target_link_libraries (diaspora-consumer-benchmark
         MPI::MPI_CXX
 )
 target_include_directories (diaspora-producer-benchmark PRIVATE ${TCLAP_INCLUDE_PATH})
+target_include_directories (diaspora-consumer-benchmark PRIVATE ${TCLAP_INCLUDE_PATH})

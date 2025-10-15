@@ -12,6 +12,8 @@
 
 DIASPORA_REGISTER_DRIVER(_, simple, SimpleDriver);
 
+static int topic_num = 0;
+
 TEST_CASE("Event consumer test", "[event-consumer]") {
 
     const char* backend      = std::getenv("DIASPORA_TEST_BACKEND");
@@ -25,8 +27,11 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
     diaspora::Driver driver = diaspora::Driver::New(backend, options);
     REQUIRE(static_cast<bool>(driver));
 
-    driver.createTopic("mytopic", diaspora::Metadata{topic_args});
-    auto topic = driver.openTopic("mytopic");
+    std::string topic_name = "my_topic_" + std::to_string(topic_num);
+    topic_num += 1;
+
+    driver.createTopic(topic_name, diaspora::Metadata{topic_args});
+    auto topic = driver.openTopic(topic_name);
 
     std::string seg1 = "abcdefghijklmnopqrstuvwxyz";
     std::string seg2 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";

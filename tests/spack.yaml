@@ -6,6 +6,7 @@ spack:
   - py-coverage
   - py-pybind11
   - catch2
+  - tclap
   concretizer:
     unify: true
     reuse: true

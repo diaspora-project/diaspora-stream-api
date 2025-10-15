@@ -11,6 +11,8 @@
 
 DIASPORA_REGISTER_DRIVER(_, simple, SimpleDriver);
 
+static int topic_num = 0;
+
 TEST_CASE("Event consumer test", "[event-consumer]") {
 
     const char* backend      = std::getenv("DIASPORA_TEST_BACKEND");
@@ -26,8 +28,12 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
         REQUIRE(static_cast<bool>(driver));
         diaspora::TopicHandle topic;
         REQUIRE(!static_cast<bool>(topic));
-        REQUIRE_NOTHROW(driver.createTopic("mytopic", diaspora::Metadata{topic_args}));
-        REQUIRE_NOTHROW(topic = driver.openTopic("mytopic"));
+
+        std::string topic_name = "my_topic_" + std::to_string(topic_num);
+        topic_num += 1;
+
+        REQUIRE_NOTHROW(driver.createTopic(topic_name, diaspora::Metadata{topic_args}));
+        REQUIRE_NOTHROW(topic = driver.openTopic(topic_name));
         REQUIRE(static_cast<bool>(topic));
 
         {

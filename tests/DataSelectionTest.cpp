@@ -57,7 +57,7 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
                 return diaspora::DataView{};
             };
         auto consumer = topic.consumer(
-                "myconsumer", data_selector, data_allocator);
+                "myconsumer_0", data_selector, data_allocator);
         auto event = consumer.pull().wait();
         REQUIRE(event.data().size() == 0);
         REQUIRE(consumer.pull().wait().id() == diaspora::NoMoreEvents);
@@ -75,7 +75,7 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
                 return diaspora::DataView{data, size};
             };
         auto consumer = topic.consumer(
-                "myconsumer", data_selector, data_broker);
+                "myconsumer_1", data_selector, data_broker);
         auto event = consumer.pull().wait();
         REQUIRE(event.data().size() == 52);
         REQUIRE(event.data().segments().size() == 1);
@@ -99,7 +99,7 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
                 return diaspora::DataView{data, size};
             };
         auto consumer = topic.consumer(
-                "myconsumer", data_selector, data_broker);
+                "myconsumer_2", data_selector, data_broker);
         auto event = consumer.pull().wait();
         REQUIRE(event.data().size() == 26);
         REQUIRE(event.data().segments().size() == 1);
@@ -123,7 +123,7 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
                 return diaspora::DataView{data, size};
             };
         auto consumer = topic.consumer(
-                "myconsumer", data_selector, data_allocator);
+                "myconsumer_3", data_selector, data_allocator);
         auto event = consumer.pull().wait();
         REQUIRE(event.data().size() == 12);
         REQUIRE(event.data().segments().size() == 1);
@@ -151,7 +151,7 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
                 return diaspora::DataView{data, size};
             };
         auto consumer = topic.consumer(
-                "myconsumer", data_selector, data_allocator);
+                "myconsumer_4", data_selector, data_allocator);
         auto event = consumer.pull().wait();
         REQUIRE(event.data().size() == 18);
         REQUIRE(event.data().segments().size() == 1);

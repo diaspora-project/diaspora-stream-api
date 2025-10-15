@@ -45,7 +45,7 @@ jobs:
         mkdir build
         cd build
         cmake .. -DENABLE_TESTS=ON \
-                 -DENABLE_EXAMPLES=ON \
+                 -DENABLE_BENCHMARKS=ON \
                  -DENABLE_PYTHON=ON \
                  -DCMAKE_BUILD_TYPE=RelWithDebInfo
         make

@@ -5,6 +5,8 @@ spack:
   - nlohmann-json-schema-validator
   - py-pybind11
   - catch2
+  - tclap
+  - mpi
   concretizer:
     unify: true
     reuse: true

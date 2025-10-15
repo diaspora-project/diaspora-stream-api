@@ -7,6 +7,7 @@ spack:
   - py-pybind11
   - catch2
   - tclap
+  - mpi
   concretizer:
     unify: true
     reuse: true
@@ -19,6 +20,8 @@ spack:
       require: "@3.6.0:"
     nlohmann-json-schema-validator:
       require: "@2.3.0:"
+    mpi:
+      require: mpich
   mirrors:
     mochi-buildcache:
       url: oci://ghcr.io/mochi-hpc/mochi-spack-buildcache

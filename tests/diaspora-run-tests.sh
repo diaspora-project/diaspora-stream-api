@@ -51,7 +51,7 @@ for test_file in ${SCRIPT_DIR}/Diaspora*Test ; do
             RET=1
         fi
     fi
-    ${test_file}
+    timeout 60s ${test_file}
     if [ "$?" -ne 0 ]; then
         RET=1
     fi
@@ -64,16 +64,6 @@ for test_file in ${SCRIPT_DIR}/Diaspora*Test ; do
 done
 
 # Python tests
-if false; then
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SCRIPT_DIR/../lib \
-    python -m unittest discover diaspora_stream
-if [ "$?" -ne 0 ]; then
-    RET=1
-fi
-
-exit $RET
-fi
-
 # Discover all tests
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SCRIPT_DIR/../lib \
 DIASPORA_STREAM_PATH=$(python -c \
@@ -93,7 +83,7 @@ for test_file in $DIASPORA_STREAM_PATH/test_*.py; do
         fi
     fi
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SCRIPT_DIR/../lib \
-    python -m unittest -v $test_name
+    timeout 60s python -m unittest -v $test_name
     if [ "$?" -ne 0 ]; then
         RET=1
     fi

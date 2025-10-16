@@ -52,11 +52,12 @@ for test_file in ${SCRIPT_DIR}/Diaspora*Test ; do
         fi
     fi
     timeout 60s ${test_file}
-    if [ "$?" -ne 0 ]; then
+    r=$?
+    if [ "$r" -ne 0 ]; then
         RET=1
     fi
     if [ -n "$AFTER_COMMAND" ]; then
-        eval "$AFTER_COMMAND"
+        eval "$AFTER_COMMAND $r"
         if [ "$?" -ne 0 ]; then
             RET=1
         fi
@@ -84,11 +85,12 @@ for test_file in $DIASPORA_STREAM_PATH/test_*.py; do
     fi
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SCRIPT_DIR/../lib \
     timeout 60s python -m unittest -v $test_name
-    if [ "$?" -ne 0 ]; then
+    r=$?
+    if [ "$r" -ne 0 ]; then
         RET=1
     fi
     if [ -n "$AFTER_COMMAND" ]; then
-        eval "$AFTER_COMMAND"
+        eval "$AFTER_COMMAND $r"
         if [ "$?" -ne 0 ]; then
             RET=1
         fi

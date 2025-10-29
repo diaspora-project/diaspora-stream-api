@@ -107,7 +107,7 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             for(unsigned i=0; i < 100; ++i) {
                 std::optional<diaspora::Event> event;
                 REQUIRE_NOTHROW(event = consumer.pull().wait(1000));
-                REQUIRE(event);
+                REQUIRE(event.has_value());
                 REQUIRE(event->id() == i);
                 auto& doc = event->metadata().json();
                 REQUIRE(doc["event_num"].get<int64_t>() == i);

@@ -63,13 +63,6 @@ class TopicHandleInterface {
     virtual Serializer serializer() const = 0;
 
     /**
-     * @brief Indicate to the partition servers that no more events will be produced
-     * in this topic. This will make any attempt to consume events return events with
-     * no metadata, no data, and an ID of NoMoreEvents.
-     */
-    virtual void markAsComplete() = 0;
-
-    /**
      * @brief Create a Producer object from the full
      * list of optional arguments.
      *
@@ -234,15 +227,6 @@ class TopicHandle {
      */
     inline Serializer serializer() const {
         return self->serializer();
-    }
-
-    /**
-     * @brief Indicate to the partition servers that no more events will be produced
-     * in this topic. This will make any attempt to consume events return events with
-     * no metadata, no data, and an ID of NoMoreEvents.
-     */
-    inline void markAsComplete() const {
-        self->markAsComplete();
     }
 
     /**

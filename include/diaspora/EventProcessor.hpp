@@ -22,7 +22,7 @@ namespace diaspora {
  */
 struct StopEventProcessor {};
 
-using EventProcessor = std::function<void(const Event& event)>;
+using EventProcessor = std::function<void(const std::optional<Event>& event)>;
 
 }
 

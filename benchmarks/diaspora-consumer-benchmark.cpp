@@ -163,8 +163,8 @@ void run_benchmark(const Options& options)
 
     size_t events_received = 0;
     while(events_received < options.numEvents) {
-        auto event = consumer.pull().wait();
-        events_received += 1;
+        auto event = consumer.pull().wait(5000);
+        if(event) events_received += 1;
     }
 
     MPI_Barrier(MPI_COMM_WORLD);

@@ -48,10 +48,18 @@ class ConsumerInterface : public std::enable_shared_from_this<ConsumerInterface>
         inline pointer operator->() const { return m_current_event; }
 
         inline Iterator& operator++() {
-            m_current_event = static_cast<std::shared_ptr<EventInterface>>(m_owner->pull().wait());
-            if(m_current_event->id() == NoMoreEvents) {
+            auto opt_event = m_owner->pull().wait(m_timeout_ms);
+            if(!opt_event) {
                 m_owner = nullptr;
                 m_current_event = nullptr;
+            } else {
+                auto event = static_cast<std::shared_ptr<EventInterface>>(opt_event.value());
+                if(event->id() == NoMoreEvents) {
+                    m_owner = nullptr;
+                    m_current_event = nullptr;
+                } else {
+                    m_current_event = std::move(event);
+                }
             }
             return *this;
         }
@@ -69,20 +77,22 @@ class ConsumerInterface : public std::enable_shared_from_this<ConsumerInterface>
 
         private:
 
-        Iterator(std::shared_ptr<ConsumerInterface> owner)
-        : m_owner(std::move(owner)) {
+        Iterator(std::shared_ptr<ConsumerInterface> owner, int timeout_ms)
+        : m_owner(std::move(owner))
+        , m_timeout_ms{timeout_ms} {
             ++(*this);
         }
 
         std::shared_ptr<EventInterface>    m_current_event;
         std::shared_ptr<ConsumerInterface> m_owner;
+        int                                m_timeout_ms;
     };
 
     /**
      * @brief Create an iterator from the beginning of the topic
      * or from the last consumed offset.
      */
-    Iterator begin() { return Iterator(shared_from_this()); }
+    Iterator begin(unsigned timeout_ms = 5000) { return Iterator(shared_from_this(), timeout_ms); }
 
     /**
      * @brief Create an iterator indicating the end of a topic.
@@ -137,12 +147,14 @@ class ConsumerInterface : public std::enable_shared_from_this<ConsumerInterface>
      * have been processed.
      *
      * @param processor EventProcessor.
-     * @param threadPool ThreadPool in which to submit processing jobs.
+     * @param timeout_ms timeout value to pass to wait() calls.
      * @param maxEvents Maximum number of events to process.
+     * @param threadPool ThreadPool in which to submit processing jobs.
      */
     virtual void process(EventProcessor processor,
-                         std::shared_ptr<ThreadPoolInterface> threadPool,
-                         NumEvents maxEvents) = 0;
+                         int timeout_ms,
+                         NumEvents maxEvents,
+                         std::shared_ptr<ThreadPoolInterface> threadPool) = 0;
 
     /**
      * @brief Unsubscribe from the topic.
@@ -156,10 +168,11 @@ class ConsumerInterface : public std::enable_shared_from_this<ConsumerInterface>
 
     /**
      * @brief Pull an Event. This function will immediately
-     * return a Future<Event>. Calling wait() on the event will
-     * block until an Event is actually available.
+     * return a Future<std::optional<Event>>. Calling wait() on the event will
+     * block until either an Event is actually available, or the timeout is
+     * reached, in which case the returned optional will be nullopt.
      */
-    virtual Future<Event> pull() = 0;
+    virtual Future<std::optional<Event>> pull() = 0;
 };
 
 /**
@@ -253,9 +266,10 @@ class Consumer {
     /**
      * @brief Pull an Event. This function will immediately
      * return a Future<Event>. Calling wait() on the event will
-     * block until an Event is actually available.
+     * block until eiethr an Event is actually available, or
+     * the timeout is reached.
      */
-    inline Future<Event> pull() const {
+    inline Future<std::optional<Event>> pull() const {
         return self->pull();
     }
 
@@ -271,11 +285,13 @@ class Consumer {
      * @param processor EventProcessor.
      */
     void process(EventProcessor processor,
-                 ThreadPool threadPool = ThreadPool{},
-                 NumEvents maxEvents = NumEvents::Infinity()) const {
+                 int timeout_ms = 5000,
+                 NumEvents maxEvents = NumEvents::Infinity(),
+                 ThreadPool threadPool = ThreadPool{}) const {
         self->process(std::move(processor),
-                      threadPool.self,
-                      maxEvents);
+                      timeout_ms,
+                      maxEvents,
+                      threadPool.self);
     }
 
     /**
@@ -294,7 +310,7 @@ class Consumer {
      * @param processor EventProcessor.
      */
     inline void operator|(EventProcessor processor) const && {
-        process(processor, threadPool(), NumEvents::Infinity());
+        process(processor, -1, NumEvents::Infinity(), threadPool());
     }
 
     /**
@@ -323,10 +339,12 @@ class Consumer {
         inline pointer operator->() const { return &m_current_event; }
 
         inline Iterator& operator++() {
-            m_current_event = m_owner->pull().wait();
-            if(m_current_event.id() == NoMoreEvents) {
+            auto opt_event = m_owner->pull().wait(m_timeout_ms);
+            if(!opt_event || opt_event.value().id() == NoMoreEvents) {
                 m_owner = nullptr;
                 m_current_event = Event{};
+            } else {
+                m_current_event = std::move(opt_event).value();
             }
             return *this;
         }
@@ -342,20 +360,22 @@ class Consumer {
 
         private:
 
-        Iterator(std::shared_ptr<ConsumerInterface> owner)
-        : m_owner(std::move(owner)) {
+        Iterator(std::shared_ptr<ConsumerInterface> owner, int timeout_ms)
+        : m_owner(std::move(owner))
+        , m_timeout_ms(timeout_ms) {
             ++(*this);
         }
 
         mutable Event                      m_current_event;
         std::shared_ptr<ConsumerInterface> m_owner;
+        int                                m_timeout_ms;
     };
 
     /**
      * @brief Create an iterator from the beginning of the topic
      * or from the last consumed offset.
      */
-    Iterator begin() { return Iterator(self); }
+    Iterator begin(int timeout_ms = 5000) { return Iterator(self, timeout_ms); }
 
     /**
      * @brief Create an iterator indicating the end of a topic.

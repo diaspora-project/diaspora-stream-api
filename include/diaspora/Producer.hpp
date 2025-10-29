@@ -18,8 +18,14 @@
 
 #include <memory>
 #include <optional>
+#include <variant>
 
 namespace diaspora {
+
+/**
+ * Empty structure used in an std::optional returned by Producer(Interface)::flush.
+ */
+struct Flushed{};
 
 /**
  * @brief Interface for Producer.
@@ -74,15 +80,17 @@ class ProducerInterface {
      * @param partition Suggested partition number (may be ignored
      *                  by the PartitionSelector).
      *
-     * @return a Future<EventID> tracking the asynchronous operation.
+     * @return a Future<std::optional<EventID>> tracking the asynchronous operation.
      */
-    virtual Future<EventID> push(Metadata metadata, DataView data,
-                                 std::optional<size_t> partition) = 0;
+    virtual Future<std::optional<EventID>>
+        push(Metadata metadata, DataView data,
+             std::optional<size_t> partition) = 0;
 
     /**
-     * @brief Block until all the pending events have been sent.
+     * Flush the producer. This is a non-blocking call returning a future
+     * that can be awaited.
      */
-    virtual void flush() = 0;
+    virtual Future<std::optional<Flushed>> flush() = 0;
 
 };
 
@@ -184,15 +192,17 @@ class Producer {
      *
      * @return a Future<EventID> tracking the asynchronous operation.
      */
-    inline Future<EventID> push(Metadata metadata, DataView data = DataView{},
-                                std::optional<size_t> partition = std::nullopt) const {
+    inline Future<std::optional<EventID>>
+        push(Metadata metadata, DataView data = DataView{},
+             std::optional<size_t> partition = std::nullopt) const {
         return self->push(metadata, data, partition);
     }
 
     /**
-     * @brief Block until all the pending events have been sent.
+     * Flush the producer. This is a non-blocking call returning a future
+     * that can be awaited.
      */
-    inline void flush() {
+    inline Future<std::optional<Flushed>> flush() {
         return self->flush();
     }
 

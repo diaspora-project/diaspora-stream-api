@@ -83,12 +83,13 @@ class RandomConsumer final : public diaspora::ConsumerInterface {
     }
 
     void process(diaspora::EventProcessor processor,
-                 std::shared_ptr<diaspora::ThreadPoolInterface> threadPool,
-                 diaspora::NumEvents maxEvents) override;
+                 int timeout_ms,
+                 diaspora::NumEvents maxEvents,
+                 std::shared_ptr<diaspora::ThreadPoolInterface> threadPool) override;
 
     void unsubscribe() override;
 
-    diaspora::Future<diaspora::Event> pull() override;
+    diaspora::Future<std::optional<diaspora::Event>> pull() override;
 
 };
 
@@ -133,8 +134,6 @@ class RandomTopicHandle final : public diaspora::TopicHandleInterface,
     diaspora::Serializer serializer() const override {
         return diaspora::Serializer{};
     }
-
-    void markAsComplete() override {}
 
     std::shared_ptr<diaspora::ProducerInterface>
         makeProducer(std::string_view name,
@@ -245,14 +244,14 @@ inline std::shared_ptr<diaspora::ConsumerInterface>
 
 void RandomConsumer::unsubscribe() {}
 
-diaspora::Future<diaspora::Event> RandomConsumer::pull() {
+diaspora::Future<std::optional<diaspora::Event>> RandomConsumer::pull() {
     auto event = std::make_shared<RandomEvent>(
         diaspora::Metadata{},
         diaspora::DataView{},
         diaspora::PartitionInfo{},
         m_next_id++);
-    return diaspora::Future<diaspora::Event>{
-        [event=std::move(event)]() -> diaspora::Event {
+    return diaspora::Future<std::optional<diaspora::Event>>{
+        [event=std::move(event)](int) -> diaspora::Event {
             return diaspora::Event{event};
         },
         []() {
@@ -262,15 +261,16 @@ diaspora::Future<diaspora::Event> RandomConsumer::pull() {
 
 inline void RandomConsumer::process(
         diaspora::EventProcessor processor,
-        std::shared_ptr<diaspora::ThreadPoolInterface> threadPool,
-        diaspora::NumEvents maxEvents) {
+        int timeout_ms,
+        diaspora::NumEvents maxEvents,
+        std::shared_ptr<diaspora::ThreadPoolInterface> threadPool) {
     if(!threadPool) threadPool = m_topic->driver()->defaultThreadPool();
     size_t                  pending_events = 0;
     std::mutex              pending_mutex;
     std::condition_variable pending_cv;
     try {
         for(size_t i = 0; i < maxEvents.value; ++i) {
-            auto event = pull().wait();
+            auto event = pull().wait(5000);
             {
                 std::unique_lock lock{pending_mutex};
                 pending_events += 1;

@@ -119,6 +119,6 @@ TEST_CASE("Eventbridge validation", "[eventbridge]") {
             "myproducer", batch_size, thread_count, ordering);
         REQUIRE(static_cast<bool>(producer));
 
-        REQUIRE_NOTHROW(producer.push(example).wait());
+        REQUIRE_NOTHROW(producer.push(example).wait(1000));
     }
 }

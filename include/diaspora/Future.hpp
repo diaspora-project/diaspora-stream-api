@@ -9,6 +9,7 @@
 #include <diaspora/ForwardDcl.hpp>
 #include <diaspora/Exception.hpp>
 
+#include <optional>
 #include <memory>
 #include <functional>
 
@@ -19,7 +20,7 @@ namespace diaspora {
  * on-going asynchronous operations.
  */
 template<typename ResultType,
-         typename WaitFn = std::function<ResultType()>,
+         typename WaitFn = std::function<ResultType(int)>,
          typename TestFn = std::function<bool()>>
 class Future {
 
@@ -64,11 +65,13 @@ class Future {
 
     /**
      * @brief Wait for the request to complete.
+     *
+     * @param timeout_ms Timeout (in milliseconds).
      */
-    inline ResultType wait() const {
+    inline ResultType wait(int timeout_ms) const {
         if(!m_wait)
             throw Exception("Calling Future::wait on an invalid future");
-        return m_wait();
+        return m_wait(timeout_ms);
     }
 
     /**

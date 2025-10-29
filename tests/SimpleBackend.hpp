@@ -25,10 +25,10 @@ class SimpleTopicHandle;
 template<typename T>
 struct FutureState {
 
-    std::mutex                        mutex;
-    std::condition_variable           cv;
+    std::mutex                           mutex;
+    std::condition_variable              cv;
     std::variant<T, diaspora::Exception> value;
-    bool                              is_set = false;
+    bool                                 is_set = false;
 
     template<typename U>
     void set(U u) {
@@ -41,11 +41,13 @@ struct FutureState {
         cv.notify_all();
     }
 
-    T wait() {
+    T wait(int timeout_ms) {
         std::unique_lock lock{mutex};
-        while(!is_set) {
-            cv.wait(lock);
-        }
+        if(is_set) return std::get<T>(value);
+        if(timeout_ms > 0)
+            cv.wait_for(lock, std::chrono::milliseconds{timeout_ms});
+        else
+            while(!is_set) cv.wait(lock);
         if(std::holds_alternative<T>(value))
             return std::get<T>(value);
         else
@@ -171,13 +173,13 @@ class SimpleEvent : public diaspora::EventInterface {
 
 class SimpleProducer final : public diaspora::ProducerInterface {
 
-    const std::string                        m_name;
-    const diaspora::BatchSize                m_batch_size;
-    const diaspora::MaxNumBatches            m_max_num_batches;
-    const diaspora::Ordering                 m_ordering;
-    const std::shared_ptr<SimpleThreadPool>  m_thread_pool;
-    const std::shared_ptr<SimpleTopicHandle> m_topic;
-    diaspora::Future<diaspora::EventID>      m_last_event_pushed;
+    const std::string                                  m_name;
+    const diaspora::BatchSize                          m_batch_size;
+    const diaspora::MaxNumBatches                      m_max_num_batches;
+    const diaspora::Ordering                           m_ordering;
+    const std::shared_ptr<SimpleThreadPool>            m_thread_pool;
+    const std::shared_ptr<SimpleTopicHandle>           m_topic;
+    diaspora::Future<std::optional<diaspora::EventID>> m_last_event_pushed;
 
     public:
 
@@ -217,13 +219,20 @@ class SimpleProducer final : public diaspora::ProducerInterface {
 
     std::shared_ptr<diaspora::TopicHandleInterface> topic() const override;
 
-    diaspora::Future<diaspora::EventID> push(
+    diaspora::Future<std::optional<diaspora::EventID>> push(
             diaspora::Metadata metadata,
             diaspora::DataView data,
             std::optional<size_t> partition) override;
 
-    void flush() override {
-        if(m_last_event_pushed) m_last_event_pushed.wait();
+    diaspora::Future<std::optional<diaspora::Flushed>> flush() override {
+        return diaspora::Future<std::optional<diaspora::Flushed>>{
+            [ev=m_last_event_pushed](int timeout_ms) -> std::optional<diaspora::Flushed> {
+                if(ev.wait(timeout_ms).has_value()) return  diaspora::Flushed{};
+                else return std::nullopt;
+            },
+            [ev=m_last_event_pushed]() {
+                return ev.completed();
+            }};
     }
 };
 
@@ -285,12 +294,13 @@ class SimpleConsumer final : public diaspora::ConsumerInterface {
     }
 
     void process(diaspora::EventProcessor processor,
-                 std::shared_ptr<diaspora::ThreadPoolInterface> threadPool,
-                 diaspora::NumEvents maxEvents) override;
+                 int timeout_ms,
+                 diaspora::NumEvents maxEvents,
+                 std::shared_ptr<diaspora::ThreadPoolInterface> threadPool) override;
 
     void unsubscribe() override;
 
-    diaspora::Future<diaspora::Event> pull() override;
+    diaspora::Future<std::optional<diaspora::Event>> pull() override;
 
 };
 
@@ -314,7 +324,6 @@ class SimpleTopicHandle final : public diaspora::TopicHandleInterface,
     const std::shared_ptr<SimpleDriver>     m_driver;
 
     Partition                               m_partition;
-    bool                                    m_is_complete = false;
 
     public:
 
@@ -353,10 +362,6 @@ class SimpleTopicHandle final : public diaspora::TopicHandleInterface,
         return m_serializer;
     }
 
-    void markAsComplete() override {
-        m_is_complete = true;
-    }
-
     std::shared_ptr<diaspora::ProducerInterface>
         makeProducer(std::string_view name,
                      diaspora::BatchSize batch_size,
@@ -384,11 +389,11 @@ inline std::shared_ptr<diaspora::TopicHandleInterface> SimpleConsumer::topic() c
     return m_topic;
 }
 
-inline diaspora::Future<diaspora::EventID> SimpleProducer::push(
+inline diaspora::Future<std::optional<diaspora::EventID>> SimpleProducer::push(
         diaspora::Metadata metadata,
         diaspora::DataView data,
         std::optional<size_t> partition) {
-    auto state = std::make_shared<FutureState<diaspora::EventID>>();
+    auto state = std::make_shared<FutureState<std::optional<diaspora::EventID>>>();
     m_thread_pool->pushWork(
         [topic=m_topic, state,
          metadata=std::move(metadata),
@@ -417,8 +422,8 @@ inline diaspora::Future<diaspora::EventID> SimpleProducer::push(
                 state->set(ex);
             }
         });
-    auto future = diaspora::Future<diaspora::EventID>{
-        [state] { return state->wait(); },
+    auto future = diaspora::Future<std::optional<diaspora::EventID>>{
+        [state](int timeout_ms) { return state->wait(timeout_ms); },
         [state] { return state->test(); }
     };
     m_last_event_pushed = future;
@@ -527,10 +532,11 @@ inline std::shared_ptr<diaspora::ConsumerInterface>
 
 void SimpleConsumer::unsubscribe() {}
 
-diaspora::Future<diaspora::Event> SimpleConsumer::pull() {
+diaspora::Future<std::optional<diaspora::Event>> SimpleConsumer::pull() {
     if(m_next_offset == m_topic->m_partition.metadata.size()) {
-        return diaspora::Future<diaspora::Event>{
-            []() { return diaspora::Event(std::make_shared<SimpleEvent>(
+        return diaspora::Future<std::optional<diaspora::Event>>{
+            [](int) {
+                return diaspora::Event(std::make_shared<SimpleEvent>(
                         diaspora::Metadata{}, diaspora::DataView{}, diaspora::PartitionInfo{},
                         diaspora::NoMoreEvents));},
             []() { return true; }
@@ -561,8 +567,8 @@ diaspora::Future<diaspora::Event> SimpleConsumer::pull() {
             dest_offset += s.size;
         }
         m_next_offset += 1;
-        return diaspora::Future<diaspora::Event>{
-            [metadata=std::move(metadata), data=std::move(data_view), event_id=m_next_offset-1]() {
+        return diaspora::Future<std::optional<diaspora::Event>>{
+            [metadata=std::move(metadata), data=std::move(data_view), event_id=m_next_offset-1](int) {
                 return diaspora::Event(std::make_shared<SimpleEvent>(
                         std::move(metadata), std::move(data), diaspora::PartitionInfo{},
                         event_id));},
@@ -573,15 +579,16 @@ diaspora::Future<diaspora::Event> SimpleConsumer::pull() {
 
 inline void SimpleConsumer::process(
         diaspora::EventProcessor processor,
-        std::shared_ptr<diaspora::ThreadPoolInterface> threadPool,
-        diaspora::NumEvents maxEvents) {
+        int timeout_ms,
+        diaspora::NumEvents maxEvents,
+        std::shared_ptr<diaspora::ThreadPoolInterface> threadPool) {
     if(!threadPool) threadPool = m_topic->driver()->defaultThreadPool();
     size_t                  pending_events = 0;
     std::mutex              pending_mutex;
     std::condition_variable pending_cv;
     try {
         for(size_t i = 0; i < maxEvents.value; ++i) {
-            auto event = pull().wait();
+            auto event = pull().wait(timeout_ms);
             {
                 std::unique_lock lock{pending_mutex};
                 pending_events += 1;

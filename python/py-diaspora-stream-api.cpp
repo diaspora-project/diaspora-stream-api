@@ -326,12 +326,6 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
                 }
                 return result;
             }, "List of partitions of the topic.")
-        .def("mark_as_complete",
-             &diaspora::TopicHandleInterface::markAsComplete,
-             R"(
-             Closes the topic, preventing new events from being pushed into it,
-             and notifying consumers that no new events are to be expected.
-             )")
         .def("producer",
             [](diaspora::TopicHandleInterface& topic,
                std::string_view name,
@@ -525,7 +519,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
             [](diaspora::ProducerInterface& producer,
                std::string metadata,
                py::buffer b_data,
-               std::optional<size_t> part) -> diaspora::Future<diaspora::EventID> {
+               std::optional<size_t> part) -> diaspora::Future<std::optional<diaspora::EventID>> {
                 return producer.push(std::move(metadata), data_helper(b_data), part);
             }, R"(
             Push an event into the topic.
@@ -550,7 +544,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
             [](diaspora::ProducerInterface& producer,
                nlohmann::json metadata,
                py::buffer b_data,
-               std::optional<size_t> part) -> diaspora::Future<diaspora::EventID> {
+               std::optional<size_t> part) -> diaspora::Future<std::optional<diaspora::EventID>> {
                 return producer.push(std::move(metadata), data_helper(b_data), part);
             }, R"(
             Push an event into the topic.
@@ -575,7 +569,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
             [](diaspora::ProducerInterface& producer,
                std::string metadata,
                const py::list& b_data,
-               std::optional<size_t> part) -> diaspora::Future<diaspora::EventID> {
+               std::optional<size_t> part) -> diaspora::Future<std::optional<diaspora::EventID>> {
                 return producer.push(std::move(metadata), data_helper(b_data), part);
             }, R"(
             Push an event into the topic.
@@ -600,7 +594,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
             [](diaspora::ProducerInterface& producer,
                nlohmann::json metadata,
                py::list b_data,
-               std::optional<size_t> part) -> diaspora::Future<diaspora::EventID> {
+               std::optional<size_t> part) -> diaspora::Future<std::optional<diaspora::EventID>> {
                 return producer.push(std::move(metadata), data_helper(b_data), part);
             }, R"(
             Push an event into the topic.
@@ -665,9 +659,11 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
         .def("process",
             [](diaspora::ConsumerInterface& consumer,
                diaspora::EventProcessor processor,
-               std::shared_ptr<diaspora::ThreadPoolInterface> threadPool,
-               std::size_t maxEvents) {
-                return consumer.process(processor, threadPool, diaspora::NumEvents{maxEvents});
+               int timeout_ms,
+               std::size_t maxEvents,
+               std::shared_ptr<diaspora::ThreadPoolInterface> threadPool) {
+                return consumer.process(
+                    processor, timeout_ms, diaspora::NumEvents{maxEvents}, threadPool);
                },
             R"(
                 Process the incoming events using the provided callable.
@@ -676,12 +672,14 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
                 ----------
 
                 processor (Callable[None, Event]): Callable to use to process the events.
-                thread_pool (ThreadPool): ThreadPool to use to submit calls to the processor.
+                timeout_ms (int): Timeout to pass to wait calls.
                 max_events (int): Maximum number of events to process.
+                thread_pool (ThreadPool): ThreadPool to use to submit calls to the processor.
             )",
             "processor"_a, py::kw_only(),
-            "thread_pool"_a=std::shared_ptr<diaspora::ThreadPoolInterface>{},
-            "max_events"_a=std::numeric_limits<size_t>::max()
+            "timeout_ms"_a=-1,
+            "max_events"_a=std::numeric_limits<size_t>::max(),
+            "thread_pool"_a=std::shared_ptr<diaspora::ThreadPoolInterface>{}
             )
         .def("__iter__",
              [](std::shared_ptr<diaspora::ConsumerInterface> consumer) {
@@ -812,31 +810,52 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
              }, "Acknowledge the event so it is not re-consumed if the consumer restarts.")
     ;
 
-    py::class_<diaspora::Future<std::uint64_t>,
-               std::shared_ptr<diaspora::Future<std::uint64_t>>>(m, "FutureUint")
-        .def("wait", [](diaspora::Future<std::uint64_t>& future) {
-            std::uint64_t result;
-            Py_BEGIN_ALLOW_THREADS
-            result = future.wait();
-            Py_END_ALLOW_THREADS
-            return result;
-        }, "Wait for the future to complete, returning its value (int) when it does.")
+    py::class_<diaspora::Future<std::optional<diaspora::Flushed>>,
+               std::shared_ptr<diaspora::Future<std::optional<diaspora::Flushed>>>>(m, "FutureFlushed")
+        .def("wait", [](diaspora::Future<std::optional<diaspora::Flushed>>& future, int timeout_ms) {
+                std::optional<diaspora::Flushed> result;
+                Py_BEGIN_ALLOW_THREADS
+                result = future.wait(timeout_ms);
+                Py_END_ALLOW_THREADS
+                return result.has_value() ? true : false;
+        }, "Wait for the future to complete, returning true if it has completed, false if it timed out.",
+        py::kw_only(),
+        "timeout_ms"_a)
         .def_property_readonly(
             "completed",
-            &diaspora::Future<std::uint64_t>::completed,
+            &diaspora::Future<std::optional<diaspora::Flushed>>::completed,
             "Checks whether the future has completed.")
     ;
 
-    py::class_<diaspora::Future<diaspora::Event>,
-               std::shared_ptr<diaspora::Future<diaspora::Event>>>(m, "FutureEvent")
-        .def("wait", [](diaspora::Future<diaspora::Event>& future) {
-                diaspora::Event result;
+    py::class_<diaspora::Future<std::optional<std::uint64_t>>,
+               std::shared_ptr<diaspora::Future<std::optional<std::uint64_t>>>>(m, "FutureUint")
+        .def("wait", [](diaspora::Future<std::optional<std::uint64_t>>& future, int timeout_ms) {
+                std::optional<std::uint64_t> result;
+                Py_BEGIN_ALLOW_THREADS
+                result = future.wait(timeout_ms);
+                Py_END_ALLOW_THREADS
+                return result;
+        }, "Wait for the future to complete, returning its value (int) when it does.",
+        py::kw_only(),
+        "timeout_ms"_a)
+        .def_property_readonly(
+            "completed",
+            &diaspora::Future<std::optional<std::uint64_t>>::completed,
+            "Checks whether the future has completed.")
+    ;
+
+    py::class_<diaspora::Future<std::optional<diaspora::Event>>,
+               std::shared_ptr<diaspora::Future<std::optional<diaspora::Event>>>>(m, "FutureEvent")
+        .def("wait", [](diaspora::Future<std::optional<diaspora::Event>>& future, int timeout_ms) {
+                std::optional<diaspora::Event> result;
             Py_BEGIN_ALLOW_THREADS
-            result = future.wait();
+            result = future.wait(timeout_ms);
             Py_END_ALLOW_THREADS
-            return diaspora::PythonBindingHelper::GetSelf(result);
-        }, "Wait for the future to complete, returning its value (Event) when it does.")
-        .def("completed", &diaspora::Future<diaspora::Event>::completed,
+            return result.has_value() ? diaspora::PythonBindingHelper::GetSelf(*result) : nullptr;
+        }, "Wait for the future to complete, returning its value (Event) when it does.",
+        py::kw_only(),
+        "timeout_ms"_a)
+        .def("completed", &diaspora::Future<std::optional<diaspora::Event>>::completed,
              "Checks whether the future has completed.")
     ;
 

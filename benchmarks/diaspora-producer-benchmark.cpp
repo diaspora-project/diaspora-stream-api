@@ -143,10 +143,10 @@ void run_benchmark(const Options& options)
             diaspora::DataView{data.data() + i*options.dataSize, options.dataSize}
         );
         if ((i + 1) % options.flushInterval == 0) {
-            producer.flush();
+            while(producer.flush().wait(-1)) {};
         }
     }
-    producer.flush(); // Final flush to send any remaining events
+    producer.flush().wait(-1); // Final flush to send any remaining events
 
     MPI_Barrier(MPI_COMM_WORLD);
     auto end_time = std::chrono::high_resolution_clock::now();

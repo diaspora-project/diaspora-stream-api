@@ -43,9 +43,8 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
         auto metadata = diaspora::Metadata{};
         auto data = diaspora::DataView{{{seg1.data(), seg1.size()},{seg2.data(), seg2.size()}}};
         producer.push(metadata, data);
-        producer.flush();
+        producer.flush().wait(1000);
     }
-    topic.markAsComplete();
 
     SECTION("Consume no data") {
         diaspora::DataSelector data_selector =
@@ -58,9 +57,12 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             };
         auto consumer = topic.consumer(
                 "myconsumer_0", data_selector, data_allocator);
-        auto event = consumer.pull().wait();
-        REQUIRE(event.data().size() == 0);
-        REQUIRE(consumer.pull().wait().id() == diaspora::NoMoreEvents);
+        auto event = consumer.pull().wait(1000);
+        REQUIRE(event.has_value());
+        REQUIRE(event->data().size() == 0);
+
+        event = consumer.pull().wait(1000);
+        REQUIRE((!event || event->id() == diaspora::NoMoreEvents));
     }
 
     SECTION("Consume the whole data") {
@@ -76,15 +78,18 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             };
         auto consumer = topic.consumer(
                 "myconsumer_1", data_selector, data_broker);
-        auto event = consumer.pull().wait();
-        REQUIRE(event.data().size() == 52);
-        REQUIRE(event.data().segments().size() == 1);
+        auto event = consumer.pull().wait(1000);
+        REQUIRE(event.has_value());
+        REQUIRE(event->data().size() == 52);
+        REQUIRE(event->data().segments().size() == 1);
         auto received = std::string_view{
-            (const char*)event.data().segments()[0].ptr,
-            event.data().segments()[0].size};
+            (const char*)event->data().segments()[0].ptr,
+            event->data().segments()[0].size};
         REQUIRE(received == seg1+seg2);
-        delete[] (char*)event.data().segments()[0].ptr;
-        REQUIRE(consumer.pull().wait().id() == diaspora::NoMoreEvents);
+        delete[] (char*)event->data().segments()[0].ptr;
+
+        event = consumer.pull().wait(1000);
+        REQUIRE((!event || event->id() == diaspora::NoMoreEvents));
     }
 
     SECTION("Consume using makeSubView") {
@@ -100,15 +105,18 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             };
         auto consumer = topic.consumer(
                 "myconsumer_2", data_selector, data_broker);
-        auto event = consumer.pull().wait();
-        REQUIRE(event.data().size() == 26);
-        REQUIRE(event.data().segments().size() == 1);
+        auto event = consumer.pull().wait(1000);
+        REQUIRE(event.has_value());
+        REQUIRE(event->data().size() == 26);
+        REQUIRE(event->data().segments().size() == 1);
         auto received = std::string_view{
-            (const char*)event.data().segments()[0].ptr,
-            event.data().segments()[0].size};
+            (const char*)event->data().segments()[0].ptr,
+            event->data().segments()[0].size};
         REQUIRE(received == "nopqrstuvwxyzABCDEFGHIJKLM");
-        delete[] (char*)event.data().segments()[0].ptr;
-        REQUIRE(consumer.pull().wait().id() == diaspora::NoMoreEvents);
+        delete[] (char*)event->data().segments()[0].ptr;
+
+        event = consumer.pull().wait(1000);
+        REQUIRE((!event || event->id() == diaspora::NoMoreEvents));
     }
 
     SECTION("Consume using makeStridedView") {
@@ -124,15 +132,18 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             };
         auto consumer = topic.consumer(
                 "myconsumer_3", data_selector, data_allocator);
-        auto event = consumer.pull().wait();
-        REQUIRE(event.data().size() == 12);
-        REQUIRE(event.data().segments().size() == 1);
+        auto event = consumer.pull().wait(1000);
+        REQUIRE(event.has_value());
+        REQUIRE(event->data().size() == 12);
+        REQUIRE(event->data().segments().size() == 1);
         auto received = std::string_view{
-            (const char*)event.data().segments()[0].ptr,
-            event.data().segments()[0].size};
+            (const char*)event->data().segments()[0].ptr,
+            event->data().segments()[0].size};
         REQUIRE(received == "nopqtuvwzABC");
-        delete[] (char*)event.data().segments()[0].ptr;
-        REQUIRE(consumer.pull().wait().id() == diaspora::NoMoreEvents);
+        delete[] (char*)event->data().segments()[0].ptr;
+
+        event = consumer.pull().wait(1000);
+        REQUIRE((!event || event->id() == diaspora::NoMoreEvents));
     }
 
     SECTION("Consume using makeUnstructuredView") {
@@ -152,14 +163,17 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             };
         auto consumer = topic.consumer(
                 "myconsumer_4", data_selector, data_allocator);
-        auto event = consumer.pull().wait();
-        REQUIRE(event.data().size() == 18);
-        REQUIRE(event.data().segments().size() == 1);
+        auto event = consumer.pull().wait(1000);
+        REQUIRE(event.has_value());
+        REQUIRE(event->data().size() == 18);
+        REQUIRE(event->data().segments().size() == 1);
         auto received = std::string_view{
-            (const char*)event.data().segments()[0].ptr,
-            event.data().segments()[0].size};
+            (const char*)event->data().segments()[0].ptr,
+            event->data().segments()[0].size};
         REQUIRE(received == "defghipqrsBCDEFGHI");
-        delete[] (char*)event.data().segments()[0].ptr;
-        REQUIRE(consumer.pull().wait().id() == diaspora::NoMoreEvents);
+        delete[] (char*)event->data().segments()[0].ptr;
+
+        event = consumer.pull().wait(1000);
+        REQUIRE((!event || event->id() == diaspora::NoMoreEvents));
     }
 }

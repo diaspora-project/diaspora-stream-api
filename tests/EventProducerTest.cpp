@@ -34,24 +34,24 @@ TEST_CASE("Event producer test", "[event-producer]") {
 
         {
             for(size_t i = 0; i < 100; ++i) {
-                diaspora::Future<diaspora::EventID> future;
+                diaspora::Future<std::optional<diaspora::EventID>> future;
                 auto metadata = diaspora::Metadata{
                     std::string{"{\"event_num\":"} + std::to_string(i) + "}"
                 };
                 REQUIRE_NOTHROW(future = producer.push(metadata, diaspora::DataView{0, nullptr}));
                 if((i+1) % 5 == 0) {
                     if(batch_size != diaspora::BatchSize::Adaptive())
-                        REQUIRE_NOTHROW(producer.flush());
-                    REQUIRE_NOTHROW(future.wait());
+                        REQUIRE_NOTHROW(producer.flush().wait(1000));
+                    REQUIRE_NOTHROW(future.wait(1000));
                 }
             }
-            REQUIRE_NOTHROW(producer.flush());
+            REQUIRE_NOTHROW(producer.flush().wait(1000));
         }
 
         std::vector<std::string> data(100);
         {
             for(size_t i = 0; i < 100; ++i) {
-                diaspora::Future<diaspora::EventID> future;
+                diaspora::Future<std::optional<diaspora::EventID>> future;
                 auto metadata = diaspora::Metadata{
                     std::string{"{\"event_num\":"} + std::to_string(i) + "}"
                 };
@@ -61,11 +61,11 @@ TEST_CASE("Event producer test", "[event-producer]") {
                             diaspora::DataView{data[i].data(), data[i].size()}));
                 if((i+1) % 5 == 0) {
                     if(batch_size != diaspora::BatchSize::Adaptive())
-                        REQUIRE_NOTHROW(producer.flush());
-                    REQUIRE_NOTHROW(future.wait());
+                        REQUIRE_NOTHROW(producer.flush().wait(1000));
+                    REQUIRE_NOTHROW(future.wait(1000));
                 }
             }
-            REQUIRE_NOTHROW(producer.flush());
+            REQUIRE_NOTHROW(producer.flush().wait(1000));
         }
     }
 }

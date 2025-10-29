@@ -39,8 +39,8 @@ class TestProducer(unittest.TestCase):
         producer = self.topic.producer("my_producer")
         for i in range(10):
             metadata = {"i":i}
-            producer.push(metadata).wait()
-        producer.flush()
+            producer.push(metadata).wait(timeout_ms=100)
+        producer.flush().wait(timeout_ms=1000)
 
 
 if __name__ == '__main__':

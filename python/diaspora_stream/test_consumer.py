@@ -40,9 +40,8 @@ class TestConsumer(unittest.TestCase):
         num_events = 10
         for i in range(num_events):
             metadata = {"index": i, "value": f"event_{i}"}
-            producer.push(metadata).wait()
-        producer.flush()
-        self.topic.mark_as_complete()
+            producer.push(metadata).wait(timeout_ms=100)
+        producer.flush().wait(timeout_ms=1000)
 
         consumer = self.topic.consumer("my_consumer")
         received_count = 0
@@ -63,15 +62,14 @@ class TestConsumer(unittest.TestCase):
         num_events = 5
         for i in range(num_events):
             metadata = {"index": i}
-            producer.push(metadata).wait()
-        producer.flush()
-        self.topic.mark_as_complete()
+            producer.push(metadata).wait(timeout_ms=100)
+        producer.flush().wait(timeout_ms=1000)
 
         consumer = self.topic.consumer("my_consumer")
 
         for i in range(num_events):
             future_event = consumer.pull()
-            event = future_event.wait()
+            event = future_event.wait(timeout_ms=100)
             self.assertIsNotNone(event.event_id)
             self.assertEqual(event.event_id, i)
             self.assertEqual(event.metadata["index"], i)
@@ -79,15 +77,14 @@ class TestConsumer(unittest.TestCase):
 
         # After all events are consumed, pull should return a NoMoreEvents event
         future_event = consumer.pull()
-        event = future_event.wait()
+        event = future_event.wait(timeout_ms=100)
         self.assertIsNone(event.event_id)
 
     def test_custom_data_broker(self):
         producer = self.topic.producer("my_producer")
         event_data = b"hello world"
-        producer.push({"id": 1}, event_data).wait()
-        producer.flush()
-        self.topic.mark_as_complete()
+        producer.push({"id": 1}, event_data).wait(timeout_ms=100)
+        producer.flush().wait(timeout_ms=1000)
 
         def my_selector(metadata, descriptor):
             return descriptor

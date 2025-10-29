@@ -45,14 +45,13 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
                     std::string{"{\"event_num\":"} + std::to_string(i) + "}"
                 };
                 data[i] = std::string{"This is data for event "} + std::to_string(i);
-                diaspora::Future<diaspora::EventID> future;
+                diaspora::Future<std::optional<diaspora::EventID>> future;
                 REQUIRE_NOTHROW(future = producer.push(
                     metadata,
                     diaspora::DataView{data[i].data(), data[i].size()}));
             }
-            REQUIRE_NOTHROW(producer.flush());
+            REQUIRE_NOTHROW(producer.flush().wait(1000));
         }
-        topic.markAsComplete();
 
         SECTION("Consumer without data")
         {
@@ -60,19 +59,20 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             REQUIRE_NOTHROW(consumer = topic.consumer("myconsumer", driver.defaultThreadPool()));
             REQUIRE(static_cast<bool>(consumer));
             for(unsigned i=0; i < 100; ++i) {
-                diaspora::Event event;
-                REQUIRE_NOTHROW(event = consumer.pull().wait());
-                REQUIRE(event.id() == i);
-                auto& doc = event.metadata().json();
+                std::optional<diaspora::Event> event;
+                REQUIRE_NOTHROW(event = consumer.pull().wait(1000));
+                REQUIRE(event.has_value());
+                REQUIRE(event->id() == i);
+                auto& doc = event->metadata().json();
                 REQUIRE(doc["event_num"].get<int64_t>() == i);
                 if(i % 5 == 0)
-                    REQUIRE_NOTHROW(event.acknowledge());
+                    REQUIRE_NOTHROW(event->acknowledge());
             }
             // Consume extra events, we should get events with NoMoreEvents as event IDs
             for(unsigned i=0; i < 10; ++i) {
-                diaspora::Event event;
-                REQUIRE_NOTHROW(event = consumer.pull().wait());
-                REQUIRE(event.id() == diaspora::NoMoreEvents);
+                std::optional<diaspora::Event> event;
+                REQUIRE_NOTHROW(event = consumer.pull().wait(100));
+                REQUIRE((!event || event->id() == diaspora::NoMoreEvents));
             }
         }
 
@@ -105,27 +105,28 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
                 "myconsumer", data_selector, data_allocator);
             REQUIRE(static_cast<bool>(consumer));
             for(unsigned i=0; i < 100; ++i) {
-                diaspora::Event event;
-                REQUIRE_NOTHROW(event = consumer.pull().wait());
-                REQUIRE(event.id() == i);
-                auto& doc = event.metadata().json();
+                std::optional<diaspora::Event> event;
+                REQUIRE_NOTHROW(event = consumer.pull().wait(1000));
+                REQUIRE(event);
+                REQUIRE(event->id() == i);
+                auto& doc = event->metadata().json();
                 REQUIRE(doc["event_num"].get<int64_t>() == i);
                 if(i % 5 == 0)
-                    REQUIRE_NOTHROW(event.acknowledge());
+                    REQUIRE_NOTHROW(event->acknowledge());
                 if(i % 2 == 0) {
-                    REQUIRE(event.data().segments().size() == 1);
+                    REQUIRE(event->data().segments().size() == 1);
                     auto data_str = std::string{
-                        (const char*)event.data().segments()[0].ptr,
-                        event.data().segments()[0].size};
+                        (const char*)event->data().segments()[0].ptr,
+                        event->data().segments()[0].size};
                     std::string expected = std::string("This is data for event ") + std::to_string(i);
                     REQUIRE(data_str == expected);
-                    delete[] static_cast<const char*>(event.data().segments()[0].ptr);
+                    delete[] static_cast<const char*>(event->data().segments()[0].ptr);
                 } else {
-                    REQUIRE(event.data().segments().size() == 0);
+                    REQUIRE(event->data().segments().size() == 0);
                 }
             }
-            auto event = consumer.pull().wait();
-            REQUIRE(event.id() == diaspora::NoMoreEvents);
+            auto event = consumer.pull().wait(1000);
+            REQUIRE((!event || event->id() == diaspora::NoMoreEvents));
         }
     }
 }

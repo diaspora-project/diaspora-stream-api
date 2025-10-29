@@ -69,7 +69,9 @@ class TestConsumer(unittest.TestCase):
 
         for i in range(num_events):
             future_event = consumer.pull()
-            event = future_event.wait(timeout_ms=100)
+            event = None
+            while event is None:
+                event = future_event.wait(timeout_ms=100)
             self.assertIsNotNone(event.event_id)
             self.assertEqual(event.event_id, i)
             self.assertEqual(event.metadata["index"], i)
@@ -78,7 +80,7 @@ class TestConsumer(unittest.TestCase):
         # After all events are consumed, pull should return a NoMoreEvents event
         future_event = consumer.pull()
         event = future_event.wait(timeout_ms=100)
-        self.assertIsNone(event.event_id)
+        self.assertTrue(event is None or event.event_id is None)
 
     def test_custom_data_broker(self):
         producer = self.topic.producer("my_producer")

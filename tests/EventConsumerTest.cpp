@@ -60,7 +60,8 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             REQUIRE(static_cast<bool>(consumer));
             for(unsigned i=0; i < 100; ++i) {
                 std::optional<diaspora::Event> event;
-                REQUIRE_NOTHROW(event = consumer.pull().wait(1000));
+                while(!event) // note: we do this because some backend may need time to rebalance
+                    REQUIRE_NOTHROW(event = consumer.pull().wait(1000));
                 REQUIRE(event.has_value());
                 REQUIRE(event->id() == i);
                 auto& doc = event->metadata().json();
@@ -106,7 +107,8 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             REQUIRE(static_cast<bool>(consumer));
             for(unsigned i=0; i < 100; ++i) {
                 std::optional<diaspora::Event> event;
-                REQUIRE_NOTHROW(event = consumer.pull().wait(1000));
+                while(!event) // note: we do this because some backend may need time to rebalance
+                    REQUIRE_NOTHROW(event = consumer.pull().wait(1000));
                 REQUIRE(event.has_value());
                 REQUIRE(event->id() == i);
                 auto& doc = event->metadata().json();

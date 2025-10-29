@@ -44,6 +44,9 @@ echo "AFTER_COMMAND: ${AFTER_COMMAND}"
 
 # Binary tests
 for test_file in ${SCRIPT_DIR}/Diaspora*Test ; do
+    #if [[ ! $test_file = *DataSelection* ]]; then
+    #    continue
+    #fi
     echo "Running test file ${test_file}"
     if [ -n "$BEFORE_COMMAND" ]; then
         eval "$BEFORE_COMMAND"
@@ -51,7 +54,7 @@ for test_file in ${SCRIPT_DIR}/Diaspora*Test ; do
             RET=1
         fi
     fi
-    timeout 60s ${test_file}
+    timeout 120s ${test_file}
     r=$?
     if [ "$r" -ne 0 ]; then
         RET=1

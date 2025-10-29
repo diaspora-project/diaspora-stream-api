@@ -362,7 +362,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
             "max_num_batches"_a=2,
             "ordering"_a=diaspora::Ordering::Strict,
             "thread_pool"_a=std::shared_ptr<diaspora::ThreadPoolInterface>{},
-            "options"_a=nlohmann::json(nullptr))
+            "options"_a=nlohmann::json::object())
         .def("consumer",
             [](diaspora::TopicHandleInterface& topic,
                std::string_view name,
@@ -445,7 +445,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
             "max_num_batches"_a=2,
             "thread_pool"_a=diaspora::PythonBindingHelper::GetSelf(diaspora::ThreadPool{}),
             "targets"_a=std::optional<std::vector<size_t>>{},
-            "options"_a=nlohmann::json(nullptr))
+            "options"_a=nlohmann::json::object())
         .def("consumer",
             [](diaspora::TopicHandleInterface& topic,
                std::string_view name,
@@ -505,7 +505,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
             "max_num_batches"_a=2,
             "thread_pool"_a=diaspora::PythonBindingHelper::GetSelf(diaspora::ThreadPool{}),
             "targets"_a=std::optional<std::vector<size_t>>{},
-            "options"_a=nlohmann::json(nullptr))
+            "options"_a=nlohmann::json::object())
     ;
 
     py::class_<diaspora::ProducerInterface,

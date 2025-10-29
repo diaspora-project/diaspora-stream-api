@@ -57,7 +57,8 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             };
         auto consumer = topic.consumer(
                 "myconsumer_0", data_selector, data_allocator);
-        auto event = consumer.pull().wait(1000);
+        std::optional<diaspora::Event> event;
+        while(!event) event = consumer.pull().wait(1000);
         REQUIRE(event.has_value());
         REQUIRE(event->data().size() == 0);
 
@@ -78,7 +79,8 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             };
         auto consumer = topic.consumer(
                 "myconsumer_1", data_selector, data_broker);
-        auto event = consumer.pull().wait(1000);
+        std::optional<diaspora::Event> event;
+        while(!event) event = consumer.pull().wait(1000);
         REQUIRE(event.has_value());
         REQUIRE(event->data().size() == 52);
         REQUIRE(event->data().segments().size() == 1);
@@ -105,7 +107,8 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             };
         auto consumer = topic.consumer(
                 "myconsumer_2", data_selector, data_broker);
-        auto event = consumer.pull().wait(1000);
+        std::optional<diaspora::Event> event;
+        while(!event) event = consumer.pull().wait(1000);
         REQUIRE(event.has_value());
         REQUIRE(event->data().size() == 26);
         REQUIRE(event->data().segments().size() == 1);
@@ -132,7 +135,8 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             };
         auto consumer = topic.consumer(
                 "myconsumer_3", data_selector, data_allocator);
-        auto event = consumer.pull().wait(1000);
+        std::optional<diaspora::Event> event;
+        while(!event) event = consumer.pull().wait(1000);
         REQUIRE(event.has_value());
         REQUIRE(event->data().size() == 12);
         REQUIRE(event->data().segments().size() == 1);
@@ -163,7 +167,8 @@ TEST_CASE("Event consumer test", "[event-consumer]") {
             };
         auto consumer = topic.consumer(
                 "myconsumer_4", data_selector, data_allocator);
-        auto event = consumer.pull().wait(1000);
+        std::optional<diaspora::Event> event;
+        while(!event) event = consumer.pull().wait(1000);
         REQUIRE(event.has_value());
         REQUIRE(event->data().size() == 18);
         REQUIRE(event->data().segments().size() == 1);

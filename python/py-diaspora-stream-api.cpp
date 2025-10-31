@@ -204,6 +204,28 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
 
     py::class_<diaspora::DriverInterface,
                std::shared_ptr<diaspora::DriverInterface>>(m, "Driver")
+        .def(py::init(
+            [](const std::string& name, const nlohmann::json& md) {
+                return diaspora::DriverFactory::create(name, diaspora::Metadata{md});
+            }),
+            R"(
+            Create a new Driver from a name an some backend-specific metadata.
+            The name can be in the "backend" if the backend has already been
+            loaded into the process' memory. Using "backend:library.so" will cause
+            the factory to dlopen library.so before searching for the "backend".
+
+            Parameters
+            ----------
+
+            name (str): Name of the backend.
+            options (dict): Backend-specific configuration.
+
+            Returns
+            -------
+
+            A Driver instance.
+            )",
+            py::kw_only(), "backend"_a, "options"_a=nlohmann::json::object())
         .def("create_topic",
              [](diaspora::DriverInterface& driver,
                 std::string_view name,
@@ -288,28 +310,6 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
 
              A ThreadPool instance.
              )")
-        .def_static("new",
-            [](const std::string& name, const nlohmann::json& md) {
-                return diaspora::DriverFactory::create(name, diaspora::Metadata{md});
-            },
-            R"(
-            Create a new Driver from a name an some backend-specific metadata.
-            The name can be in the "backend" if the backend has already been
-            loaded into the process' memory. Using "backend:library.so" will cause
-            the factory to dlopen library.so before searching for the "backend".
-
-            Parameters
-            ----------
-
-            name (str): Name of the backend.
-            options (dict): Backend-specific configuration.
-
-            Returns
-            -------
-
-            A Driver instance.
-            )"
-            "name"_a, "options"_a=nlohmann::json::object())
     ;
 
     py::class_<diaspora::TopicHandleInterface,

@@ -11,7 +11,7 @@ class TestConsumer(unittest.TestCase):
     def setUpClass(cls):
         backend = os.environ.get("DIASPORA_TEST_BACKEND", "simple:libdiaspora-simple-backend.so")
         backend_args = json.loads(os.environ.get("DIASPORA_TEST_BACKEND_ARGS", "{}"))
-        cls.driver = Driver.new(backend, options=backend_args)
+        cls.driver = Driver(backend=backend, options=backend_args)
 
     @classmethod
     def tearDownClass(cls):

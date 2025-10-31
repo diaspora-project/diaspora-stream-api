@@ -9,16 +9,16 @@ class TestDriverFactory(unittest.TestCase):
     def test_create_driver(self):
         backend = os.environ.get("DIASPORA_TEST_BACKEND", "simple:libdiaspora-simple-backend.so")
         backend_args = json.loads(os.environ.get("DIASPORA_TEST_BACKEND_ARGS", "{}"))
-        driver = Driver.new(backend, options=backend_args)
+        driver = Driver(backend=backend, options=backend_args)
         self.assertIsInstance(driver, Driver)
 
     def test_create_driver_unknown_library(self):
         with self.assertRaises(Exception):
-            driver = Driver.new("unknown:libunknown.so")
+            driver = Driver(backend="unknown:libunknown.so")
 
     def test_create_driver_unknown_name(self):
         with self.assertRaises(Exception):
-            driver = Driver.new("unknown:libdiaspora-simple-backend.so")
+            driver = Driver(backend="unknown:libdiaspora-simple-backend.so")
 
 
 if __name__ == '__main__':

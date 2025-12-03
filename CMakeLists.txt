@@ -110,6 +110,10 @@ endif ()
 
 add_subdirectory (src)
 
+# Find TCLAP for the daemon executable
+find_package (TCLAP REQUIRED)
+add_subdirectory (bin)
+
 if (ENABLE_TESTS)
     enable_testing ()
     find_package (Catch2 QUIET)

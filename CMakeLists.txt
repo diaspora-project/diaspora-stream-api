@@ -110,8 +110,9 @@ endif ()
 
 add_subdirectory (src)
 
-# Find TCLAP for the daemon executable
+# Find dependencies for the daemon executable
 find_package (TCLAP REQUIRED)
+find_package (spdlog REQUIRED)
 add_subdirectory (bin)
 
 if (ENABLE_TESTS)

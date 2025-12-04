@@ -198,6 +198,188 @@ struct ProducerInfo {
 };
 
 /**
+ * @brief Initialize and open the control FIFO
+ *
+ * @param control_file Path to the control FIFO
+ * @return File descriptor for the control FIFO, or -1 on error
+ */
+int initialize_control_fifo(const std::string& control_file) {
+    namespace fs = std::filesystem;
+
+    fs::path control_path(control_file);
+
+    // Ensure the directory exists
+    if (control_path.has_parent_path()) {
+        fs::create_directories(control_path.parent_path());
+    }
+
+    // Remove existing FIFO if present
+    if (fs::exists(control_path)) {
+        fs::remove(control_path);
+    }
+
+    // Create the control FIFO
+    if (mkfifo(control_file.c_str(), 0666) == -1) {
+        spdlog::error("Failed to create control FIFO: {}", std::strerror(errno));
+        return -1;
+    }
+    spdlog::info("Created control FIFO: {}", control_file);
+
+    // Open control FIFO for reading (non-blocking initially)
+    int control_fd = open(control_file.c_str(), O_RDONLY | O_NONBLOCK);
+    if (control_fd == -1) {
+        spdlog::error("Failed to open control FIFO: {}", std::strerror(errno));
+        return -1;
+    }
+
+    // Make it blocking after opening
+    int flags = fcntl(control_fd, F_GETFL);
+    fcntl(control_fd, F_SETFL, flags & ~O_NONBLOCK);
+
+    return control_fd;
+}
+
+/**
+ * @brief Handle a control command and create a producer
+ *
+ * @param driver The Diaspora driver instance
+ * @param fifo_name The FIFO name for the producer
+ * @param topic_name The topic name
+ * @param options Options for the producer
+ * @param topics Cache of topic handles
+ * @param producers Map of existing producers
+ * @return true if producer was created successfully
+ */
+bool handle_control_command(
+    diaspora::Driver& driver,
+    const std::string& fifo_name,
+    const std::string& topic_name,
+    const std::unordered_map<std::string, std::string>& options,
+    std::unordered_map<std::string, diaspora::TopicHandle>& topics,
+    std::unordered_map<std::string, ProducerInfo>& producers) {
+
+    namespace fs = std::filesystem;
+
+    // Check if this FIFO is already registered
+    if (producers.find(fifo_name) != producers.end()) {
+        spdlog::warn("FIFO '{}' already registered", fifo_name);
+        return false;
+    }
+
+    try {
+        // Open the topic
+        diaspora::TopicHandle topic;
+        if (topics.count(topic_name)) {
+            topic = topics[topic_name];
+        } else {
+            topic = driver.openTopic(topic_name);
+            topics[topic_name] = topic;
+        }
+
+        // Create a producer for this topic
+        auto producer = topic.producer();
+
+        // Create the FIFO if it doesn't exist
+        fs::path fifo_path(fifo_name);
+        if (!fs::exists(fifo_path)) {
+            if (mkfifo(fifo_name.c_str(), 0666) == -1) {
+                spdlog::error("Failed to create FIFO '{}': {}", fifo_name, std::strerror(errno));
+                return false;
+            }
+            spdlog::info("Created FIFO: {}", fifo_name);
+        }
+
+        // Open the FIFO for reading (non-blocking)
+        int fifo_fd = open(fifo_name.c_str(), O_RDONLY | O_NONBLOCK);
+        if (fifo_fd == -1) {
+            spdlog::error("Failed to open FIFO '{}': {}", fifo_name, std::strerror(errno));
+            return false;
+        }
+
+        // Store the producer info
+        producers[fifo_name] = ProducerInfo{
+            fifo_fd,
+            fifo_name,
+            topic_name,
+            producer,
+            "",
+            options
+        };
+
+        spdlog::info("Registered producer: {} -> {}", fifo_name, topic_name);
+        return true;
+
+    } catch (const diaspora::Exception& e) {
+        spdlog::error("Failed to create producer: {}", e.what());
+        return false;
+    }
+}
+
+/**
+ * @brief Process data from a producer FIFO
+ *
+ * @param info Producer information
+ * @return true if data was processed, false if EOF or error
+ */
+bool handle_producer_data(ProducerInfo& info) {
+    char buffer[4096];
+    ssize_t n = read(info.fd, buffer, sizeof(buffer));
+
+    if (n > 0) {
+        info.read_buffer.append(buffer, n);
+
+        // Process complete lines
+        size_t pos;
+        while ((pos = info.read_buffer.find('\n')) != std::string::npos) {
+            std::string line = info.read_buffer.substr(0, pos);
+            info.read_buffer.erase(0, pos + 1);
+
+            if (!line.empty()) {
+                try {
+                    // Push the line as metadata to the producer
+                    diaspora::Metadata metadata(line);
+                    info.producer.push(metadata);
+                    spdlog::debug("Pushed to '{}': {}", info.topic_name, line);
+                } catch (const std::exception& e) {
+                    spdlog::error("Failed to push event: {}", e.what());
+                }
+            }
+        }
+        return true;
+    } else if (n == 0) {
+        // EOF - writer closed the FIFO
+        spdlog::info("Writer closed FIFO: {}", info.fifo_path);
+        return false;
+    } else {
+        // Read error
+        spdlog::error("Read error on FIFO '{}': {}", info.fifo_path, std::strerror(errno));
+        return false;
+    }
+}
+
+/**
+ * @brief Clean up a single producer
+ *
+ * @param info Producer information to clean up
+ */
+void cleanup_producer(ProducerInfo& info) {
+    namespace fs = std::filesystem;
+
+    spdlog::info("Closing and removing producer for FIFO: {}", info.fifo_path);
+
+    // Close the file descriptor
+    close(info.fd);
+
+    // Remove the FIFO file
+    try {
+        fs::remove(info.fifo_path);
+        spdlog::info("Removed FIFO file: {}", info.fifo_path);
+    } catch (const std::exception& e) {
+        spdlog::warn("Failed to remove FIFO file '{}': {}", info.fifo_path, e.what());
+    }
+}
+
+/**
  * @brief Run the daemon with the specified driver and control file
  *
  * @param driver The Diaspora driver instance
@@ -207,44 +389,21 @@ void run_daemon(diaspora::Driver& driver, const std::string& control_file) {
     namespace fs = std::filesystem;
 
     try {
-        // Ensure the control file's directory exists
-        fs::path control_path(control_file);
-        if (control_path.has_parent_path()) {
-            fs::create_directories(control_path.parent_path());
-        }
-
         spdlog::info("Starting Diaspora FIFO daemon...");
         spdlog::info("Driver: {}", fmt::ptr(&driver));
         spdlog::info("Control file: {}", control_file);
 
-        // Remove existing control FIFO if it exists
-        if (fs::exists(control_path)) {
-            fs::remove(control_path);
-        }
-
-        // Create the control FIFO
-        if (mkfifo(control_file.c_str(), 0666) == -1) {
-            spdlog::error("Failed to create control FIFO: {}", std::strerror(errno));
-            return;
-        }
-        spdlog::info("Created control FIFO: {}", control_file);
-
-        // Open control FIFO for reading (non-blocking initially to avoid hanging)
-        int control_fd = open(control_file.c_str(), O_RDONLY | O_NONBLOCK);
+        // Initialize control FIFO
+        int control_fd = initialize_control_fifo(control_file);
         if (control_fd == -1) {
-            spdlog::error("Failed to open control FIFO: {}", std::strerror(errno));
             return;
         }
-
-        // Make it blocking after opening
-        int flags = fcntl(control_fd, F_GETFL);
-        fcntl(control_fd, F_SETFL, flags & ~O_NONBLOCK);
 
         spdlog::info("Daemon is running. Waiting for commands on control file...");
-        spdlog::info("Send commands in format: <fifo-name> -> <topic-name>");
+        spdlog::info("Send commands in format: <fifo-name> -> <topic-name> (key=value, ...)");
         spdlog::info("Press Ctrl+C to stop.");
 
-        // Cached TopicHandle instances (mapping topic name to TopicHandles)
+        // Cached TopicHandle instances
         std::unordered_map<std::string, diaspora::TopicHandle> topics;
 
         // Map of FIFO paths to producer info
@@ -277,7 +436,7 @@ void run_daemon(diaspora::Driver& driver, const std::string& control_file) {
 
             if (ret == 0) continue; // Timeout
 
-            // Check control file
+            // Check control file for new commands
             if (fds[0].revents & POLLIN) {
                 char buffer[4096];
                 ssize_t n = read(control_fd, buffer, sizeof(buffer));
@@ -293,6 +452,7 @@ void run_daemon(diaspora::Driver& driver, const std::string& control_file) {
                         std::string fifo_name, topic_name;
                         std::unordered_map<std::string, std::string> options;
                         if (parse_control_command(command, fifo_name, topic_name, options)) {
+                            // Log the received command
                             if (options.empty()) {
                                 spdlog::info("Received command: '{}' -> '{}'", fifo_name, topic_name);
                             } else {
@@ -301,62 +461,12 @@ void run_daemon(diaspora::Driver& driver, const std::string& control_file) {
                                     if (!opts_str.empty()) opts_str += ", ";
                                     opts_str += key + "=" + value;
                                 }
-                                spdlog::info("Received command: '{}' -> '{}' ({})", fifo_name, topic_name, opts_str);
+                                spdlog::info("Received command: '{}' -> '{}' ({})",
+                                           fifo_name, topic_name, opts_str);
                             }
 
-                            // Check if this FIFO is already registered
-                            if (producers.find(fifo_name) != producers.end()) {
-                                spdlog::warn("FIFO '{}' already registered", fifo_name);
-                                continue;
-                            }
-
-                            try {
-                                // Open the topic
-                                diaspora::TopicHandle topic;
-                                if(topics.count(topic_name)) {
-                                    topic = topics[topic_name];
-                                } else {
-                                    topic = driver.openTopic(topic_name);
-                                    topics[topic_name] = topic;
-                                }
-
-                                // Create a producer for this topic
-                                auto producer = topic.producer();
-
-                                // Create the FIFO if it doesn't exist
-                                fs::path fifo_path(fifo_name);
-                                if (!fs::exists(fifo_path)) {
-                                    if (mkfifo(fifo_name.c_str(), 0666) == -1) {
-                                        spdlog::error("Failed to create FIFO '{}': {}",
-                                                     fifo_name, std::strerror(errno));
-                                        continue;
-                                    }
-                                    spdlog::info("Created FIFO: {}", fifo_name);
-                                }
-
-                                // Open the FIFO for reading (non-blocking)
-                                int fifo_fd = open(fifo_name.c_str(), O_RDONLY | O_NONBLOCK);
-                                if (fifo_fd == -1) {
-                                    spdlog::error("Failed to open FIFO '{}': {}",
-                                                 fifo_name, std::strerror(errno));
-                                    continue;
-                                }
-
-                                // Store the producer info
-                                producers[fifo_name] = ProducerInfo{
-                                    fifo_fd,
-                                    fifo_name,
-                                    topic_name,
-                                    producer,
-                                    "",
-                                    options
-                                };
-
-                                spdlog::info("Registered producer: {} -> {}", fifo_name, topic_name);
-
-                            } catch (const diaspora::Exception& e) {
-                                spdlog::error("Failed to create producer: {}", e.what());
-                            }
+                            // Handle the command
+                            handle_control_command(driver, fifo_name, topic_name, options, topics, producers);
                         } else {
                             spdlog::warn("Invalid command format: '{}'", command);
                         }
@@ -367,43 +477,14 @@ void run_daemon(diaspora::Driver& driver, const std::string& control_file) {
             // Track FIFOs that need to be closed
             std::vector<std::string> fifos_to_close;
 
-            // Check producer FIFOs
+            // Check producer FIFOs for data
             for (size_t i = 1; i < fds.size(); ++i) {
                 const std::string& fifo_path = fifo_paths[i - 1];
                 bool should_close = false;
 
                 if (fds[i].revents & POLLIN) {
                     auto& info = producers[fifo_path];
-
-                    char buffer[4096];
-                    ssize_t n = read(info.fd, buffer, sizeof(buffer));
-                    if (n > 0) {
-                        info.read_buffer.append(buffer, n);
-
-                        // Process complete lines
-                        size_t pos;
-                        while ((pos = info.read_buffer.find('\n')) != std::string::npos) {
-                            std::string line = info.read_buffer.substr(0, pos);
-                            info.read_buffer.erase(0, pos + 1);
-
-                            if (!line.empty()) {
-                                try {
-                                    // Push the line as metadata to the producer
-                                    diaspora::Metadata metadata(line);
-                                    info.producer.push(metadata);
-                                    spdlog::debug("Pushed to '{}': {}", info.topic_name, line);
-                                } catch (const std::exception& e) {
-                                    spdlog::error("Failed to push event: {}", e.what());
-                                }
-                            }
-                        }
-                    } else if (n == 0) {
-                        // EOF - writer closed the FIFO
-                        spdlog::info("Writer closed FIFO: {}", fifo_path);
-                        should_close = true;
-                    } else {
-                        // Read error
-                        spdlog::error("Read error on FIFO '{}': {}", fifo_path, std::strerror(errno));
+                    if (!handle_producer_data(info)) {
                         should_close = true;
                     }
                 }
@@ -422,38 +503,23 @@ void run_daemon(diaspora::Driver& driver, const std::string& control_file) {
             for (const auto& fifo_path : fifos_to_close) {
                 auto it = producers.find(fifo_path);
                 if (it != producers.end()) {
-                    spdlog::info("Closing and removing producer for FIFO: {}", fifo_path);
-
-                    // Close the file descriptor
-                    close(it->second.fd);
-
-                    // Remove from the map (destroys the Producer)
+                    cleanup_producer(it->second);
                     producers.erase(it);
-
-                    // Remove the FIFO file
-                    try {
-                        fs::remove(fifo_path);
-                        spdlog::info("Removed FIFO file: {}", fifo_path);
-                    } catch (const std::exception& e) {
-                        spdlog::warn("Failed to remove FIFO file '{}': {}", fifo_path, e.what());
-                    }
                 }
             }
         }
 
         spdlog::info("Shutting down daemon...");
 
-        // Cleanup: close all file descriptors
+        // Cleanup: close control file
         close(control_fd);
-        for (auto& [path, info] : producers) {
-            close(info.fd);
-        }
+        fs::remove(control_file);
 
-        // Remove FIFOs
-        fs::remove(control_path);
+        // Cleanup: close all producer FIFOs
         for (auto& [path, info] : producers) {
-            fs::remove(info.fifo_path);
+            cleanup_producer(info);
         }
+        producers.clear();
 
     } catch (const std::exception& e) {
         spdlog::error("Error in daemon operation: {}", e.what());

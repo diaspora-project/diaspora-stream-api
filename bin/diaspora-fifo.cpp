@@ -17,6 +17,7 @@
 #include <diaspora/Metadata.hpp>
 #include <diaspora/Producer.hpp>
 #include <diaspora/TopicHandle.hpp>
+#include <diaspora/BatchParams.hpp>
 
 #include <tclap/CmdLine.h>
 #include <spdlog/spdlog.h>
@@ -276,8 +277,21 @@ bool handle_control_command(
             topics[topic_name] = topic;
         }
 
-        // Create a producer for this topic
-        auto producer = topic.producer();
+        // Parse batch_size option (default is 128)
+        size_t batch_size_value = 128;
+        auto batch_size_it = options.find("batch_size");
+        if (batch_size_it != options.end()) {
+            try {
+                batch_size_value = std::stoull(batch_size_it->second);
+                spdlog::debug("Using batch_size={} for producer '{}'", batch_size_value, fifo_name);
+            } catch (const std::exception& e) {
+                spdlog::warn("Invalid batch_size '{}' for FIFO '{}', using default (128)",
+                           batch_size_it->second, fifo_name);
+            }
+        }
+
+        // Create a producer for this topic with the specified batch size
+        auto producer = topic.producer(diaspora::BatchSize{batch_size_value});
 
         // Create the FIFO if it doesn't exist
         fs::path fifo_path(fifo_name);

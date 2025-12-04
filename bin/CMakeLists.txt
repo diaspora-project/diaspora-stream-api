@@ -24,3 +24,30 @@ target_link_libraries (diaspora-fifo
 # Install the executable
 install (TARGETS diaspora-fifo
          RUNTIME DESTINATION bin)
+
+# Diaspora Control Tool executable
+
+# Create the executable
+add_executable (diaspora-ctl diaspora-ctl.cpp)
+
+# Link against the diaspora-stream-api library and dependencies
+# Use spdlog header-only mode
+target_link_libraries (diaspora-ctl
+    diaspora-stream-api
+    spdlog::spdlog_header_only
+)
+
+# Include directories
+target_include_directories (diaspora-ctl
+    PRIVATE ${TCLAP_INCLUDE_PATH}
+)
+
+# Apply coverage and warnings configurations
+target_link_libraries (diaspora-ctl
+    coverage_config
+    warnings_config
+)
+
+# Install the executable
+install (TARGETS diaspora-ctl
+         RUNTIME DESTINATION bin)

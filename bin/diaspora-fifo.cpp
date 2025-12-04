@@ -328,6 +328,22 @@ bool handle_producer_data(ProducerInfo& info) {
     if (n > 0) {
         info.read_buffer.append(buffer, n);
 
+        // Determine the format (default is "raw")
+        std::string format = "raw";
+        auto format_it = info.options.find("format");
+        if (format_it != info.options.end()) {
+            format = format_it->second;
+        }
+
+        bool format_is_json = false;
+        if (format == "json") {
+            format_is_json = true;
+        } else if (format != "raw") {
+            spdlog::warn("Unknown format '{}' for FIFO '{}', using 'raw' instead",
+                         format, info.fifo_path);
+        }
+
+
         // Process complete lines
         size_t pos;
         while ((pos = info.read_buffer.find('\n')) != std::string::npos) {
@@ -336,7 +352,12 @@ bool handle_producer_data(ProducerInfo& info) {
 
             if (!line.empty()) {
                 try {
-                    // Push the line as metadata to the producer
+                    // Format the line according to the format option
+                    if (!format_is_json) {
+                        line = "\"" + line + "\"";
+                    }
+
+                    // Push the formatted line as metadata to the producer
                     diaspora::Metadata metadata(line);
                     info.producer.push(metadata);
                     spdlog::debug("Pushed to '{}': {}", info.topic_name, line);

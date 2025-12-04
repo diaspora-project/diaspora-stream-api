@@ -80,7 +80,10 @@ endif ()
 if (NOT DEFINED SKBUILD_PROJECT_NAME)
     find_package (nlohmann_json)
     find_package (nlohmann_json_schema_validator REQUIRED)
+    find_package (TCLAP REQUIRED)
+    find_package (spdlog REQUIRED)
 else ()
+    # Download nlohmann_json and nlohmann_json_schema_validator from github
     include (FetchContent)
     FetchContent_Declare (
         nlohmann_json
@@ -100,6 +103,22 @@ else ()
              LIBRARY DESTINATION lib
              RUNTIME DESTINATION bin
              INCLUDES DESTINATION include)
+     # Download TCLAP from github
+    FetchContent_Declare (
+        tclap
+        GIT_REPOSITORY https://github.com/mirror/tclap.git
+        GIT_TAG        v1.2.5
+    )
+    FetchContent_MakeAvailable (tclap)
+    # TCLAP is header-only, set the include path manually
+    set (TCLAP_INCLUDE_PATH "${tclap_SOURCE_DIR}/include")
+    # Download spdlog from github
+    FetchContent_Declare (
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG        v1.14.1
+    )
+    FetchContent_MakeAvailable (spdlog)
 endif ()
 
 if (ENABLE_PYTHON)
@@ -109,23 +128,6 @@ if (ENABLE_PYTHON)
 endif ()
 
 add_subdirectory (src)
-
-# Find dependencies for the daemon executable
-find_package (TCLAP QUIET)
-if (NOT TCLAP_FOUND)
-    message (STATUS "TCLAP not found, fetching from GitHub")
-    include (FetchContent)
-    FetchContent_Declare (
-        tclap
-        GIT_REPOSITORY https://github.com/mirror/tclap.git
-        GIT_TAG        v1.2.5
-    )
-    FetchContent_MakeAvailable (tclap)
-    # TCLAP is header-only, set the include path manually
-    set (TCLAP_INCLUDE_PATH "${tclap_SOURCE_DIR}/include")
-endif ()
-
-find_package (spdlog REQUIRED)
 add_subdirectory (bin)
 
 if (ENABLE_TESTS)
@@ -144,7 +146,6 @@ if (ENABLE_TESTS)
 endif ()
 
 if (ENABLE_BENCHMARKS)
-    find_package (TCLAP REQUIRED)
     find_package (MPI REQUIRED)
     add_subdirectory (benchmarks)
 endif ()

@@ -4,9 +4,10 @@
 add_executable (diaspora-fifo diaspora-fifo.cpp)
 
 # Link against the diaspora-stream-api library and dependencies
+# Use spdlog header-only mode
 target_link_libraries (diaspora-fifo
     diaspora-stream-api
-    spdlog::spdlog
+    spdlog::spdlog_header_only
 )
 
 # Include directories

@@ -1,3 +1,2 @@
 scikit-build-core[pyproject]
 pybind11
-spdlog

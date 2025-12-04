@@ -111,7 +111,20 @@ endif ()
 add_subdirectory (src)
 
 # Find dependencies for the daemon executable
-find_package (TCLAP REQUIRED)
+find_package (TCLAP QUIET)
+if (NOT TCLAP_FOUND)
+    message (STATUS "TCLAP not found, fetching from GitHub")
+    include (FetchContent)
+    FetchContent_Declare (
+        tclap
+        GIT_REPOSITORY https://github.com/mirror/tclap.git
+        GIT_TAG        v1.2.5
+    )
+    FetchContent_MakeAvailable (tclap)
+    # TCLAP is header-only, set the include path manually
+    set (TCLAP_INCLUDE_PATH "${tclap_SOURCE_DIR}/include")
+endif ()
+
 find_package (spdlog REQUIRED)
 add_subdirectory (bin)
 

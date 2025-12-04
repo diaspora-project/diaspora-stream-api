@@ -3,25 +3,16 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-
-/**
- * @file diaspora-fifo.cpp
- * @brief Diaspora Stream FIFO Daemon
- *
- * This program provides a command-line interface for running a Diaspora stream
- * daemon that can be controlled via a control file.
- */
-
+#include "fifo_commands.hpp"
+#include "common.hpp"
 #include <diaspora/Driver.hpp>
 #include <diaspora/Exception.hpp>
 #include <diaspora/Metadata.hpp>
 #include <diaspora/Producer.hpp>
 #include <diaspora/TopicHandle.hpp>
 #include <diaspora/BatchParams.hpp>
-
 #include <tclap/CmdLine.h>
 #include <spdlog/spdlog.h>
-
 #include <fstream>
 #include <string>
 #include <thread>
@@ -32,7 +23,6 @@
 #include <unordered_map>
 #include <vector>
 #include <sstream>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -41,13 +31,15 @@
 #include <errno.h>
 #include <cstring>
 
+namespace diaspora_ctl {
+
 // Global flag for signal handling
 static std::atomic<bool> g_shutdown_requested{false};
 
 /**
  * @brief Signal handler for graceful shutdown
  */
-void signal_handler(int signal) {
+static void signal_handler(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
         spdlog::info("Received shutdown signal...");
         g_shutdown_requested = true;
@@ -56,11 +48,8 @@ void signal_handler(int signal) {
 
 /**
  * @brief Load driver configuration from a JSON file
- *
- * @param config_path Path to the JSON configuration file
- * @return Metadata object containing the configuration
  */
-diaspora::Metadata load_driver_config(const std::string& config_path) {
+static diaspora::Metadata load_driver_config(const std::string& config_path) {
     try {
         std::ifstream file(config_path);
         if (!file.is_open()) {
@@ -83,13 +72,9 @@ diaspora::Metadata load_driver_config(const std::string& config_path) {
 
 /**
  * @brief Create and initialize a Diaspora driver
- *
- * @param driver_name Name of the driver (e.g., "simple:libdiaspora-simple-backend.so")
- * @param driver_config Configuration metadata for the driver
- * @return Driver instance
  */
-diaspora::Driver create_driver(const std::string& driver_name,
-                                const diaspora::Metadata& driver_config) {
+static diaspora::Driver create_driver(const std::string& driver_name,
+                                       const diaspora::Metadata& driver_config) {
     try {
         auto driver = diaspora::Driver::New(driver_name.c_str(), driver_config);
         if (!driver) {
@@ -108,17 +93,11 @@ diaspora::Driver create_driver(const std::string& driver_name,
 
 /**
  * @brief Parse a control command in the format "<fifo-name> -> <topic-name> (key1=value1, key2=value2, ...)"
- *
- * @param command The command string to parse
- * @param fifo_name Output parameter for the FIFO name
- * @param topic_name Output parameter for the topic name
- * @param options Output parameter for the key-value pairs
- * @return true if parsing succeeded, false otherwise
  */
-bool parse_control_command(const std::string& command,
-                           std::string& fifo_name,
-                           std::string& topic_name,
-                           std::unordered_map<std::string, std::string>& options) {
+static bool parse_control_command(const std::string& command,
+                                   std::string& fifo_name,
+                                   std::string& topic_name,
+                                   std::unordered_map<std::string, std::string>& options) {
     // Helper function to trim whitespace
     auto trim = [](std::string& s) {
         s.erase(0, s.find_first_not_of(" \t\r\n"));
@@ -200,11 +179,8 @@ struct ProducerInfo {
 
 /**
  * @brief Initialize and open the control FIFO
- *
- * @param control_file Path to the control FIFO
- * @return File descriptor for the control FIFO, or -1 on error
  */
-int initialize_control_fifo(const std::string& control_file) {
+static int initialize_control_fifo(const std::string& control_file) {
     namespace fs = std::filesystem;
 
     fs::path control_path(control_file);
@@ -242,16 +218,8 @@ int initialize_control_fifo(const std::string& control_file) {
 
 /**
  * @brief Handle a control command and create a producer
- *
- * @param driver The Diaspora driver instance
- * @param fifo_name The FIFO name for the producer
- * @param topic_name The topic name
- * @param options Options for the producer
- * @param topics Cache of topic handles
- * @param producers Map of existing producers
- * @return true if producer was created successfully
  */
-bool handle_control_command(
+static bool handle_control_command(
     diaspora::Driver& driver,
     const std::string& fifo_name,
     const std::string& topic_name,
@@ -331,11 +299,8 @@ bool handle_control_command(
 
 /**
  * @brief Process data from a producer FIFO
- *
- * @param info Producer information
- * @return true if data was processed, false if EOF or error
  */
-bool handle_producer_data(ProducerInfo& info) {
+static bool handle_producer_data(ProducerInfo& info) {
     char buffer[4096];
     ssize_t n = read(info.fd, buffer, sizeof(buffer));
 
@@ -356,7 +321,6 @@ bool handle_producer_data(ProducerInfo& info) {
             spdlog::warn("Unknown format '{}' for FIFO '{}', using 'raw' instead",
                          format, info.fifo_path);
         }
-
 
         // Process complete lines
         size_t pos;
@@ -394,10 +358,8 @@ bool handle_producer_data(ProducerInfo& info) {
 
 /**
  * @brief Clean up a single producer
- *
- * @param info Producer information to clean up
  */
-void cleanup_producer(ProducerInfo& info) {
+static void cleanup_producer(ProducerInfo& info) {
     namespace fs = std::filesystem;
 
     spdlog::info("Closing and removing producer for FIFO: {}", info.fifo_path);
@@ -416,11 +378,8 @@ void cleanup_producer(ProducerInfo& info) {
 
 /**
  * @brief Run the daemon with the specified driver and control file
- *
- * @param driver The Diaspora driver instance
- * @param control_file Path to the daemon's control file
  */
-void run_daemon(diaspora::Driver& driver, const std::string& control_file) {
+static void run_daemon(diaspora::Driver& driver, const std::string& control_file) {
     namespace fs = std::filesystem;
 
     try {
@@ -562,10 +521,7 @@ void run_daemon(diaspora::Driver& driver, const std::string& control_file) {
     }
 }
 
-/**
- * @brief Main entry point for the daemon
- */
-int main(int argc, char** argv) {
+int fifo_daemon(int argc, char** argv) {
     try {
         // Set up command-line argument parser
         TCLAP::CmdLine cmd(
@@ -655,3 +611,5 @@ int main(int argc, char** argv) {
         return 1;
     }
 }
+
+} // namespace diaspora_ctl

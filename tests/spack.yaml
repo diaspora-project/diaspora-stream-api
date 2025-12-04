@@ -8,6 +8,7 @@ spack:
   - catch2
   - tclap
   - mpich
+  - spdlog
   concretizer:
     unify: true
     reuse: true

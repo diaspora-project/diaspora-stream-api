@@ -1,34 +1,12 @@
-# Diaspora FIFO Daemon executable
+# Diaspora Control Tool executable (includes FIFO daemon)
 
-# Create the executable
-add_executable (diaspora-fifo diaspora-fifo.cpp)
-
-# Link against the diaspora-stream-api library and dependencies
-# Use spdlog header-only mode
-target_link_libraries (diaspora-fifo
-    diaspora-stream-api
-    spdlog::spdlog_header_only
+# Create the executable from multiple source files
+add_executable (diaspora-ctl
+    diaspora-ctl/main.cpp
+    diaspora-ctl/common.cpp
+    diaspora-ctl/topic_commands.cpp
+    diaspora-ctl/fifo_commands.cpp
 )
-
-# Include directories
-target_include_directories (diaspora-fifo
-    PRIVATE ${TCLAP_INCLUDE_PATH}
-)
-
-# Apply coverage and warnings configurations
-target_link_libraries (diaspora-fifo
-    coverage_config
-    warnings_config
-)
-
-# Install the executable
-install (TARGETS diaspora-fifo
-         RUNTIME DESTINATION bin)
-
-# Diaspora Control Tool executable
-
-# Create the executable
-add_executable (diaspora-ctl diaspora-ctl.cpp)
 
 # Link against the diaspora-stream-api library and dependencies
 # Use spdlog header-only mode
@@ -40,6 +18,7 @@ target_link_libraries (diaspora-ctl
 # Include directories
 target_include_directories (diaspora-ctl
     PRIVATE ${TCLAP_INCLUDE_PATH}
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/diaspora-ctl
 )
 
 # Apply coverage and warnings configurations

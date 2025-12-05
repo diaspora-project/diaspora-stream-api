@@ -217,4 +217,89 @@ bool PfsDriver::topicExists(std::string_view name) const {
     return fs::exists(topic_path) && fs::is_directory(topic_path);
 }
 
+std::unordered_map<std::string, diaspora::Metadata> PfsDriver::listTopics() const {
+    namespace fs = std::filesystem;
+    std::unordered_map<std::string, diaspora::Metadata> result;
+
+    // Check if root directory exists
+    if (!fs::exists(m_config.root_path) || !fs::is_directory(m_config.root_path)) {
+        return result; // Return empty map if root doesn't exist
+    }
+
+    // Iterate through all directories in the root path
+    for (const auto& entry : fs::directory_iterator(m_config.root_path)) {
+        if (!entry.is_directory()) continue;
+
+        std::string topic_name = entry.path().filename().string();
+        fs::path topic_path = entry.path();
+
+        // Check if this is a valid topic directory
+        // (must have a partitions subdirectory)
+        fs::path partitions_path = topic_path / "partitions";
+        if (!fs::exists(partitions_path) || !fs::is_directory(partitions_path)) {
+            continue; // Skip directories that don't look like topics
+        }
+
+        // Build metadata for this topic
+        nlohmann::json topic_info = nlohmann::json::object();
+        topic_info["name"] = topic_name;
+        topic_info["path"] = topic_path.string();
+
+        // Count partitions
+        size_t num_partitions = 0;
+        for (const auto& partition_entry : fs::directory_iterator(partitions_path)) {
+            if (partition_entry.is_directory()) {
+                try {
+                    std::stoull(partition_entry.path().filename().string());
+                    num_partitions++;
+                } catch (...) {
+                    // Skip non-numeric partition directories
+                }
+            }
+        }
+        topic_info["num_partitions"] = num_partitions;
+
+        // Load component files if they exist
+        auto validator_path = topic_path / "validator.json";
+        if (fs::exists(validator_path)) {
+            try {
+                std::ifstream validator_file(validator_path);
+                nlohmann::json validator_json;
+                validator_file >> validator_json;
+                topic_info["validator"] = validator_json;
+            } catch (...) {
+                // If parsing fails, skip this component
+            }
+        }
+
+        auto serializer_path = topic_path / "serializer.json";
+        if (fs::exists(serializer_path)) {
+            try {
+                std::ifstream serializer_file(serializer_path);
+                nlohmann::json serializer_json;
+                serializer_file >> serializer_json;
+                topic_info["serializer"] = serializer_json;
+            } catch (...) {
+                // If parsing fails, skip this component
+            }
+        }
+
+        auto partition_selector_path = topic_path / "partition-selector.json";
+        if (fs::exists(partition_selector_path)) {
+            try {
+                std::ifstream partition_selector_file(partition_selector_path);
+                nlohmann::json partition_selector_json;
+                partition_selector_file >> partition_selector_json;
+                topic_info["partition_selector"] = partition_selector_json;
+            } catch (...) {
+                // If parsing fails, skip this component
+            }
+        }
+
+        result[topic_name] = diaspora::Metadata{std::move(topic_info)};
+    }
+
+    return result;
+}
+
 }

@@ -211,6 +211,14 @@ class RandomDriver : public diaspora::DriverInterface,
         return std::make_shared<RandomThreadPool>(count);
     }
 
+    std::unordered_map<std::string, diaspora::Metadata> listTopics() const override {
+        std::unordered_map<std::string, diaspora::Metadata> result;
+        for(auto& p : m_topics) {
+            result[p.first] = diaspora::Metadata{}; // TODO
+        }
+        return result;
+    }
+
     static inline std::shared_ptr<diaspora::DriverInterface> create(const diaspora::Metadata&) {
         return std::make_shared<RandomDriver>();
     }

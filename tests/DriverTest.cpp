@@ -42,5 +42,52 @@ TEST_CASE("Driver test", "[driver]") {
 
             REQUIRE(topic.partitions().size() == 1);
         }
+
+        SECTION("List topics") {
+            // Create multiple topics
+            REQUIRE_NOTHROW(driver.createTopic("topic1", diaspora::Metadata{topic_args}));
+            REQUIRE_NOTHROW(driver.createTopic("topic2", diaspora::Metadata{topic_args}));
+
+            // Get list of topics
+            auto topics = driver.listTopics();
+
+            // Verify we have the expected topics
+            REQUIRE(topics.size() >= 2);
+            REQUIRE(topics.find("topic1") != topics.end());
+            REQUIRE(topics.find("topic2") != topics.end());
+
+            // Check metadata for topic1
+            auto& topic1_metadata = topics["topic1"];
+            auto& topic1_json = topic1_metadata.json();
+
+            if (topic1_json.contains("validator")) {
+                REQUIRE(topic1_json["validator"].is_object());
+            }
+
+            if (topic1_json.contains("serializer")) {
+                REQUIRE(topic1_json["serializer"].is_object());
+            }
+
+            if (topic1_json.contains("partition_selector")) {
+                REQUIRE(topic1_json["partition_selector"].is_object());
+            }
+
+            // Check metadata for topic2
+            auto& topic2_metadata = topics["topic2"];
+            auto& topic2_json = topic2_metadata.json();
+
+            if (topic2_json.contains("validator")) {
+                REQUIRE(topic2_json["validator"].is_object());
+            }
+
+            if (topic2_json.contains("serializer")) {
+                REQUIRE(topic2_json["serializer"].is_object());
+            }
+
+            if (topic2_json.contains("partition_selector")) {
+                REQUIRE(topic2_json["partition_selector"].is_object());
+            }
+
+        }
     }
 }

@@ -5,6 +5,7 @@
 #include <diaspora/Driver.hpp>
 #include <diaspora/BufferWrapperArchive.hpp>
 
+#include <nlohmann/json.hpp>
 #include <queue>
 #include <vector>
 #include <thread>
@@ -472,6 +473,17 @@ class SimpleDriver : public diaspora::DriverInterface,
 
     bool topicExists(std::string_view name) const override {
         return m_topics.count(std::string{name});
+    }
+
+    std::unordered_map<std::string, diaspora::Metadata> listTopics() const override {
+        std::unordered_map<std::string, diaspora::Metadata> result;
+        for (const auto& [topic_name, topic_handle] : m_topics) {
+            nlohmann::json topic_info = nlohmann::json::object();
+            topic_info["name"] = topic_name;
+            topic_info["num_partitions"] = topic_handle->partitions().size();
+            result[topic_name] = diaspora::Metadata{std::move(topic_info)};
+        }
+        return result;
     }
 
     std::shared_ptr<diaspora::ThreadPoolInterface> defaultThreadPool() const override {

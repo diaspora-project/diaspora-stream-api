@@ -15,6 +15,7 @@
 #include <diaspora/TopicHandle.hpp>
 
 #include <memory>
+#include <unordered_map>
 
 namespace diaspora {
 
@@ -59,6 +60,13 @@ class DriverInterface {
      * @brief Checks if a topic exists.
      */
     virtual bool topicExists(std::string_view name) const = 0;
+
+    /**
+     * @brief List all topics and their metadata.
+     *
+     * @return A map of topic names to their metadata information.
+     */
+    virtual std::unordered_map<std::string, Metadata> listTopics() const = 0;
 
     /**
      * @brief Get the default ThreadPool.
@@ -135,6 +143,15 @@ class Driver {
      */
     inline bool topicExists(std::string_view name) const {
         return self->topicExists(name);
+    }
+
+    /**
+     * @brief List all topics and their metadata.
+     *
+     * @return A map of topic names to their metadata information.
+     */
+    inline std::unordered_map<std::string, Metadata> listTopics() const {
+        return self->listTopics();
     }
 
     /**

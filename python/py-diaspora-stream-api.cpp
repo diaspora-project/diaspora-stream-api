@@ -283,6 +283,30 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
              True if the topic exists, False otherwise.
              )",
              "name"_a)
+        .def("list_topics",
+             [](const diaspora::DriverInterface& driver) {
+                auto topics = driver.listTopics();
+                std::unordered_map<std::string, nlohmann::json> result;
+                for (const auto& [name, metadata] : topics) {
+                    result[name] = metadata.json();
+                }
+                return result;
+             },
+             R"(
+             List all topics and their metadata.
+
+             Returns
+             -------
+
+             A dictionary mapping topic names to their metadata (as dictionaries).
+             Each metadata dictionary contains fields such as:
+             - name: The topic name
+             - path: The filesystem path to the topic
+             - num_partitions: The number of partitions
+             - validator: The validator JSON configuration (if present)
+             - serializer: The serializer JSON configuration (if present)
+             - partition_selector: The partition selector JSON configuration (if present)
+             )")
         .def("make_thread_pool",
              [](const diaspora::DriverInterface& driver, size_t count) {
                 return driver.makeThreadPool(diaspora::ThreadCount{count});

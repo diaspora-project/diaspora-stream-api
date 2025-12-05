@@ -99,4 +99,68 @@ int topic_create(int argc, char** argv) {
     }
 }
 
+int topic_list(int argc, char** argv) {
+    try {
+        // Extract --driver.* metadata arguments before TCLAP parsing
+        auto parsed_args = extract_metadata_args(argc, argv);
+
+        // Prepare arguments for TCLAP
+        int filtered_argc = parsed_args.filtered_argv.size();
+        char** filtered_argv = parsed_args.filtered_argv.data();
+
+        TCLAP::CmdLine cmd("List topics", ' ', "1.0");
+
+        TCLAP::ValueArg<std::string> driverArg("", "driver", "Driver name", true, "", "string", cmd);
+        TCLAP::ValueArg<std::string> driverConfigArg("", "driver-config", "Driver config file", false, "", "filename", cmd);
+        TCLAP::SwitchArg verboseArg("v", "verbose", "Display topic metadata", cmd, false);
+
+        std::vector<std::string> allowed_levels{"trace", "debug", "info", "warn", "error", "critical", "off"};
+        TCLAP::ValuesConstraint<std::string> level_constraint(allowed_levels);
+        TCLAP::ValueArg<std::string> loggingArg("", "logging", "Logging level", false, "info", &level_constraint, cmd);
+
+        cmd.parse(filtered_argc, filtered_argv);
+
+        // Set logging level
+        spdlog::set_level(spdlog::level::from_str(loggingArg.getValue()));
+
+        // Read configuration file
+        std::string driver_config_str = read_config_file(driverConfigArg.getValue());
+
+        // Parse config file as JSON
+        nlohmann::json driver_config = nlohmann::json::parse(driver_config_str);
+
+        // Merge command-line metadata with config file metadata
+        // Command-line arguments take precedence
+        driver_config.merge_patch(parsed_args.driver_metadata);
+
+        spdlog::debug("Driver config: {}", driver_config.dump());
+
+        spdlog::debug("Creating driver: {}", driverArg.getValue());
+        auto driver = diaspora::Driver::New(driverArg.getValue().c_str(), diaspora::Metadata{driver_config.dump()});
+
+        spdlog::debug("Listing topics");
+        auto topics = driver.listTopics();
+
+        // Output topics
+        for (const auto& [name, metadata] : topics) {
+            if (verboseArg.getValue()) {
+                // Verbose mode: display topic name and metadata
+                std::cout << name << " " << metadata.json().dump() << std::endl;
+            } else {
+                // Normal mode: just display topic name
+                std::cout << name << std::endl;
+            }
+        }
+
+        return 0;
+
+    } catch (TCLAP::ArgException& e) {
+        spdlog::error("Argument error: {} for arg {}", e.error(), e.argId());
+        return 1;
+    } catch (const std::exception& e) {
+        spdlog::error("Error: {}", e.what());
+        return 1;
+    }
+}
+
 } // namespace diaspora_ctl

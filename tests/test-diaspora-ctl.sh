@@ -360,6 +360,136 @@ test_multiple_topics() {
     print_result "Create multiple topics" $result
 }
 
+# Test: List topics (basic)
+test_list_topics_basic() {
+    echo ""
+    echo "Test: List topics (basic)"
+    echo "--------------------------"
+
+    local root_path="${TEST_DATA_DIR}/list-basic"
+    mkdir -p "$root_path"
+
+    # Create some topics
+    "$DIASPORA_CTL" topic create \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --name "list-topic-1" \
+        > /dev/null 2>&1
+
+    "$DIASPORA_CTL" topic create \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --name "list-topic-2" \
+        > /dev/null 2>&1
+
+    # List topics
+    local output=$("$DIASPORA_CTL" topic list \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        2>/dev/null)
+
+    local result=0
+
+    # Check that both topics are in the output
+    if ! echo "$output" | grep -q "list-topic-1"; then
+        echo "  list-topic-1 not found in output"
+        result=1
+    fi
+
+    if ! echo "$output" | grep -q "list-topic-2"; then
+        echo "  list-topic-2 not found in output"
+        result=1
+    fi
+
+    # Check that output has exactly 2 lines (one per topic)
+    local line_count=$(echo "$output" | wc -l)
+    if [ "$line_count" -ne 2 ]; then
+        echo "  Expected 2 lines, got $line_count"
+        result=1
+    fi
+
+    print_result "List topics (basic)" $result
+}
+
+# Test: List topics with verbose flag
+test_list_topics_verbose() {
+    echo ""
+    echo "Test: List topics (verbose)"
+    echo "----------------------------"
+
+    local root_path="${TEST_DATA_DIR}/list-verbose"
+    mkdir -p "$root_path"
+
+    # Create a topic
+    "$DIASPORA_CTL" topic create \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --name "verbose-topic" \
+        --topic.num_partitions 3 \
+        > /dev/null 2>&1
+
+    # List topics with verbose flag
+    local output=$("$DIASPORA_CTL" topic list \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --verbose \
+        2>/dev/null)
+
+    local result=0
+
+    # Check that topic name is in the output
+    if ! echo "$output" | grep -q "verbose-topic"; then
+        echo "  verbose-topic not found in output"
+        result=1
+    fi
+
+    # Check that metadata is present (should contain JSON)
+    if ! echo "$output" | grep -q "{"; then
+        echo "  JSON metadata not found in output"
+        result=1
+    fi
+
+    # Check that num_partitions is in the metadata
+    if ! echo "$output" | grep -q "num_partitions"; then
+        echo "  num_partitions not found in metadata"
+        result=1
+    fi
+
+    # Check that validator/serializer/partition_selector are in metadata
+    if ! echo "$output" | grep -q "validator"; then
+        echo "  validator not found in metadata"
+        result=1
+    fi
+
+    print_result "List topics (verbose)" $result
+}
+
+# Test: List topics on empty driver
+test_list_topics_empty() {
+    echo ""
+    echo "Test: List topics (empty driver)"
+    echo "----------------------------------"
+
+    local root_path="${TEST_DATA_DIR}/list-empty"
+    mkdir -p "$root_path"
+
+    # List topics without creating any
+    local output=$("$DIASPORA_CTL" topic list \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        2>/dev/null)
+
+    local result=0
+
+    # Output should be empty (no topics)
+    if [ -n "$output" ]; then
+        echo "  Expected empty output, got: $output"
+        result=1
+    fi
+
+    print_result "List topics (empty driver)" $result
+}
+
 # Print summary
 print_summary() {
     echo ""
@@ -398,6 +528,9 @@ main() {
     test_missing_required_args
     test_duplicate_topic
     test_multiple_topics
+    test_list_topics_basic
+    test_list_topics_verbose
+    test_list_topics_empty
 
     cleanup
     print_summary

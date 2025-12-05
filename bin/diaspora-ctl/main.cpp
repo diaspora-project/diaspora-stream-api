@@ -12,9 +12,11 @@ void print_usage() {
     std::cout << "Usage: diaspora-ctl <command> <action> [options]\n\n";
     std::cout << "Commands:\n";
     std::cout << "  topic create    Create a new topic\n";
+    std::cout << "  topic list      List existing topics\n";
     std::cout << "  fifo            Run FIFO daemon\n";
     std::cout << "\nFor help on a specific command, use:\n";
     std::cout << "  diaspora-ctl topic create --help\n";
+    std::cout << "  diaspora-ctl topic list --help\n";
     std::cout << "  diaspora-ctl fifo --help\n";
 }
 
@@ -41,6 +43,9 @@ int main(int argc, char** argv) {
         if (action == "create") {
             // Remove the first two arguments (command and action)
             return diaspora_ctl::topic_create(argc - 2, argv + 2);
+        } else if (action == "list") {
+            // Remove the first two arguments (command and action)
+            return diaspora_ctl::topic_list(argc - 2, argv + 2);
         } else {
             spdlog::error("Unknown topic action: {}", action);
             print_usage();

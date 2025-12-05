@@ -46,16 +46,15 @@ class PosixThreadPool final : public ThreadPoolInterface {
         m_threads.reserve(count.count);
         for(size_t i = 0; i < count.count; ++i) {
             m_threads.emplace_back([this]() {
-                while(!m_must_stop) {
+                while(!m_must_stop.load()) {
                     std::unique_lock<std::mutex> lock{m_mtx};
                     if(m_queue.empty() && m_top.empty()) m_cv.wait(lock);
-                    if(m_queue.empty() && m_top.empty()) continue;
                     if(!m_top.empty()) {
                         auto work = m_top.front();
                         m_top.pop();
                         lock.unlock();
                         (*work).func();
-                    } else {
+                    } else if(!m_queue.empty()) {
                         auto work = m_queue.top();
                         m_queue.pop();
                         lock.unlock();
@@ -67,7 +66,7 @@ class PosixThreadPool final : public ThreadPoolInterface {
     }
 
     ~PosixThreadPool() {
-        m_must_stop = true;
+        m_must_stop.store(true);
         m_cv.notify_all();
         for(auto& th : m_threads) th.join();
     }

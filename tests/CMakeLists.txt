@@ -1,10 +1,27 @@
 file (GLOB diaspora-test-sources ${CMAKE_CURRENT_SOURCE_DIR}/*Test.cpp)
 
+# Check if Thallium is available for ArgobotsThreadPool tests
+find_package (thallium QUIET)
+
 foreach (test-source ${diaspora-test-sources})
     get_filename_component (name ${test-source} NAME_WE)
+
+    # Skip ArgobotsThreadPoolTest if Thallium is not available
+    if (name STREQUAL "ArgobotsThreadPoolTest" AND NOT thallium_FOUND)
+        message (STATUS "Skipping ${name} - Thallium not found")
+        continue ()
+    endif ()
+
     add_executable (Diaspora${name} ${test-source})
     target_link_libraries (Diaspora${name}
         PRIVATE Catch2::Catch2WithMain diaspora-stream-api coverage_config warnings_config)
+
+    # Add Thallium for ArgobotsThreadPoolTest
+    if (name STREQUAL "ArgobotsThreadPoolTest")
+        target_link_libraries (Diaspora${name} PRIVATE thallium)
+        target_compile_definitions (Diaspora${name} PRIVATE ENABLE_ARGOBOTS_TESTS)
+    endif ()
+
     add_test (NAME Diaspora${name} COMMAND ./Diaspora${name})
     set_property (TEST Diaspora${name} PROPERTY
                   ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}:$ENV{LD_LIBRARY_PATH}")

@@ -9,6 +9,10 @@ spack:
   - tclap
   - mpich
   - spdlog
+  - mochi-thallium
+  repos:
+    mochi:
+      git: https://github.com/mochi-hpc/mochi-spack-packages.git
   concretizer:
     unify: true
     reuse: true

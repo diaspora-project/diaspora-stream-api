@@ -490,6 +490,173 @@ test_list_topics_empty() {
     print_result "List topics (empty driver)" $result
 }
 
+# Test: FIFO daemon basic functionality
+test_fifo_daemon() {
+    echo ""
+    echo "Test: FIFO daemon basic functionality"
+    echo "---------------------------------------"
+
+    local root_path="${TEST_DATA_DIR}/fifo-daemon"
+    mkdir -p "$root_path"
+
+    local control_file="${TEST_DATA_DIR}/fifo-control"
+    local producer_fifo="${TEST_DATA_DIR}/producer-fifo"
+
+    # Create a topic first
+    "$DIASPORA_CTL" topic create \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --name "fifo-topic" \
+        > /dev/null 2>&1
+
+    # Start the daemon in the background
+    "$DIASPORA_CTL" fifo \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --control-file "$control_file" \
+        --logging error \
+        > /dev/null 2>&1 &
+
+    local daemon_pid=$!
+    local result=0
+
+    # Give the daemon time to start and create the control FIFO
+    sleep 1
+
+    # Check if daemon is still running
+    if ! kill -0 "$daemon_pid" 2>/dev/null; then
+        echo "  Daemon failed to start"
+        result=1
+    else
+        # Verify control FIFO was created
+        if [ ! -p "$control_file" ]; then
+            echo "  Control FIFO not created"
+            result=1
+        else
+            # Send a control command to create a producer
+            echo "$producer_fifo -> fifo-topic" > "$control_file" 2>/dev/null || true
+
+            # Give daemon time to process the command and create the producer FIFO
+            sleep 1
+
+            # Verify producer FIFO was created
+            if [ ! -p "$producer_fifo" ]; then
+                echo "  Producer FIFO not created"
+                result=1
+            else
+                # Write some test data to the producer FIFO
+                if ! echo "test message 1" > "$producer_fifo" 2>/dev/null; then
+                    echo "  Failed to write to producer FIFO (message 1)"
+                    result=1
+                fi
+
+                if ! echo "test message 2" > "$producer_fifo" 2>/dev/null; then
+                    echo "  Failed to write to producer FIFO (message 2)"
+                    result=1
+                fi
+
+                # Give daemon time to process the data
+                sleep 1
+            fi
+        fi
+
+        # Stop the daemon gracefully
+        kill -TERM "$daemon_pid" 2>/dev/null || true
+
+        # Wait for daemon to exit (with timeout)
+        local timeout=5
+        while [ $timeout -gt 0 ] && kill -0 "$daemon_pid" 2>/dev/null; do
+            sleep 1
+            timeout=$((timeout - 1))
+        done
+
+        # Force kill if still running
+        if kill -0 "$daemon_pid" 2>/dev/null; then
+            echo "  Daemon did not shut down gracefully, force killing"
+            kill -9 "$daemon_pid" 2>/dev/null || true
+            result=1
+        fi
+    fi
+
+    # Cleanup
+    rm -f "$control_file" "$producer_fifo" 2>/dev/null || true
+
+    print_result "FIFO daemon basic functionality" $result
+}
+
+# Test: FIFO daemon with batch_size option
+test_fifo_daemon_options() {
+    echo ""
+    echo "Test: FIFO daemon with options"
+    echo "--------------------------------"
+
+    local root_path="${TEST_DATA_DIR}/fifo-options"
+    mkdir -p "$root_path"
+
+    local control_file="${TEST_DATA_DIR}/fifo-control-options"
+    local producer_fifo="${TEST_DATA_DIR}/producer-fifo-options"
+
+    # Create a topic first
+    "$DIASPORA_CTL" topic create \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --name "fifo-options-topic" \
+        > /dev/null 2>&1
+
+    # Start the daemon in the background
+    "$DIASPORA_CTL" fifo \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --control-file "$control_file" \
+        --logging error \
+        > /dev/null 2>&1 &
+
+    local daemon_pid=$!
+    local result=0
+
+    # Give the daemon time to start
+    sleep 1
+
+    # Check if daemon is running
+    if ! kill -0 "$daemon_pid" 2>/dev/null; then
+        echo "  Daemon failed to start"
+        result=1
+    else
+        # Send a control command with batch_size option
+        echo "$producer_fifo -> fifo-options-topic (batch_size=256)" > "$control_file" 2>/dev/null || true
+
+        # Give daemon time to process
+        sleep 1
+
+        # Verify producer FIFO was created
+        if [ ! -p "$producer_fifo" ]; then
+            echo "  Producer FIFO not created with options"
+            result=1
+        fi
+
+        # Stop the daemon
+        kill -TERM "$daemon_pid" 2>/dev/null || true
+
+        # Wait for daemon to exit
+        local timeout=5
+        while [ $timeout -gt 0 ] && kill -0 "$daemon_pid" 2>/dev/null; do
+            sleep 1
+            timeout=$((timeout - 1))
+        done
+
+        # Force kill if needed
+        if kill -0 "$daemon_pid" 2>/dev/null; then
+            kill -9 "$daemon_pid" 2>/dev/null || true
+            result=1
+        fi
+    fi
+
+    # Cleanup
+    rm -f "$control_file" "$producer_fifo" 2>/dev/null || true
+
+    print_result "FIFO daemon with options" $result
+}
+
 # Print summary
 print_summary() {
     echo ""
@@ -531,6 +698,8 @@ main() {
     test_list_topics_basic
     test_list_topics_verbose
     test_list_topics_empty
+    test_fifo_daemon
+    test_fifo_daemon_options
 
     cleanup
     print_summary

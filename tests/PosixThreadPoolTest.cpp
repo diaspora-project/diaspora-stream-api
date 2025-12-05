@@ -14,7 +14,7 @@
 TEST_CASE("PosixThreadPool basic functionality", "[posix-threadpool]") {
 
     SECTION("Create thread pool with zero threads") {
-        auto pool = diaspora::DiasporaThreadPool{diaspora::ThreadCount{0}};
+        auto pool = diaspora::PosixThreadPool{diaspora::ThreadCount{0}};
         REQUIRE(pool.threadCount().count == 0);
         REQUIRE(pool.size() == 0);
 
@@ -26,13 +26,13 @@ TEST_CASE("PosixThreadPool basic functionality", "[posix-threadpool]") {
     }
 
     SECTION("Create thread pool with single thread") {
-        auto pool = diaspora::DiasporaThreadPool{diaspora::ThreadCount{1}};
+        auto pool = diaspora::PosixThreadPool{diaspora::ThreadCount{1}};
         REQUIRE(pool.threadCount().count == 1);
         REQUIRE(pool.size() == 0);
     }
 
     SECTION("Create thread pool with multiple threads") {
-        auto pool = diaspora::DiasporaThreadPool{diaspora::ThreadCount{4}};
+        auto pool = diaspora::PosixThreadPool{diaspora::ThreadCount{4}};
         REQUIRE(pool.threadCount().count == 4);
         REQUIRE(pool.size() == 0);
     }
@@ -41,7 +41,7 @@ TEST_CASE("PosixThreadPool basic functionality", "[posix-threadpool]") {
 TEST_CASE("PosixThreadPool work execution", "[posix-threadpool]") {
 
     SECTION("Execute single work item") {
-        auto pool = diaspora::DiasporaThreadPool{diaspora::ThreadCount{2}};
+        auto pool = diaspora::PosixThreadPool{diaspora::ThreadCount{2}};
         volatile std::atomic<bool> executed{false};
 
         pool.pushWork([&executed]() {
@@ -61,7 +61,7 @@ TEST_CASE("PosixThreadPool work execution", "[posix-threadpool]") {
     }
 
     SECTION("Execute multiple work items") {
-        auto pool = diaspora::DiasporaThreadPool{diaspora::ThreadCount{4}};
+        auto pool = diaspora::PosixThreadPool{diaspora::ThreadCount{4}};
         volatile std::atomic<int> counter{0};
         const int num_tasks = 100;
 
@@ -84,7 +84,7 @@ TEST_CASE("PosixThreadPool work execution", "[posix-threadpool]") {
     }
 
     SECTION("Work items can capture and modify shared state safely") {
-        auto pool = diaspora::DiasporaThreadPool{diaspora::ThreadCount{2}};
+        auto pool = diaspora::PosixThreadPool{diaspora::ThreadCount{2}};
         volatile std::atomic<int> sum{0};
         std::vector<int> values = {1, 2, 3, 4, 5};
 
@@ -110,7 +110,7 @@ TEST_CASE("PosixThreadPool work execution", "[posix-threadpool]") {
 TEST_CASE("PosixThreadPool with priorities", "[posix-threadpool]") {
 
     SECTION("Work with different priorities all execute eventually") {
-        auto pool = diaspora::DiasporaThreadPool{diaspora::ThreadCount{2}};
+        auto pool = diaspora::PosixThreadPool{diaspora::ThreadCount{2}};
         volatile std::atomic<int> low_prio_executed{0};
         volatile std::atomic<int> med_prio_executed{0};
         volatile std::atomic<int> high_prio_executed{0};
@@ -149,7 +149,7 @@ TEST_CASE("PosixThreadPool with priorities", "[posix-threadpool]") {
 TEST_CASE("PosixThreadPool size tracking", "[posix-threadpool]") {
 
     SECTION("Size reflects queued work") {
-        auto pool = diaspora::DiasporaThreadPool{diaspora::ThreadCount{1}};
+        auto pool = diaspora::PosixThreadPool{diaspora::ThreadCount{1}};
 
         // Block the thread
         volatile std::atomic<bool> can_proceed{false};
@@ -182,7 +182,7 @@ TEST_CASE("PosixThreadPool size tracking", "[posix-threadpool]") {
 TEST_CASE("PosixThreadPool stress test", "[posix-threadpool]") {
 
     SECTION("Handle many concurrent tasks") {
-        auto pool = diaspora::DiasporaThreadPool{diaspora::ThreadCount{8}};
+        auto pool = diaspora::PosixThreadPool{diaspora::ThreadCount{8}};
         volatile std::atomic<int> counter{0};
         const int num_tasks = 10000;
 
@@ -211,7 +211,7 @@ TEST_CASE("PosixThreadPool destruction", "[posix-threadpool]") {
     SECTION("Destructor with no pending work") {
         volatile std::atomic<int> completed{0};
         {
-            auto pool = diaspora::DiasporaThreadPool{diaspora::ThreadCount{2}};
+            auto pool = diaspora::PosixThreadPool{diaspora::ThreadCount{2}};
 
             for (int i = 0; i < 10; ++i) {
                 pool.pushWork([&completed]() {
@@ -238,7 +238,7 @@ TEST_CASE("PosixThreadPool destruction", "[posix-threadpool]") {
 TEST_CASE("PosixThreadPool concurrent access", "[posix-threadpool]") {
 
     SECTION("Multiple threads can push work concurrently") {
-        auto pool = diaspora::DiasporaThreadPool{diaspora::ThreadCount{4}};
+        auto pool = diaspora::PosixThreadPool{diaspora::ThreadCount{4}};
         volatile std::atomic<int> counter{0};
         const int num_pushers = 8;
         const int tasks_per_pusher = 100;

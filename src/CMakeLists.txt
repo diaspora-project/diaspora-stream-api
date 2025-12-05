@@ -1,3 +1,4 @@
+
 set (src-files
      Factory.cpp
      TopicHandle.cpp
@@ -9,6 +10,8 @@ set (src-files
      Validator.cpp
      EventbridgeValidator.cpp)
 
+file (GLOB files-driver-src ${CMAKE_CURRENT_SOURCE_DIR}/files-driver/*.cpp)
+
 # load package helper for generating cmake CONFIG packages
 include (CMakePackageConfigHelpers)
 
@@ -19,7 +22,7 @@ set (diaspora-stream-api-pkg "share/cmake/diaspora-stream-api")
 set (diaspora-stream-api-vers "${DIASPORA_STREAM_API_VERSION_MAJOR}.${DIASPORA_STREAM_API_VERSION_MINOR}")
 
 # library
-add_library (diaspora-stream-api ${src-files})
+add_library (diaspora-stream-api ${src-files} ${files-driver-src})
 target_link_libraries (diaspora-stream-api
     PUBLIC
     nlohmann_json::nlohmann_json

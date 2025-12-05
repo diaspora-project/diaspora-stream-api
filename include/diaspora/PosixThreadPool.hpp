@@ -17,7 +17,7 @@
 
 namespace diaspora {
 
-class DiasporaThreadPool final : public ThreadPoolInterface {
+class PosixThreadPool final : public ThreadPoolInterface {
 
     struct Work {
 
@@ -42,7 +42,7 @@ class DiasporaThreadPool final : public ThreadPoolInterface {
 
     public:
 
-    DiasporaThreadPool(diaspora::ThreadCount count) {
+    PosixThreadPool(diaspora::ThreadCount count) {
         m_threads.reserve(count.count);
         for(size_t i = 0; i < count.count; ++i) {
             m_threads.emplace_back([this]() {
@@ -66,7 +66,7 @@ class DiasporaThreadPool final : public ThreadPoolInterface {
         }
     }
 
-    ~DiasporaThreadPool() {
+    ~PosixThreadPool() {
         m_must_stop = true;
         m_cv.notify_all();
         for(auto& th : m_threads) th.join();

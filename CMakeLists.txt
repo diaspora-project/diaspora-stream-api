@@ -34,6 +34,10 @@ option (ENABLE_COVERAGE  "Build with coverage" OFF)
 option (ENABLE_PYTHON    "Build the Python module" OFF)
 option (ENABLE_BENCHMARKS "Build benchmarks" OFF)
 
+if (ENABLE_TESTS)
+    set (ENABLE_BENCHMARKS ON)
+endif ()
+
 # add our cmake module directory to the path
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
      "${CMAKE_CURRENT_SOURCE_DIR}/cmake")

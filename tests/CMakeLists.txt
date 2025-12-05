@@ -32,6 +32,11 @@ endforeach ()
 install (FILES diaspora-run-tests.sh
          DESTINATION bin PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE)
 
+configure_file (diaspora-run-tests.sh diaspora-run-tests.sh USE_SOURCE_PERMISSIONS COPYONLY)
+configure_file (files-driver-pre-test.sh files-driver-pre-test.sh USE_SOURCE_PERMISSIONS COPYONLY)
+configure_file (files-driver-post-test.sh files-driver-post-test.sh USE_SOURCE_PERMISSIONS COPYONLY)
+configure_file (files-driver-run-benchmark.sh files-driver-run-benchmark.sh USE_SOURCE_PERMISSIONS COPYONLY)
+
 if (ENABLE_PYTHON)
 
     add_subdirectory (python)
@@ -54,3 +59,24 @@ if (ENABLE_PYTHON)
     endforeach ()
 
 endif ()
+
+set (DIASPORA_FILES_DRIVER_TEST_BACKEND_ARGS "{}")
+set (DIASPORA_FILES_DRIVER_TEST_TOPIC_ARGS "{}")
+
+add_test (NAME DiasporaFilesDriverTestSuite COMMAND
+          ${CMAKE_CURRENT_BINARY_DIR}/diaspora-run-tests.sh files
+              --before ${CMAKE_CURRENT_BINARY_DIR}/files-driver-pre-test.sh
+              --after ${CMAKE_CURRENT_BINARY_DIR}/files-driver-post-test.sh
+              --backend-args ${DIASPORA_FILES_DRIVER_TEST_BACKEND_ARGS}
+              --topic-args ${DIASPORA_FILES_DRIVER_TEST_TOPIC_ARGS})
+set_property (TEST DiasporaFilesDriverTestSuite PROPERTY
+              ENVIRONMENT
+              "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/src:$ENV{LD_LIBRARY_PATH}"
+              "PYTHONPATH=${CMAKE_SOURCE_DIR}/python/:${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH}")
+
+add_test (NAME DiasporaFilesDriverBenchmark COMMAND
+          ${CMAKE_CURRENT_BINARY_DIR}/files-driver-run-benchmark.sh)
+set_property (TEST DiasporaFilesDriverBenchmark PROPERTY
+              ENVIRONMENT
+              "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/src:$ENV{LD_LIBRARY_PATH}"
+              "PYTHONPATH=${CMAKE_SOURCE_DIR}/python/:${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH}")

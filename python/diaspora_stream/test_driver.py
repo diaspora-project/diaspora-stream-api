@@ -36,6 +36,7 @@ class TestDriver(unittest.TestCase):
     def test_driver_make_thread_pool(self):
         pool = self.driver.make_thread_pool(1)
         self.assertIsInstance(pool, ThreadPool)
+        del pool
 
 
 if __name__ == '__main__':

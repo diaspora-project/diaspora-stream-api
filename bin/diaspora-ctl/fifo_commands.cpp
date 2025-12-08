@@ -92,28 +92,56 @@ static diaspora::Driver create_driver(const std::string& driver_name,
 }
 
 /**
- * @brief Parse a control command in the format "<fifo-name> -> <topic-name> (key1=value1, key2=value2, ...)"
+ * @brief Command type enumeration
  */
-static bool parse_control_command(const std::string& command,
-                                   std::string& fifo_name,
-                                   std::string& topic_name,
-                                   std::unordered_map<std::string, std::string>& options) {
+enum class CommandType {
+    Producer,   // fifo-name -> topic-name
+    Consumer,   // fifo-name <- topic-name
+    Invalid
+};
+
+/**
+ * @brief Parse a control command in the format:
+ *        "<fifo-name> -> <topic-name> (key1=value1, ...)" for producers
+ *        "<fifo-name> <- <topic-name> (key1=value1, ...)" for consumers
+ */
+static CommandType parse_control_command(const std::string& command,
+                                          std::string& fifo_name,
+                                          std::string& topic_name,
+                                          std::unordered_map<std::string, std::string>& options) {
     // Helper function to trim whitespace
     auto trim = [](std::string& s) {
         s.erase(0, s.find_first_not_of(" \t\r\n"));
         s.erase(s.find_last_not_of(" \t\r\n") + 1);
     };
 
-    // Find the arrow separator
-    auto arrow_pos = command.find(" -> ");
-    if (arrow_pos == std::string::npos) {
-        return false;
+    // Determine command type and find the arrow separator
+    CommandType cmd_type = CommandType::Invalid;
+    size_t arrow_pos = std::string::npos;
+    size_t arrow_len = 0;
+
+    // Check for producer arrow " -> "
+    arrow_pos = command.find(" -> ");
+    if (arrow_pos != std::string::npos) {
+        cmd_type = CommandType::Producer;
+        arrow_len = 4;
+    } else {
+        // Check for consumer arrow " <- "
+        arrow_pos = command.find(" <- ");
+        if (arrow_pos != std::string::npos) {
+            cmd_type = CommandType::Consumer;
+            arrow_len = 4;
+        }
+    }
+
+    if (cmd_type == CommandType::Invalid) {
+        return CommandType::Invalid;
     }
 
     fifo_name = command.substr(0, arrow_pos);
     trim(fifo_name);
 
-    std::string rest = command.substr(arrow_pos + 4);
+    std::string rest = command.substr(arrow_pos + arrow_len);
     trim(rest);
 
     // Check for optional key-value pairs in parentheses
@@ -127,7 +155,7 @@ static bool parse_control_command(const std::string& command,
         auto close_paren_pos = rest.find(')', paren_pos);
         if (close_paren_pos == std::string::npos) {
             spdlog::warn("Missing closing parenthesis in command");
-            return false;
+            return CommandType::Invalid;
         }
 
         std::string options_str = rest.substr(paren_pos + 1, close_paren_pos - paren_pos - 1);
@@ -162,7 +190,12 @@ static bool parse_control_command(const std::string& command,
         trim(topic_name);
     }
 
-    return !fifo_name.empty() && !topic_name.empty();
+    // Validate that fifo_name and topic_name are not empty
+    if (fifo_name.empty() || topic_name.empty()) {
+        return CommandType::Invalid;
+    }
+
+    return cmd_type;
 }
 
 /**
@@ -176,6 +209,55 @@ struct ProducerInfo {
     std::string read_buffer;
     std::unordered_map<std::string, std::string> options;
 };
+
+/**
+ * @brief Structure to hold information about a consumer FIFO
+ */
+struct ConsumerInfo {
+    int fd;
+    std::string fifo_path;
+    std::string topic_name;
+    diaspora::Consumer consumer;
+    std::unordered_map<std::string, std::string> options;
+    std::thread worker_thread;
+    std::atomic<bool> shutdown_requested;
+
+    ConsumerInfo() : fd(-1), shutdown_requested(false) {}
+
+    // Delete copy constructor and copy assignment
+    ConsumerInfo(const ConsumerInfo&) = delete;
+    ConsumerInfo& operator=(const ConsumerInfo&) = delete;
+
+    // Implement move constructor and move assignment
+    ConsumerInfo(ConsumerInfo&& other) noexcept
+        : fd(other.fd),
+          fifo_path(std::move(other.fifo_path)),
+          topic_name(std::move(other.topic_name)),
+          consumer(std::move(other.consumer)),
+          options(std::move(other.options)),
+          worker_thread(std::move(other.worker_thread)),
+          shutdown_requested(other.shutdown_requested.load())
+    {
+        other.fd = -1;
+    }
+
+    ConsumerInfo& operator=(ConsumerInfo&& other) noexcept {
+        if (this != &other) {
+            fd = other.fd;
+            fifo_path = std::move(other.fifo_path);
+            topic_name = std::move(other.topic_name);
+            consumer = std::move(other.consumer);
+            options = std::move(other.options);
+            worker_thread = std::move(other.worker_thread);
+            shutdown_requested.store(other.shutdown_requested.load());
+            other.fd = -1;
+        }
+        return *this;
+    }
+};
+
+// Forward declaration
+static void consumer_worker_thread(ConsumerInfo* info);
 
 /**
  * @brief Initialize and open the control FIFO
@@ -298,6 +380,96 @@ static bool handle_control_command(
 }
 
 /**
+ * @brief Handle a consumer command and create a consumer
+ */
+static bool handle_consumer_command(
+    diaspora::Driver& driver,
+    const std::string& fifo_name,
+    const std::string& topic_name,
+    const std::unordered_map<std::string, std::string>& options,
+    std::unordered_map<std::string, diaspora::TopicHandle>& topics,
+    std::unordered_map<std::string, ConsumerInfo>& consumers) {
+
+    namespace fs = std::filesystem;
+
+    // Check if this FIFO is already registered
+    if (consumers.find(fifo_name) != consumers.end()) {
+        spdlog::warn("Consumer FIFO '{}' already registered", fifo_name);
+        return false;
+    }
+
+    try {
+        // Open the topic
+        diaspora::TopicHandle topic;
+        if (topics.count(topic_name)) {
+            topic = topics[topic_name];
+        } else {
+            topic = driver.openTopic(topic_name);
+            topics[topic_name] = topic;
+        }
+
+        // Parse batch_size option (default is 128)
+        size_t batch_size_value = 128;
+        auto batch_size_it = options.find("batch_size");
+        if (batch_size_it != options.end()) {
+            try {
+                batch_size_value = std::stoull(batch_size_it->second);
+                spdlog::debug("Using batch_size={} for consumer '{}'", batch_size_value, fifo_name);
+            } catch (const std::exception& e) {
+                spdlog::warn("Invalid batch_size '{}' for consumer FIFO '{}', using default (128)",
+                           batch_size_it->second, fifo_name);
+            }
+        }
+
+        // Create a consumer for this topic with the specified batch size
+        auto consumer = topic.consumer(fifo_name, diaspora::BatchSize{batch_size_value});
+
+        // Create the FIFO if it doesn't exist
+        fs::path fifo_path(fifo_name);
+        if (!fs::exists(fifo_path)) {
+            if (mkfifo(fifo_name.c_str(), 0666) == -1) {
+                spdlog::error("Failed to create consumer FIFO '{}': {}", fifo_name, std::strerror(errno));
+                return false;
+            }
+            spdlog::info("Created consumer FIFO: {}", fifo_name);
+        }
+
+        // Open the FIFO for writing (non-blocking)
+        int fifo_fd = open(fifo_name.c_str(), O_WRONLY | O_NONBLOCK);
+        if (fifo_fd == -1) {
+            spdlog::error("Failed to open consumer FIFO '{}': {}", fifo_name, std::strerror(errno));
+            return false;
+        }
+
+        // Create ConsumerInfo using emplace to construct in-place
+        auto [it, inserted] = consumers.try_emplace(fifo_name);
+        if (!inserted) {
+            spdlog::error("Consumer FIFO '{}' already exists in map", fifo_name);
+            close(fifo_fd);
+            return false;
+        }
+
+        ConsumerInfo& info = it->second;
+        info.fd = fifo_fd;
+        info.fifo_path = fifo_name;
+        info.topic_name = topic_name;
+        info.consumer = std::move(consumer);
+        info.options = options;
+        info.shutdown_requested.store(false);
+
+        // Start the worker thread
+        info.worker_thread = std::thread(consumer_worker_thread, &info);
+
+        spdlog::info("Registered consumer: {} <- {}", fifo_name, topic_name);
+        return true;
+
+    } catch (const diaspora::Exception& e) {
+        spdlog::error("Failed to create consumer: {}", e.what());
+        return false;
+    }
+}
+
+/**
  * @brief Process data from a producer FIFO
  */
 static bool handle_producer_data(ProducerInfo& info) {
@@ -377,6 +549,110 @@ static void cleanup_producer(ProducerInfo& info) {
 }
 
 /**
+ * @brief Worker thread for consuming events and writing to FIFO
+ */
+static void consumer_worker_thread(ConsumerInfo* info) {
+    spdlog::debug("Consumer worker thread started for FIFO: {}", info->fifo_path);
+
+    while (!info->shutdown_requested) {
+        try {
+            // Pull event with timeout
+            auto future = info->consumer.pull();
+            auto maybe_event = future.wait(100);  // 100ms timeout
+
+            if (!maybe_event.has_value()) {
+                // Timeout, continue loop
+                continue;
+            }
+
+            auto event = maybe_event.value();
+            if (!event) {
+                // No more events
+                spdlog::debug("No more events for consumer FIFO: {}", info->fifo_path);
+                continue;
+            }
+
+            // Get metadata as JSON string
+            std::string output = event.metadata().json().dump();
+
+            // Apply format option
+            auto format_it = info->options.find("format");
+            if (format_it == info->options.end() || format_it->second == "raw") {
+                // Extract string value from JSON if it's a string literal
+                try {
+                    nlohmann::json j = nlohmann::json::parse(output);
+                    if (j.is_string()) {
+                        output = j.get<std::string>();
+                    }
+                } catch (...) {
+                    // Keep output as-is if parsing fails
+                }
+            }
+            // else format=json: use output as-is
+
+            // Write to FIFO with newline
+            output += "\n";
+            ssize_t written = write(info->fd, output.c_str(), output.size());
+
+            if (written < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    // FIFO full, try again next loop
+                    spdlog::debug("Consumer FIFO '{}' is full, retrying", info->fifo_path);
+                    continue;
+                } else {
+                    spdlog::error("Write error on consumer FIFO '{}': {}",
+                                 info->fifo_path, std::strerror(errno));
+                    break;  // Exit thread on error
+                }
+            } else if (written < static_cast<ssize_t>(output.size())) {
+                spdlog::warn("Partial write on consumer FIFO '{}': wrote {}/{} bytes",
+                            info->fifo_path, written, output.size());
+            } else {
+                spdlog::debug("Wrote event to consumer FIFO '{}': {}", info->fifo_path, output);
+            }
+
+            // Note: Not acknowledging events per user request
+
+        } catch (const std::exception& e) {
+            spdlog::error("Error in consumer worker thread for '{}': {}",
+                         info->fifo_path, e.what());
+            break;
+        }
+    }
+
+    spdlog::debug("Consumer worker thread exiting for FIFO: {}", info->fifo_path);
+}
+
+/**
+ * @brief Clean up a single consumer
+ */
+static void cleanup_consumer(ConsumerInfo& info) {
+    namespace fs = std::filesystem;
+
+    spdlog::info("Closing and removing consumer for FIFO: {}", info.fifo_path);
+
+    // Signal thread to stop
+    info.shutdown_requested = true;
+
+    // Wait for thread to finish
+    if (info.worker_thread.joinable()) {
+        info.worker_thread.join();
+    }
+
+    // Close the file descriptor
+    close(info.fd);
+
+    // Remove the FIFO file
+    try {
+        fs::remove(info.fifo_path);
+        spdlog::info("Removed consumer FIFO file: {}", info.fifo_path);
+    } catch (const std::exception& e) {
+        spdlog::warn("Failed to remove consumer FIFO file '{}': {}",
+                    info.fifo_path, e.what());
+    }
+}
+
+/**
  * @brief Run the daemon with the specified driver and control file
  */
 static void run_daemon(diaspora::Driver& driver, const std::string& control_file) {
@@ -394,7 +670,9 @@ static void run_daemon(diaspora::Driver& driver, const std::string& control_file
         }
 
         spdlog::info("Daemon is running. Waiting for commands on control file...");
-        spdlog::info("Send commands in format: <fifo-name> -> <topic-name> (key=value, ...)");
+        spdlog::info("Send commands in format:");
+        spdlog::info("  Producer: <fifo-name> -> <topic-name> (key=value, ...)");
+        spdlog::info("  Consumer: <fifo-name> <- <topic-name> (key=value, ...)");
         spdlog::info("Press Ctrl+C to stop.");
 
         // Cached TopicHandle instances
@@ -402,6 +680,9 @@ static void run_daemon(diaspora::Driver& driver, const std::string& control_file
 
         // Map of FIFO paths to producer info
         std::unordered_map<std::string, ProducerInfo> producers;
+
+        // Map of FIFO paths to consumer info
+        std::unordered_map<std::string, ConsumerInfo> consumers;
 
         // Buffer for control file reads
         std::string control_buffer;
@@ -445,7 +726,9 @@ static void run_daemon(diaspora::Driver& driver, const std::string& control_file
 
                         std::string fifo_name, topic_name;
                         std::unordered_map<std::string, std::string> options;
-                        if (parse_control_command(command, fifo_name, topic_name, options)) {
+                        CommandType cmd_type = parse_control_command(command, fifo_name, topic_name, options);
+
+                        if (cmd_type == CommandType::Producer) {
                             // Log the received command
                             if (options.empty()) {
                                 spdlog::info("Received command: '{}' -> '{}'", fifo_name, topic_name);
@@ -459,8 +742,24 @@ static void run_daemon(diaspora::Driver& driver, const std::string& control_file
                                            fifo_name, topic_name, opts_str);
                             }
 
-                            // Handle the command
+                            // Handle the producer command
                             handle_control_command(driver, fifo_name, topic_name, options, topics, producers);
+                        } else if (cmd_type == CommandType::Consumer) {
+                            // Log the received command
+                            if (options.empty()) {
+                                spdlog::info("Received command: '{}' <- '{}'", fifo_name, topic_name);
+                            } else {
+                                std::string opts_str;
+                                for (const auto& [key, value] : options) {
+                                    if (!opts_str.empty()) opts_str += ", ";
+                                    opts_str += key + "=" + value;
+                                }
+                                spdlog::info("Received command: '{}' <- '{}' ({})",
+                                           fifo_name, topic_name, opts_str);
+                            }
+
+                            // Handle the consumer command
+                            handle_consumer_command(driver, fifo_name, topic_name, options, topics, consumers);
                         } else {
                             spdlog::warn("Invalid command format: '{}'", command);
                         }
@@ -515,6 +814,12 @@ static void run_daemon(diaspora::Driver& driver, const std::string& control_file
         }
         producers.clear();
 
+        // Cleanup: close all consumer FIFOs and threads
+        for (auto& [path, info] : consumers) {
+            cleanup_consumer(info);
+        }
+        consumers.clear();
+
     } catch (const std::exception& e) {
         spdlog::error("Error in daemon operation: {}", e.what());
         std::exit(1);
@@ -523,6 +828,13 @@ static void run_daemon(diaspora::Driver& driver, const std::string& control_file
 
 int fifo_daemon(int argc, char** argv) {
     try {
+        // Extract --driver.* metadata arguments before TCLAP parsing
+        auto parsed_args = extract_metadata_args(argc, argv);
+
+        // Prepare arguments for TCLAP
+        int filtered_argc = parsed_args.filtered_argv.size();
+        char** filtered_argv = parsed_args.filtered_argv.data();
+
         // Set up command-line argument parser
         TCLAP::CmdLine cmd(
             "Diaspora Stream FIFO Daemon - A daemon for managing Diaspora streaming operations",
@@ -572,8 +884,8 @@ int fifo_daemon(int argc, char** argv) {
             cmd
         );
 
-        // Parse command-line arguments
-        cmd.parse(argc, argv);
+        // Parse command-line arguments (using filtered argv)
+        cmd.parse(filtered_argc, filtered_argv);
 
         // Configure spdlog
         spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
@@ -583,16 +895,21 @@ int fifo_daemon(int argc, char** argv) {
         std::string driver_config_path = driverConfigArg.getValue();
         std::string control_file = controlFileArg.getValue();
 
-        // Load driver configuration if provided, otherwise use empty JSON object
-        diaspora::Metadata driver_config;
-        if (!driver_config_path.empty()) {
-            driver_config = load_driver_config(driver_config_path);
-        } else {
-            driver_config = diaspora::Metadata{"{}"};
-        }
+        // Load driver configuration from file if provided
+        std::string driver_config_str = read_config_file(driver_config_path);
+        nlohmann::json driver_config = nlohmann::json::parse(driver_config_str);
+
+        // Merge command-line metadata with config file metadata
+        // Command-line arguments take precedence
+        driver_config.merge_patch(parsed_args.driver_metadata);
+
+        spdlog::debug("Driver config: {}", driver_config.dump());
+
+        // Create Metadata object from merged config
+        diaspora::Metadata driver_metadata{driver_config.dump()};
 
         // Create the driver
-        auto driver = create_driver(driver_name, driver_config);
+        auto driver = create_driver(driver_name, driver_metadata);
 
         // Set up signal handlers for graceful shutdown
         std::signal(SIGINT, signal_handler);

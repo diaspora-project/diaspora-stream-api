@@ -424,33 +424,34 @@ static bool handle_consumer_command(
         // Create a consumer for this topic with the specified batch size
         auto consumer = topic.consumer(fifo_name, diaspora::BatchSize{batch_size_value});
 
-        // Create the FIFO if it doesn't exist
+        // Check that the FIFO exists (user should have created it)
         fs::path fifo_path(fifo_name);
         if (!fs::exists(fifo_path)) {
-            if (mkfifo(fifo_name.c_str(), 0666) == -1) {
-                spdlog::error("Failed to create consumer FIFO '{}': {}", fifo_name, std::strerror(errno));
-                return false;
-            }
-            spdlog::info("Created consumer FIFO: {}", fifo_name);
+            spdlog::error("Consumer FIFO '{}' does not exist. Please create it first with mkfifo.", fifo_name);
+            return false;
         }
 
-        // Open the FIFO for writing (non-blocking)
-        int fifo_fd = open(fifo_name.c_str(), O_WRONLY | O_NONBLOCK);
-        if (fifo_fd == -1) {
-            spdlog::error("Failed to open consumer FIFO '{}': {}", fifo_name, std::strerror(errno));
+        // Verify it's actually a FIFO
+        struct stat st;
+        if (stat(fifo_name.c_str(), &st) == -1) {
+            spdlog::error("Failed to stat '{}': {}", fifo_name, std::strerror(errno));
+            return false;
+        }
+        if (!S_ISFIFO(st.st_mode)) {
+            spdlog::error("'{}' exists but is not a FIFO", fifo_name);
             return false;
         }
 
         // Create ConsumerInfo using emplace to construct in-place
+        // Note: We don't open the FIFO here - the worker thread will do it
         auto [it, inserted] = consumers.try_emplace(fifo_name);
         if (!inserted) {
             spdlog::error("Consumer FIFO '{}' already exists in map", fifo_name);
-            close(fifo_fd);
             return false;
         }
 
         ConsumerInfo& info = it->second;
-        info.fd = fifo_fd;
+        info.fd = -1;  // Will be opened by worker thread
         info.fifo_path = fifo_name;
         info.topic_name = topic_name;
         info.consumer = std::move(consumer);
@@ -554,6 +555,35 @@ static void cleanup_producer(ProducerInfo& info) {
 static void consumer_worker_thread(ConsumerInfo* info) {
     spdlog::debug("Consumer worker thread started for FIFO: {}", info->fifo_path);
 
+    // Open the FIFO for writing with retry logic
+    // This allows time for a reader to open the FIFO before we try to write
+    constexpr int max_open_retries = 50;  // 5 seconds total (50 * 100ms)
+    int open_retry_count = 0;
+
+    while (info->fd == -1 && open_retry_count < max_open_retries && !info->shutdown_requested) {
+        info->fd = open(info->fifo_path.c_str(), O_WRONLY | O_NONBLOCK);
+        if (info->fd == -1) {
+            if (errno == ENXIO) {
+                // No reader yet, retry after a short delay
+                open_retry_count++;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            } else {
+                // Other error, log and exit
+                spdlog::error("Failed to open consumer FIFO '{}': {}",
+                            info->fifo_path, std::strerror(errno));
+                return;
+            }
+        }
+    }
+
+    if (info->fd == -1) {
+        spdlog::error("Failed to open consumer FIFO '{}' after {} retries: timed out waiting for reader",
+                     info->fifo_path, max_open_retries);
+        return;
+    }
+
+    spdlog::info("Consumer FIFO '{}' opened successfully for writing", info->fifo_path);
+
     while (!info->shutdown_requested) {
         try {
             // Pull event with timeout
@@ -627,9 +657,7 @@ static void consumer_worker_thread(ConsumerInfo* info) {
  * @brief Clean up a single consumer
  */
 static void cleanup_consumer(ConsumerInfo& info) {
-    namespace fs = std::filesystem;
-
-    spdlog::info("Closing and removing consumer for FIFO: {}", info.fifo_path);
+    spdlog::info("Closing consumer for FIFO: {}", info.fifo_path);
 
     // Signal thread to stop
     info.shutdown_requested = true;
@@ -639,17 +667,13 @@ static void cleanup_consumer(ConsumerInfo& info) {
         info.worker_thread.join();
     }
 
-    // Close the file descriptor
-    close(info.fd);
-
-    // Remove the FIFO file
-    try {
-        fs::remove(info.fifo_path);
-        spdlog::info("Removed consumer FIFO file: {}", info.fifo_path);
-    } catch (const std::exception& e) {
-        spdlog::warn("Failed to remove consumer FIFO file '{}': {}",
-                    info.fifo_path, e.what());
+    // Close the file descriptor if it was opened
+    if (info.fd != -1) {
+        close(info.fd);
     }
+
+    // Note: We don't remove the FIFO file since the user created it
+    spdlog::info("Consumer for FIFO '{}' closed (FIFO file not removed)", info.fifo_path);
 }
 
 /**

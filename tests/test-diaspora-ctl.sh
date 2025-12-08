@@ -789,7 +789,7 @@ test_fifo_daemon_consumer() {
         --driver "files" \
         --driver.root_path "$root_path" \
         --control-file "$control_file" \
-        --logging error \
+        --logging debug \
         > "$daemon_log" 2>&1 &
 
     local daemon_pid=$!
@@ -811,42 +811,71 @@ test_fifo_daemon_consumer() {
         fi
         result=1
     else
+        # PHASE 1: Produce messages to the topic
+        print_info "Phase 1: Producing messages to topic"
+
         # Send producer command
         echo "$producer_fifo -> consumer-test-topic" > "$control_file" 2>/dev/null || true
         sleep 1
 
-        # Send consumer command
-        echo "$consumer_fifo <- consumer-test-topic" > "$control_file" 2>/dev/null || true
-        sleep 1
-
-        # Verify both FIFOs were created
+        # Verify producer FIFO was created
         if [ ! -p "$producer_fifo" ]; then
             print_error "Producer FIFO not created at $producer_fifo"
             print_info "Directory contents: $(ls -la "$(dirname "$producer_fifo")" 2>&1)"
             result=1
         fi
 
-        if [ ! -p "$consumer_fifo" ]; then
-            print_error "Consumer FIFO not created at $consumer_fifo"
-            print_info "Directory contents: $(ls -la "$(dirname "$consumer_fifo")" 2>&1)"
-            result=1
+        if [ $result -eq 0 ]; then
+            # Write test data to producer FIFO
+            if ! echo "test message 1" > "$producer_fifo" 2>/dev/null; then
+                print_error "Failed to write test message 1 to producer FIFO"
+                result=1
+            fi
+
+            if ! echo "test message 2" > "$producer_fifo" 2>/dev/null; then
+                print_error "Failed to write test message 2 to producer FIFO"
+                result=1
+            fi
+
+            if ! echo "test message 3" > "$producer_fifo" 2>/dev/null; then
+                print_error "Failed to write test message 3 to producer FIFO"
+                result=1
+            fi
+
+            # Give daemon time to process messages into the topic
+            sleep 2
+            print_info "Phase 1 complete: 3 messages produced to topic"
+        fi
+
+        # PHASE 2: Add consumer and read messages from topic
+        if [ $result -eq 0 ]; then
+            print_info "Phase 2: Adding consumer to read from topic"
+
+            # Create the consumer FIFO (user's responsibility)
+            if ! mkfifo "$consumer_fifo" 2>/dev/null; then
+                print_error "Failed to create consumer FIFO at $consumer_fifo"
+                print_info "Directory contents: $(ls -la "$(dirname "$consumer_fifo")" 2>&1)"
+                result=1
+            else
+                print_info "Created consumer FIFO at $consumer_fifo"
+            fi
         fi
 
         if [ $result -eq 0 ]; then
-            # Start reading from consumer FIFO in background
-            timeout 5s cat "$consumer_fifo" > "${TEST_DATA_DIR}/consumer-output.txt" 2>/dev/null &
+            # Start reading from consumer FIFO in background BEFORE sending consumer command
+            # This ensures a reader is ready when the daemon tries to open the FIFO for writing
+            timeout 10s cat "$consumer_fifo" > "${TEST_DATA_DIR}/consumer-output.txt" 2>/dev/null &
             local cat_pid=$!
 
-            # Give cat time to open the FIFO
+            # Give cat time to open the FIFO for reading
+            sleep 0.5
+
+            # Now send consumer command
+            echo "$consumer_fifo <- consumer-test-topic" > "$control_file" 2>/dev/null || true
             sleep 1
 
-            # Write test data to producer FIFO
-            echo "test message 1" > "$producer_fifo" 2>/dev/null || true
-            echo "test message 2" > "$producer_fifo" 2>/dev/null || true
-            echo "test message 3" > "$producer_fifo" 2>/dev/null || true
-
-            # Give daemon time to process and forward messages
-            sleep 2
+            # Give cat time to open the FIFO and consumer to pull/write messages
+            sleep 3
 
             # Stop the cat process
             kill $cat_pid 2>/dev/null || true
@@ -859,11 +888,25 @@ test_fifo_daemon_consumer() {
                     print_error "Expected at least 3 messages, got $line_count"
                     print_info "Consumer output: $(cat "${TEST_DATA_DIR}/consumer-output.txt" 2>&1)"
                     result=1
+                else
+                    print_info "Phase 2 complete: $line_count messages consumed from topic"
                 fi
 
                 # Verify message content (should contain test messages)
                 if ! grep -q "test message 1" "${TEST_DATA_DIR}/consumer-output.txt" 2>/dev/null; then
                     print_error "'test message 1' not found in consumer output"
+                    print_info "Consumer output: $(cat "${TEST_DATA_DIR}/consumer-output.txt" 2>&1)"
+                    result=1
+                fi
+
+                if ! grep -q "test message 2" "${TEST_DATA_DIR}/consumer-output.txt" 2>/dev/null; then
+                    print_error "'test message 2' not found in consumer output"
+                    print_info "Consumer output: $(cat "${TEST_DATA_DIR}/consumer-output.txt" 2>&1)"
+                    result=1
+                fi
+
+                if ! grep -q "test message 3" "${TEST_DATA_DIR}/consumer-output.txt" 2>/dev/null; then
+                    print_error "'test message 3' not found in consumer output"
                     print_info "Consumer output: $(cat "${TEST_DATA_DIR}/consumer-output.txt" 2>&1)"
                     result=1
                 fi

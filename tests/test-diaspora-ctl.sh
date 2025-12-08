@@ -69,14 +69,32 @@ print_result() {
     fi
 }
 
+# Print error message in red
+print_error() {
+    echo -e "${RED}  ERROR: $1${NC}"
+}
+
+# Print info message in yellow
+print_info() {
+    echo -e "${YELLOW}  INFO: $1${NC}"
+}
+
 # Test: Display help
 test_help() {
     echo ""
     echo "Test: Display help"
     echo "-------------------"
 
-    "$DIASPORA_CTL" --help > /dev/null 2>&1
-    print_result "diaspora-ctl --help" $?
+    local output
+    output=$("$DIASPORA_CTL" --help 2>&1)
+    local result=$?
+
+    if [ $result -ne 0 ]; then
+        print_error "diaspora-ctl --help returned non-zero exit code: $result"
+        print_info "Output: $output"
+    fi
+
+    print_result "diaspora-ctl --help" $result
 }
 
 # Test: Create a simple topic
@@ -88,19 +106,25 @@ test_create_simple_topic() {
     local root_path="${TEST_DATA_DIR}/simple"
     mkdir -p "$root_path"
 
-    "$DIASPORA_CTL" topic create \
+    local output
+    output=$("$DIASPORA_CTL" topic create \
         --driver "files" \
         --driver.root_path "$root_path" \
         --name "test-topic-1" \
-        > /dev/null 2>&1
+        2>&1)
 
     local result=$?
 
-    # Verify topic directory was created
-    if [ -d "$root_path/test-topic-1" ]; then
-        result=0
-    else
+    if [ $result -ne 0 ]; then
+        print_error "topic create command failed with exit code: $result"
+        print_info "Output: $output"
         result=1
+    elif [ ! -d "$root_path/test-topic-1" ]; then
+        print_error "Topic directory not created at $root_path/test-topic-1"
+        print_info "Directory contents: $(ls -la "$root_path" 2>&1)"
+        result=1
+    else
+        result=0
     fi
 
     print_result "Create simple topic" $result
@@ -115,23 +139,37 @@ test_create_topic_with_partitions() {
     local root_path="${TEST_DATA_DIR}/partitions"
     mkdir -p "$root_path"
 
-    "$DIASPORA_CTL" topic create \
+    local output
+    output=$("$DIASPORA_CTL" topic create \
         --driver "files" \
         --driver.root_path "$root_path" \
         --name "multi-partition-topic" \
         --topic.num_partitions 4 \
-        > /dev/null 2>&1
+        2>&1)
 
     local result=$?
 
-    # Verify partition directories were created (00000000, 00000001, 00000002, 00000003)
-    if [ -d "$root_path/multi-partition-topic/partitions/00000000" ] && \
-       [ -d "$root_path/multi-partition-topic/partitions/00000001" ] && \
-       [ -d "$root_path/multi-partition-topic/partitions/00000002" ] && \
-       [ -d "$root_path/multi-partition-topic/partitions/00000003" ]; then
-        result=0
-    else
+    if [ $result -ne 0 ]; then
+        print_error "topic create command failed with exit code: $result"
+        print_info "Output: $output"
         result=1
+    else
+        # Verify partition directories were created (00000000, 00000001, 00000002, 00000003)
+        local missing_partitions=""
+        for i in 0 1 2 3; do
+            local partition_dir="$root_path/multi-partition-topic/partitions/0000000$i"
+            if [ ! -d "$partition_dir" ]; then
+                missing_partitions="$missing_partitions 0000000$i"
+            fi
+        done
+
+        if [ -n "$missing_partitions" ]; then
+            print_error "Missing partition directories:$missing_partitions"
+            print_info "Partitions directory contents: $(ls -la "$root_path/multi-partition-topic/partitions/" 2>&1)"
+            result=1
+        else
+            result=0
+        fi
     fi
 
     print_result "Create topic with 4 partitions" $result
@@ -162,21 +200,33 @@ EOF
 }
 EOF
 
-    "$DIASPORA_CTL" topic create \
+    local output
+    output=$("$DIASPORA_CTL" topic create \
         --driver "files" \
         --driver-config "$driver_config" \
         --name "config-topic" \
         --topic-config "$topic_config" \
-        > /dev/null 2>&1
+        2>&1)
 
     local result=$?
 
-    # Verify topic was created with 2 partitions
-    if [ -d "$root_path/config-topic/partitions/00000000" ] && \
-       [ -d "$root_path/config-topic/partitions/00000001" ]; then
-        result=0
-    else
+    if [ $result -ne 0 ]; then
+        print_error "topic create command failed with exit code: $result"
+        print_info "Output: $output"
         result=1
+    else
+        # Verify topic was created with 2 partitions
+        if [ ! -d "$root_path/config-topic/partitions/00000000" ]; then
+            print_error "Partition 00000000 not created"
+            print_info "Partitions directory: $(ls -la "$root_path/config-topic/partitions/" 2>&1)"
+            result=1
+        elif [ ! -d "$root_path/config-topic/partitions/00000001" ]; then
+            print_error "Partition 00000001 not created"
+            print_info "Partitions directory: $(ls -la "$root_path/config-topic/partitions/" 2>&1)"
+            result=1
+        else
+            result=0
+        fi
     fi
 
     # Cleanup config files
@@ -194,35 +244,59 @@ test_component_metadata_files() {
     local root_path="${TEST_DATA_DIR}/components"
     mkdir -p "$root_path"
 
-    "$DIASPORA_CTL" topic create \
+    local output
+    output=$("$DIASPORA_CTL" topic create \
         --driver "files" \
         --driver.root_path "$root_path" \
         --name "component-topic" \
-        > /dev/null 2>&1
+        2>&1)
 
-    local result=0
+    local result=$?
 
-    # Verify component JSON files exist
-    if [ ! -f "$root_path/component-topic/validator.json" ]; then
-        echo "  validator.json not found"
+    if [ $result -ne 0 ]; then
+        print_error "topic create command failed with exit code: $result"
+        print_info "Output: $output"
         result=1
-    fi
+    else
+        result=0
 
-    if [ ! -f "$root_path/component-topic/serializer.json" ]; then
-        echo "  serializer.json not found"
-        result=1
-    fi
+        # Verify component JSON files exist
+        if [ ! -f "$root_path/component-topic/validator.json" ]; then
+            print_error "validator.json not found"
+            print_info "Topic directory: $(ls -la "$root_path/component-topic/" 2>&1)"
+            result=1
+        fi
 
-    if [ ! -f "$root_path/component-topic/partition-selector.json" ]; then
-        echo "  partition-selector.json not found"
-        result=1
-    fi
+        if [ ! -f "$root_path/component-topic/serializer.json" ]; then
+            print_error "serializer.json not found"
+            print_info "Topic directory: $(ls -la "$root_path/component-topic/" 2>&1)"
+            result=1
+        fi
 
-    # Verify JSON files are valid JSON
-    if [ $result -eq 0 ]; then
-        python3 -c "import json; json.load(open('$root_path/component-topic/validator.json'))" 2>/dev/null || result=1
-        python3 -c "import json; json.load(open('$root_path/component-topic/serializer.json'))" 2>/dev/null || result=1
-        python3 -c "import json; json.load(open('$root_path/component-topic/partition-selector.json'))" 2>/dev/null || result=1
+        if [ ! -f "$root_path/component-topic/partition-selector.json" ]; then
+            print_error "partition-selector.json not found"
+            print_info "Topic directory: $(ls -la "$root_path/component-topic/" 2>&1)"
+            result=1
+        fi
+
+        # Verify JSON files are valid JSON
+        if [ $result -eq 0 ]; then
+            if ! python3 -c "import json; json.load(open('$root_path/component-topic/validator.json'))" 2>/dev/null; then
+                print_error "validator.json is not valid JSON"
+                print_info "Content: $(cat "$root_path/component-topic/validator.json" 2>&1)"
+                result=1
+            fi
+            if ! python3 -c "import json; json.load(open('$root_path/component-topic/serializer.json'))" 2>/dev/null; then
+                print_error "serializer.json is not valid JSON"
+                print_info "Content: $(cat "$root_path/component-topic/serializer.json" 2>&1)"
+                result=1
+            fi
+            if ! python3 -c "import json; json.load(open('$root_path/component-topic/partition-selector.json'))" 2>/dev/null; then
+                print_error "partition-selector.json is not valid JSON"
+                print_info "Content: $(cat "$root_path/component-topic/partition-selector.json" 2>&1)"
+                result=1
+            fi
+        fi
     fi
 
     print_result "Component metadata files created and valid" $result
@@ -392,19 +466,22 @@ test_list_topics_basic() {
 
     # Check that both topics are in the output
     if ! echo "$output" | grep -q "list-topic-1"; then
-        echo "  list-topic-1 not found in output"
+        print_error "list-topic-1 not found in output"
+        print_info "Output: $output"
         result=1
     fi
 
     if ! echo "$output" | grep -q "list-topic-2"; then
-        echo "  list-topic-2 not found in output"
+        print_error "list-topic-2 not found in output"
+        print_info "Output: $output"
         result=1
     fi
 
     # Check that output has exactly 2 lines (one per topic)
     local line_count=$(echo "$output" | wc -l)
     if [ "$line_count" -ne 2 ]; then
-        echo "  Expected 2 lines, got $line_count"
+        print_error "Expected 2 lines, got $line_count"
+        print_info "Output: $output"
         result=1
     fi
 
@@ -439,25 +516,29 @@ test_list_topics_verbose() {
 
     # Check that topic name is in the output
     if ! echo "$output" | grep -q "verbose-topic"; then
-        echo "  verbose-topic not found in output"
+        print_error "verbose-topic not found in output"
+        print_info "Output: $output"
         result=1
     fi
 
     # Check that metadata is present (should contain JSON)
     if ! echo "$output" | grep -q "{"; then
-        echo "  JSON metadata not found in output"
+        print_error "JSON metadata not found in output"
+        print_info "Output: $output"
         result=1
     fi
 
     # Check that num_partitions is in the metadata
     if ! echo "$output" | grep -q "num_partitions"; then
-        echo "  num_partitions not found in metadata"
+        print_error "num_partitions not found in metadata"
+        print_info "Output: $output"
         result=1
     fi
 
     # Check that validator/serializer/partition_selector are in metadata
     if ! echo "$output" | grep -q "validator"; then
-        echo "  validator not found in metadata"
+        print_error "validator not found in metadata"
+        print_info "Output: $output"
         result=1
     fi
 
@@ -483,7 +564,8 @@ test_list_topics_empty() {
 
     # Output should be empty (no topics)
     if [ -n "$output" ]; then
-        echo "  Expected empty output, got: $output"
+        print_error "Expected empty output, got non-empty output"
+        print_info "Output: $output"
         result=1
     fi
 
@@ -501,6 +583,7 @@ test_fifo_daemon() {
 
     local control_file="${TEST_DATA_DIR}/fifo-control"
     local producer_fifo="${TEST_DATA_DIR}/producer-fifo"
+    local daemon_log="${TEST_DATA_DIR}/daemon-output.log"
 
     # Create a topic first
     "$DIASPORA_CTL" topic create \
@@ -509,13 +592,13 @@ test_fifo_daemon() {
         --name "fifo-topic" \
         > /dev/null 2>&1
 
-    # Start the daemon in the background
+    # Start the daemon in the background, capturing output
     "$DIASPORA_CTL" fifo \
         --driver "files" \
         --driver.root_path "$root_path" \
         --control-file "$control_file" \
         --logging error \
-        > /dev/null 2>&1 &
+        > "$daemon_log" 2>&1 &
 
     local daemon_pid=$!
     local result=0
@@ -525,12 +608,21 @@ test_fifo_daemon() {
 
     # Check if daemon is still running
     if ! kill -0 "$daemon_pid" 2>/dev/null; then
-        echo "  Daemon failed to start"
+        print_error "Daemon failed to start or crashed immediately"
+        print_info "Daemon output:"
+        if [ -f "$daemon_log" ]; then
+            cat "$daemon_log" | while IFS= read -r line; do
+                print_info "  $line"
+            done
+        else
+            print_info "  No log file created"
+        fi
         result=1
     else
         # Verify control FIFO was created
         if [ ! -p "$control_file" ]; then
-            echo "  Control FIFO not created"
+            print_error "Control FIFO not created at $control_file"
+            print_info "Directory contents: $(ls -la "$(dirname "$control_file")" 2>&1)"
             result=1
         else
             # Send a control command to create a producer
@@ -541,17 +633,20 @@ test_fifo_daemon() {
 
             # Verify producer FIFO was created
             if [ ! -p "$producer_fifo" ]; then
-                echo "  Producer FIFO not created"
+                print_error "Producer FIFO not created at $producer_fifo"
+                print_info "Directory contents: $(ls -la "$(dirname "$producer_fifo")" 2>&1)"
                 result=1
             else
                 # Write some test data to the producer FIFO
                 if ! echo "test message 1" > "$producer_fifo" 2>/dev/null; then
-                    echo "  Failed to write to producer FIFO (message 1)"
+                    print_error "Failed to write to producer FIFO (message 1)"
+                    print_info "FIFO may not have a reader or is in an invalid state"
                     result=1
                 fi
 
                 if ! echo "test message 2" > "$producer_fifo" 2>/dev/null; then
-                    echo "  Failed to write to producer FIFO (message 2)"
+                    print_error "Failed to write to producer FIFO (message 2)"
+                    print_info "FIFO may not have a reader or is in an invalid state"
                     result=1
                 fi
 
@@ -572,14 +667,15 @@ test_fifo_daemon() {
 
         # Force kill if still running
         if kill -0 "$daemon_pid" 2>/dev/null; then
-            echo "  Daemon did not shut down gracefully, force killing"
+            print_error "Daemon did not shut down gracefully within timeout"
+            print_info "Force killing daemon"
             kill -9 "$daemon_pid" 2>/dev/null || true
             result=1
         fi
     fi
 
     # Cleanup
-    rm -f "$control_file" "$producer_fifo" 2>/dev/null || true
+    rm -f "$control_file" "$producer_fifo" "$daemon_log" 2>/dev/null || true
 
     print_result "FIFO daemon basic functionality" $result
 }
@@ -595,6 +691,7 @@ test_fifo_daemon_options() {
 
     local control_file="${TEST_DATA_DIR}/fifo-control-options"
     local producer_fifo="${TEST_DATA_DIR}/producer-fifo-options"
+    local daemon_log="${TEST_DATA_DIR}/daemon-output-options.log"
 
     # Create a topic first
     "$DIASPORA_CTL" topic create \
@@ -603,13 +700,13 @@ test_fifo_daemon_options() {
         --name "fifo-options-topic" \
         > /dev/null 2>&1
 
-    # Start the daemon in the background
+    # Start the daemon in the background, capturing output
     "$DIASPORA_CTL" fifo \
         --driver "files" \
         --driver.root_path "$root_path" \
         --control-file "$control_file" \
         --logging error \
-        > /dev/null 2>&1 &
+        > "$daemon_log" 2>&1 &
 
     local daemon_pid=$!
     local result=0
@@ -619,7 +716,15 @@ test_fifo_daemon_options() {
 
     # Check if daemon is running
     if ! kill -0 "$daemon_pid" 2>/dev/null; then
-        echo "  Daemon failed to start"
+        print_error "Daemon failed to start or crashed immediately"
+        print_info "Daemon output:"
+        if [ -f "$daemon_log" ]; then
+            cat "$daemon_log" | while IFS= read -r line; do
+                print_info "  $line"
+            done
+        else
+            print_info "  No log file created"
+        fi
         result=1
     else
         # Send a control command with batch_size option
@@ -630,7 +735,8 @@ test_fifo_daemon_options() {
 
         # Verify producer FIFO was created
         if [ ! -p "$producer_fifo" ]; then
-            echo "  Producer FIFO not created with options"
+            print_error "Producer FIFO not created with batch_size option"
+            print_info "Directory contents: $(ls -la "$(dirname "$producer_fifo")" 2>&1)"
             result=1
         fi
 
@@ -652,9 +758,186 @@ test_fifo_daemon_options() {
     fi
 
     # Cleanup
-    rm -f "$control_file" "$producer_fifo" 2>/dev/null || true
+    rm -f "$control_file" "$producer_fifo" "$daemon_log" 2>/dev/null || true
 
     print_result "FIFO daemon with options" $result
+}
+
+# Test: FIFO daemon consumer functionality
+test_fifo_daemon_consumer() {
+    echo ""
+    echo "Test: FIFO daemon consumer functionality"
+    echo "------------------------------------------"
+
+    local root_path="${TEST_DATA_DIR}/fifo-consumer"
+    mkdir -p "$root_path"
+
+    local control_file="${TEST_DATA_DIR}/fifo-control-consumer"
+    local producer_fifo="${TEST_DATA_DIR}/producer-fifo-consumer"
+    local consumer_fifo="${TEST_DATA_DIR}/consumer-fifo-consumer"
+    local daemon_log="${TEST_DATA_DIR}/daemon-output-consumer.log"
+
+    # Create a topic first
+    "$DIASPORA_CTL" topic create \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --name "consumer-test-topic" \
+        > /dev/null 2>&1
+
+    # Start the daemon in the background, capturing output
+    "$DIASPORA_CTL" fifo \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --control-file "$control_file" \
+        --logging debug \
+        > "$daemon_log" 2>&1 &
+
+    local daemon_pid=$!
+    local result=0
+
+    # Give the daemon time to start
+    sleep 1
+
+    # Check if daemon is running
+    if ! kill -0 "$daemon_pid" 2>/dev/null; then
+        print_error "Daemon failed to start or crashed immediately"
+        print_info "Daemon output:"
+        if [ -f "$daemon_log" ]; then
+            cat "$daemon_log" | while IFS= read -r line; do
+                print_info "  $line"
+            done
+        else
+            print_info "  No log file created"
+        fi
+        result=1
+    else
+        # PHASE 1: Produce messages to the topic
+        print_info "Phase 1: Producing messages to topic"
+
+        # Send producer command
+        echo "$producer_fifo -> consumer-test-topic" > "$control_file" 2>/dev/null || true
+        sleep 1
+
+        # Verify producer FIFO was created
+        if [ ! -p "$producer_fifo" ]; then
+            print_error "Producer FIFO not created at $producer_fifo"
+            print_info "Directory contents: $(ls -la "$(dirname "$producer_fifo")" 2>&1)"
+            result=1
+        fi
+
+        if [ $result -eq 0 ]; then
+            # Write test data to producer FIFO
+            if ! echo "test message 1" > "$producer_fifo" 2>/dev/null; then
+                print_error "Failed to write test message 1 to producer FIFO"
+                result=1
+            fi
+
+            if ! echo "test message 2" > "$producer_fifo" 2>/dev/null; then
+                print_error "Failed to write test message 2 to producer FIFO"
+                result=1
+            fi
+
+            if ! echo "test message 3" > "$producer_fifo" 2>/dev/null; then
+                print_error "Failed to write test message 3 to producer FIFO"
+                result=1
+            fi
+
+            # Give daemon time to process messages into the topic
+            sleep 2
+            print_info "Phase 1 complete: 3 messages produced to topic"
+        fi
+
+        # PHASE 2: Add consumer and read messages from topic
+        if [ $result -eq 0 ]; then
+            print_info "Phase 2: Adding consumer to read from topic"
+
+            # Create the consumer FIFO (user's responsibility)
+            if ! mkfifo "$consumer_fifo" 2>/dev/null; then
+                print_error "Failed to create consumer FIFO at $consumer_fifo"
+                print_info "Directory contents: $(ls -la "$(dirname "$consumer_fifo")" 2>&1)"
+                result=1
+            else
+                print_info "Created consumer FIFO at $consumer_fifo"
+            fi
+        fi
+
+        if [ $result -eq 0 ]; then
+            # Start reading from consumer FIFO in background BEFORE sending consumer command
+            # This ensures a reader is ready when the daemon tries to open the FIFO for writing
+            timeout 10s cat "$consumer_fifo" > "${TEST_DATA_DIR}/consumer-output.txt" 2>/dev/null &
+            local cat_pid=$!
+
+            # Give cat time to open the FIFO for reading
+            sleep 0.5
+
+            # Now send consumer command
+            echo "$consumer_fifo <- consumer-test-topic" > "$control_file" 2>/dev/null || true
+            sleep 1
+
+            # Give cat time to open the FIFO and consumer to pull/write messages
+            sleep 3
+
+            # Stop the cat process
+            kill $cat_pid 2>/dev/null || true
+            wait $cat_pid 2>/dev/null || true
+
+            # Check if messages were received
+            if [ -f "${TEST_DATA_DIR}/consumer-output.txt" ]; then
+                local line_count=$(wc -l < "${TEST_DATA_DIR}/consumer-output.txt" 2>/dev/null || echo 0)
+                if [ "$line_count" -lt 3 ]; then
+                    print_error "Expected at least 3 messages, got $line_count"
+                    print_info "Consumer output: $(cat "${TEST_DATA_DIR}/consumer-output.txt" 2>&1)"
+                    result=1
+                else
+                    print_info "Phase 2 complete: $line_count messages consumed from topic"
+                fi
+
+                # Verify message content (should contain test messages)
+                if ! grep -q "test message 1" "${TEST_DATA_DIR}/consumer-output.txt" 2>/dev/null; then
+                    print_error "'test message 1' not found in consumer output"
+                    print_info "Consumer output: $(cat "${TEST_DATA_DIR}/consumer-output.txt" 2>&1)"
+                    result=1
+                fi
+
+                if ! grep -q "test message 2" "${TEST_DATA_DIR}/consumer-output.txt" 2>/dev/null; then
+                    print_error "'test message 2' not found in consumer output"
+                    print_info "Consumer output: $(cat "${TEST_DATA_DIR}/consumer-output.txt" 2>&1)"
+                    result=1
+                fi
+
+                if ! grep -q "test message 3" "${TEST_DATA_DIR}/consumer-output.txt" 2>/dev/null; then
+                    print_error "'test message 3' not found in consumer output"
+                    print_info "Consumer output: $(cat "${TEST_DATA_DIR}/consumer-output.txt" 2>&1)"
+                    result=1
+                fi
+            else
+                print_error "Consumer output file not created"
+                print_info "cat process may have failed to capture data"
+                result=1
+            fi
+        fi
+
+        # Stop the daemon
+        kill -TERM "$daemon_pid" 2>/dev/null || true
+
+        # Wait for daemon to exit
+        local timeout=5
+        while [ $timeout -gt 0 ] && kill -0 "$daemon_pid" 2>/dev/null; do
+            sleep 1
+            timeout=$((timeout - 1))
+        done
+
+        # Force kill if needed
+        if kill -0 "$daemon_pid" 2>/dev/null; then
+            kill -9 "$daemon_pid" 2>/dev/null || true
+            result=1
+        fi
+    fi
+
+    # Cleanup
+    rm -f "$control_file" "$producer_fifo" "$consumer_fifo" "${TEST_DATA_DIR}/consumer-output.txt" "$daemon_log" 2>/dev/null || true
+
+    print_result "FIFO daemon consumer functionality" $result
 }
 
 # Print summary
@@ -700,6 +983,7 @@ main() {
     test_list_topics_empty
     test_fifo_daemon
     test_fifo_daemon_options
+    test_fifo_daemon_consumer
 
     cleanup
     print_summary

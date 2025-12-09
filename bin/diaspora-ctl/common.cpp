@@ -96,33 +96,48 @@ void set_nested_value(nlohmann::json& obj, const std::string& key, const nlohman
 
 ParsedArgs extract_metadata_args(int argc, char** argv) {
     ParsedArgs result;
-    result.driver_metadata = nlohmann::json::object();
-    result.topic_metadata = nlohmann::json::object();
+
+    // Initialize metadata objects for all supported prefixes
+    result.metadata["driver"] = nlohmann::json::object();
+    result.metadata["topic"] = nlohmann::json::object();
+    result.metadata["validator"] = nlohmann::json::object();
+    result.metadata["serializer"] = nlohmann::json::object();
+    result.metadata["partition-selector"] = nlohmann::json::object();
+
+    // Define all supported metadata prefixes with their string lengths
+    const std::vector<std::pair<std::string, size_t>> prefixes = {
+        {"--driver.", 9},
+        {"--topic.", 8},
+        {"--validator.", 12},
+        {"--serializer.", 13},
+        {"--partition-selector.", 21}
+    };
 
     for (int i = 0; i < argc; ++i) {
         std::string arg = argv[i];
+        bool matched = false;
 
-        if (arg.rfind("--driver.", 0) == 0) {
-            // Extract key after "--driver."
-            std::string key = arg.substr(9);
-            if (i + 1 < argc) {
-                std::string value = argv[i + 1];
-                set_nested_value(result.driver_metadata, key, parse_value(value));
-                i++; // Skip the value argument
-                continue;
-            }
-        } else if (arg.rfind("--topic.", 0) == 0) {
-            // Extract key after "--topic."
-            std::string key = arg.substr(8);
-            if (i + 1 < argc) {
-                std::string value = argv[i + 1];
-                set_nested_value(result.topic_metadata, key, parse_value(value));
-                i++; // Skip the value argument
-                continue;
+        for (const auto& [prefix_with_dashes, prefix_len] : prefixes) {
+            if (arg.rfind(prefix_with_dashes, 0) == 0) {
+                // Extract the prefix name (without -- and trailing .)
+                std::string prefix_name = prefix_with_dashes.substr(2, prefix_len - 3);
+
+                // Extract key after the prefix
+                std::string key = arg.substr(prefix_len);
+
+                if (i + 1 < argc) {
+                    std::string value = argv[i + 1];
+                    set_nested_value(result.metadata[prefix_name], key, parse_value(value));
+                    i++; // Skip the value argument
+                    matched = true;
+                    break;
+                }
             }
         }
 
-        result.filtered_argv.push_back(argv[i]);
+        if (!matched) {
+            result.filtered_argv.push_back(argv[i]);
+        }
     }
 
     return result;

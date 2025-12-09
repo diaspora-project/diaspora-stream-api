@@ -53,8 +53,8 @@ int topic_create(int argc, char** argv) {
 
         // Merge command-line metadata with config file metadata
         // Command-line arguments take precedence
-        driver_config.merge_patch(parsed_args.driver_metadata);
-        topic_config.merge_patch(parsed_args.topic_metadata);
+        driver_config.merge_patch(parsed_args.metadata["driver"]);
+        topic_config.merge_patch(parsed_args.metadata["topic"]);
 
         spdlog::debug("Driver config: {}", driver_config.dump());
         spdlog::debug("Topic config: {}", topic_config.dump());
@@ -64,20 +64,36 @@ int topic_create(int argc, char** argv) {
 
         spdlog::info("Creating topic: {}", nameArg.getValue());
 
-        // TODO: Handle validator, serializer, and partition selector creation
-        // For now, these are passed as nullptr (optional parameters)
+        // Create validator, serializer, and partition selector from metadata
         diaspora::Validator validator;
         diaspora::Serializer serializer;
         diaspora::PartitionSelector selector;
 
+        // Handle validator creation
         if (!validatorArg.getValue().empty()) {
-            spdlog::warn("Validator parameter provided but not yet implemented");
+            spdlog::debug("Creating validator: {}", validatorArg.getValue());
+            auto validator_metadata = parsed_args.metadata["validator"];
+            validator_metadata["type"] = validatorArg.getValue();
+            spdlog::debug("Validator metadata: {}", validator_metadata.dump());
+            validator = diaspora::Validator::FromMetadata(diaspora::Metadata{validator_metadata.dump()});
         }
+
+        // Handle serializer creation
         if (!serializerArg.getValue().empty()) {
-            spdlog::warn("Serializer parameter provided but not yet implemented");
+            spdlog::debug("Creating serializer: {}", serializerArg.getValue());
+            auto serializer_metadata = parsed_args.metadata["serializer"];
+            serializer_metadata["type"] = serializerArg.getValue();
+            spdlog::debug("Serializer metadata: {}", serializer_metadata.dump());
+            serializer = diaspora::Serializer::FromMetadata(diaspora::Metadata{serializer_metadata.dump()});
         }
+
+        // Handle partition selector creation
         if (!partitionSelectorArg.getValue().empty()) {
-            spdlog::warn("Partition selector parameter provided but not yet implemented");
+            spdlog::debug("Creating partition selector: {}", partitionSelectorArg.getValue());
+            auto selector_metadata = parsed_args.metadata["partition-selector"];
+            selector_metadata["type"] = partitionSelectorArg.getValue();
+            spdlog::debug("Partition selector metadata: {}", selector_metadata.dump());
+            selector = diaspora::PartitionSelector::FromMetadata(diaspora::Metadata{selector_metadata.dump()});
         }
 
         driver.createTopic(
@@ -131,7 +147,7 @@ int topic_list(int argc, char** argv) {
 
         // Merge command-line metadata with config file metadata
         // Command-line arguments take precedence
-        driver_config.merge_patch(parsed_args.driver_metadata);
+        driver_config.merge_patch(parsed_args.metadata["driver"]);
 
         spdlog::debug("Driver config: {}", driver_config.dump());
 

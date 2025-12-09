@@ -8,6 +8,7 @@
 
 #include <nlohmann/json.hpp>
 #include <string>
+#include <unordered_map>
 
 namespace diaspora_ctl {
 
@@ -44,16 +45,15 @@ void set_nested_value(nlohmann::json& obj, const std::string& key, const nlohman
  * @brief Structure to hold parsed command-line metadata arguments
  */
 struct ParsedArgs {
-    nlohmann::json driver_metadata;
-    nlohmann::json topic_metadata;
+    std::unordered_map<std::string, nlohmann::json> metadata;
     std::vector<char*> filtered_argv;
 };
 
 /**
- * @brief Extract --driver.* and --topic.* metadata arguments from argv
+ * @brief Extract metadata arguments from argv (--driver.*, --topic.*, --validator.*, --serializer.*, --partition-selector.*)
  * @param argc Argument count
  * @param argv Argument vector
- * @return Parsed arguments with metadata and filtered argv
+ * @return Parsed arguments with metadata map and filtered argv
  */
 ParsedArgs extract_metadata_args(int argc, char** argv);
 

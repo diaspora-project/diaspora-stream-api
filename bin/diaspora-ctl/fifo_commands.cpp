@@ -925,7 +925,7 @@ int fifo_daemon(int argc, char** argv) {
 
         // Merge command-line metadata with config file metadata
         // Command-line arguments take precedence
-        driver_config.merge_patch(parsed_args.driver_metadata);
+        driver_config.merge_patch(parsed_args.metadata["driver"]);
 
         spdlog::debug("Driver config: {}", driver_config.dump());
 

@@ -23,7 +23,7 @@ class EnergyValidator final : public diaspora::ValidatorInterface {
         if(metadata.json()["energy"].get<size_t>() >= energy_max)
             throw diaspora::InvalidMetadata{
                 std::string{"EnergyValidator expects energy value to be lower than"}
-                + std::to_string{energy_max}};
+                + std::to_string(energy_max)};
         (void)data; // the validator could also validate the content of the data
     }
 

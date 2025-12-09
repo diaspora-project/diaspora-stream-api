@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
     try {
 
         diaspora::Metadata driver_options;
-        options.json()["root_path"] = root_path;
+        driver_options.json()["root_path"] = root_path;
 
         diaspora::Driver driver = diaspora::Driver::New("files", driver_options);
 

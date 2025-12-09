@@ -10,9 +10,9 @@ spack:
   - mpich
   - spdlog
   - mochi-thallium
-  repos:
-    mochi:
-      git: https://github.com/mochi-hpc/mochi-spack-packages.git
+#  repos:
+#    mochi:
+#      git: https://github.com/mochi-hpc/mochi-spack-packages.git
   concretizer:
     unify: true
     reuse: true
@@ -25,10 +25,10 @@ spack:
       require: "@3.6.0:"
     nlohmann-json-schema-validator:
       require: "@2.3.0:"
-  mirrors:
-    mochi-buildcache:
-      url: oci://ghcr.io/mochi-hpc/mochi-spack-buildcache
-      signed: false
-  config:
-    install_tree:
-      padded_length: 128
+#  mirrors:
+#    mochi-buildcache:
+#      url: oci://ghcr.io/mochi-hpc/mochi-spack-buildcache
+#      signed: false
+#  config:
+#    install_tree:
+#      padded_length: 128

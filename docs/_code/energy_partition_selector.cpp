@@ -1,6 +1,5 @@
 #include <diaspora/PartitionSelector.hpp>
 #include <diaspora/InvalidMetadata.hpp>
-#include <fmt/format.h>
 
 
 class EnergyPartitionSelector final : public diaspora::PartitionSelectorInterface {

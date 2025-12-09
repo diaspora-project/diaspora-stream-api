@@ -1,5 +1,4 @@
 #include <diaspora/Serializer.hpp>
-#include <fmt/format.h>
 
 
 class EnergySerializer final : public diaspora::SerializerInterface {

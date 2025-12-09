@@ -1,5 +1,4 @@
 #include <diaspora/Validator.hpp>
-#include <fmt/format.h>
 
 
 class EnergyValidator final : public diaspora::ValidatorInterface {
@@ -23,7 +22,8 @@ class EnergyValidator final : public diaspora::ValidatorInterface {
                 "EnergyValidator expects x_max field to be an integer"};
         if(metadata.json()["energy"].get<size_t>() >= energy_max)
             throw diaspora::InvalidMetadata{
-                fmt::format("EnergyValidator expects energy value to be lower than {}", energy_max)};
+                std::string{"EnergyValidator expects energy value to be lower than"}
+                + std::to_string{energy_max}};
         (void)data; // the validator could also validate the content of the data
     }
 

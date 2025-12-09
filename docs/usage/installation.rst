@@ -14,7 +14,7 @@ The *diaspora-spack-packages* repository needs to be added to spack as follows.
 We recommend that you update your clone of *diaspora-spack-packages* from time to time
 to get the latest versions of all the dependencies.
 
-You can then install Mofka as follows.
+You can then install the Diaspora Stream API as follows.
 
 .. code-block:: bash
 

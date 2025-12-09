@@ -133,6 +133,7 @@ endif ()
 
 add_subdirectory (src)
 add_subdirectory (bin)
+add_subdirectory (docs/_code)
 
 if (ENABLE_TESTS)
     enable_testing ()

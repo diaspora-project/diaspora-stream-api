@@ -54,6 +54,7 @@ with existing ones. To help with this, we provide a `template Github repository
    usage/restarting.rst
    usage/drivers.rst
    usage/utilities.rst
+   usage/benchmarks.rst
 
 
 Indices and tables

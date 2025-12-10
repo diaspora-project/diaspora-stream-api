@@ -52,6 +52,8 @@ with existing ones. To help with this, we provide a `template Github repository
    usage/consumer.rst
    usage/deployment.rst
    usage/restarting.rst
+   usage/drivers.rst
+   usage/utilities.rst
 
 
 Indices and tables

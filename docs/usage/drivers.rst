@@ -10,7 +10,7 @@ Mofka
 on the `Mochi <https://wordpress.cels.anl.gov/mochi/>`_ suite of technologies. It relies
 on RPC and RDMA using the Mercury library and on user-level threads thanks to the
 Argobots library. To use Mofka as a backend, simply follow the README in Mofka's repository.
-Thanks to its use us high-performance networks, Mofka is particularly well suited for use
+Thanks to its use of high-performance networks, Mofka is particularly well suited for use
 in HPC applications.
 
 Octopus
@@ -21,7 +21,7 @@ allowing the use of the Diaspora Stream API on top of `Apache Kafka <https://kaf
 or any engine compatible with `librdkafka <https://github.com/confluentinc/librdkafka>`_
 (e.g. `Redpanda <https://www.redpanda.com/>`_). It can be used with a local deployment
 of such engines, or with one deployed on Amazon MSK, using IAM access control.
-To use Ocsopu as a backend, simply follow the README in Octopus' repository.
+To use Octopus as a backend, simply follow the README in Octopus' repository.
 
 Files
 -----

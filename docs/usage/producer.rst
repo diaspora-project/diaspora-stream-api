@@ -44,7 +44,7 @@ A producer can be created with five optional parameters.
 * **Thread pool**: the producer will run the topic's validator, partition selector, and
   serializer in user-level threads pushed into a thread pool. The thread pool is backed
   by a number of hardware threads. If not specified, the default thread pool of the
-  driver will be used..
+  driver will be used.
 
 * **Batch size**: the batch size is the number of events to batch together before the batch
   is sent to the target partition. :code:`diaspora::BatchSize::Adaptive()` (:code:`AdaptiveBatchSize`
@@ -77,8 +77,8 @@ and represents potentially larger, raw data that can benefit from being transfer
 via zero-copy mechanisms such as RDMA.
 
 As an example, imagine an application that produces high-resolution images out of a
-series of detectors at regular intervalles. The metadata part of an event might
-by a JSON fragment containing the timestamp and detector information (e.g., callibration
+series of detectors at regular intervals. The metadata part of an event might
+be a JSON fragment containing the timestamp and detector information (e.g., calibration
 parameters), as well as information about the images (e.g., dimensions, pixel format).
 The data part of an event would be the image itself.
 
@@ -131,7 +131,7 @@ The code bellow shows how to create the data and metadata pieces of an event.
    does not free the memory before it has been transferred, and (2) you need to make sure
    not to write the memory while it is being transferred.
 
-   In Python, the equivalent of a :code:`mofka::DataView` is a :code:`list` of any objects
+   In Python, the equivalent of a :code:`diaspora::DataView` is a :code:`list` of any objects
    satisfying the `buffer protocol <https://docs.python.org/3/c-api/buffer.html>`_
    (e.g., bytes, bytearray, numpy arrays, etc.).
    When pushing the data into a producer, the producer will share ownership of

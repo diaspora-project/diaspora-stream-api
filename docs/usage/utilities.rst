@@ -103,7 +103,7 @@ Options in parenthesis may be one of the following.
 
 * :code:`format` : :code:`raw` or :code:`json` (default: :code:`raw`). If :code:`json` is
   specified, the line is interpreted as a JSON document. Otherwise it is interpreted as a
-  string. Note that because the deamon splits events on new lines, these JSON or strings
+  string. Note that because the daemon splits events on new lines, these JSON or strings
   cannot themselves embed new lines.
 
 * :code:`batch_size` : an integer value, representing the batch size the producer must use

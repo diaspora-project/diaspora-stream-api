@@ -19,7 +19,7 @@ Three implementations of the Diaspora Stream API currently exist.
 * `Mofka <https://mofka.readthedocs.io>`_, a streaming framework based on
   `Mochi <https://wordpress.cels.anl.gov/mochi/>`_, a set of tools and methodologies
   for building highly-efficient HPC data services. Mofka benefits from high-speed HPC
-  networks with the `Mercury <https://mercury-hpc.github.io/>`_ RPC and RDMA library
+  networks through the `Mercury <https://mercury-hpc.github.io/>`_ RPC and RDMA library
   and a high level of on-node concurrency using
   `Argobots <https://www.argobots.org/>`_.
 * `Octopus <https://github.com/diaspora-project/diaspora-stream-octopus>`_, an

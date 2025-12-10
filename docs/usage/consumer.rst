@@ -124,7 +124,7 @@ and should not be sent again, should the consumer restart.
 
    In the C++ example we have allocated the memory for the data in our data allocator
    function, so we need to free it when we no longer need it. In Python, the event
-   will share owneship of the data returned by the allocator and garbage collection
+   will share ownership of the data returned by the allocator and garbage collection
    will free the buffer at a later time.
 
 
@@ -142,7 +142,7 @@ The :code:`DataDescriptor` class however provides methods to build a new
 of events containing data that represent an image of dimensions :code:`W*H`, stored
 as a row-major array of :code:`uint8_t` values (for simplicity, assuming monochrome image).
 We wish to only access a rectangle region of dimensions :code:`w*h` at offset :code:`(x,y)`,
-as shown in the picture bellow.
+as shown in the picture below.
 
 .. image:: ../_static/DataDescriptor-dark.svg
    :class: only-dark

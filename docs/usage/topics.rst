@@ -44,7 +44,7 @@ expects to find in the metadata of each event.
    an *energy* value, represented by an unsigned integer (just so we can show
    what optimizations could be done with the API's modularity). Furthermore, let's say that
    the detector is calibrated to output energies from 0 to 99. We can create a validator that
-   checks that the energy field is not only present, but that its value is also stricly lower
+   checks that the energy field is not only present, but that its value is also strictly lower
    than 100. If we would like to aggregate events with similar energy values into the same partition,
    we could have the partition selector make its decision based on this energy value.
    Finally, since we know that the energy value is between 0 and 99 and is the only relevant
@@ -60,7 +60,7 @@ Creating a topic
 
 The following code snippets show how to create a topic. Such topic creation should generally
 be done using the :code:`diaspora-ctl` command-line tool, however it is also possible to create
-topics in C++, and in Python, Our custom validator, partition selector,
+topics in C++ and in Python. Our custom validator, partition selector,
 and serializer are provided using the :code:`"name:library.so"` format. This tells the
 API to dynamically load the specified libraries to get access to their implementation.
 

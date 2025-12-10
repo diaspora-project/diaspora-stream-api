@@ -42,7 +42,7 @@ Alternatively, you can isolate your installation in a Spack environment as follo
    and calling :code:`spack repo add` with the local path. Letting Spack clone it into the
    environment is a little better for isolation.
    Note the quotes around :code:`$env/repos`, this is because we don't want :code:`$env` to
-   be expended by the shell, we want spack itself to replace it with the environment's path.
+   be expanded by the shell, we want spack itself to replace it with the environment's path.
 
 It is generally recommended to use Spack environments to better manage package isolation.
 Adding *diaspora-spack-packages* this way also ensures that it is added only to the environment

@@ -7,7 +7,7 @@ are produced into and consumed from `topics`, which are themselves split into
 a number `partitions`. Each partition represents an append-only log.
 
 In this documentation, we will use the **files** driver that ships with the
-Diaspora Stream API. Other implementation are discussed in a later section.
+Diaspora Stream API. Other implementations are discussed in a later section.
 
 Creating a topic and a partition
 --------------------------------
@@ -22,7 +22,7 @@ is to use the :code:`diaspora-ctl` command line tool as follows.
                              --driver.root_path /tmp/diaspora-data \
                              --topic.num_partitions 1
 
-This command takes **--name** and **--driver** as mendatory arguments. Driver options
+This command takes **--name** and **--driver** as mandatory arguments. Driver options
 can be supplied using the :code:`--driver.<option-name>` syntax (e.g. here the :code:`root_path`
 option, which specifies where to store the data in the file system). Similarly, topic
 options can be supplied using :code:`--topic.<option-name>`.
@@ -32,7 +32,7 @@ options can be supplied using :code:`--topic.<option-name>`.
    If many options must be passed to the driver (resp. the topic), a
    :code:`--driver-config <filename.json>` may be supplied (resp. :code:`--topic-config`),
    which provides the options in the form of a JSON file. :code:`diaspora-ctl` will merge
-   options coming from a JSON file with options comming from the command line, with the
+   options coming from a JSON file with options coming from the command line, with the
    latter overwriting the former.
 
 We can check that the topic has been created successfully by listing the available
@@ -66,7 +66,7 @@ Simple producer application
 
 The following code exemplifies a producer.
 We first create a :code:`Driver` object, passing it some options including the :code:`root_path`
-requires by the "files" driver. The first argument passed to :code:`Driver::New` (or the Driver's
+required by the "files" driver. The first argument passed to :code:`Driver::New` (or the Driver's
 constructor in Python), "files", tells it to load the Files driver implementation. This
 implementation is built into the library, so it does not need to be dynamically loaded.
 In general, passing "<name>" as the argument  will make the API automatically search for
@@ -93,7 +93,7 @@ so as to overlap the sending of the event with actual work from the application.
 :code:`producer.flush()` is also a non-blocking function. It returns a future that can be awaited.
 
 All the Future objects used in the Diaspora Stream API have a :code:`wait()` function taking
-a timeout value in milliseconds. This timeout `is not` the timeout of the underlying operation
+a timeout value in milliseconds. This timeout **is not** the timeout of the underlying operation
 itself, it is the duration after which the :code:`wait()` call should unblock even if the operation
 has not completed. In C++, :code:`wait()` returns an :code:`std::optional`. If the :code:`wait`
 times out, this optional will not be set. In Python, :code:`wait()` will return :code:`None` if it

@@ -137,6 +137,13 @@ class ThreadPool {
     }
 
     /**
+     * @brief Convert into the underlying std::shared_ptr<ThreadPoolInterface>.
+     */
+    explicit inline operator std::shared_ptr<ThreadPoolInterface>() const {
+        return self;
+    }
+
+    /**
      * @brief Try to convert into a reference to the underlying type.
      */
     template<typename T>

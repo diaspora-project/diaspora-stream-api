@@ -37,6 +37,8 @@ configure_file (files-driver-pre-test.sh files-driver-pre-test.sh USE_SOURCE_PER
 configure_file (files-driver-post-test.sh files-driver-post-test.sh USE_SOURCE_PERMISSIONS COPYONLY)
 configure_file (files-driver-run-benchmark.sh files-driver-run-benchmark.sh USE_SOURCE_PERMISSIONS COPYONLY)
 configure_file (test-diaspora-ctl.sh test-diaspora-ctl.sh USE_SOURCE_PERMISSIONS COPYONLY)
+configure_file (test-diaspora-ctl-common.sh test-diaspora-ctl-common.sh USE_SOURCE_PERMISSIONS COPYONLY)
+configure_file (test-diaspora-ctl-fifo.sh test-diaspora-ctl-fifo.sh USE_SOURCE_PERMISSIONS COPYONLY)
 
 if (ENABLE_PYTHON)
 
@@ -85,6 +87,13 @@ set_property (TEST DiasporaFilesDriverBenchmark PROPERTY
 add_test (NAME DiasporaCtlTest COMMAND
           ${CMAKE_CURRENT_BINARY_DIR}/test-diaspora-ctl.sh)
 set_property (TEST DiasporaCtlTest PROPERTY
+              ENVIRONMENT
+              "PATH=$ENV{PATH}:${CMAKE_BINARY_DIR}/bin"
+              "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/src:$ENV{LD_LIBRARY_PATH}")
+
+add_test (NAME DiasporaCtlFifoTest COMMAND
+          ${CMAKE_CURRENT_BINARY_DIR}/test-diaspora-ctl-fifo.sh)
+set_property (TEST DiasporaCtlFifoTest PROPERTY
               ENVIRONMENT
               "PATH=$ENV{PATH}:${CMAKE_BINARY_DIR}/bin"
               "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/src:$ENV{LD_LIBRARY_PATH}")

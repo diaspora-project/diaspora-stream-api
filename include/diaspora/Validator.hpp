@@ -24,7 +24,7 @@ namespace diaspora {
  * validating instances of the Metadata class.
  *
  * A ValidatorInterface must also provide functions to convert
- * itself into a Metadata object an back, so that its internal
+ * itself into a Metadata object and back, so that its internal
  * configuration can be stored.
  */
 class ValidatorInterface {

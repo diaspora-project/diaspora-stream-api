@@ -70,10 +70,10 @@ class PartitionSelectorInterface {
 
     /**
      * @note A PartitionSelectorInterface class must also provide a static create
-     * function with the following prototype, instanciating a shared_ptr of
+     * function with the following prototype, instanciating a unique_ptr of
      * the class from the provided Metadata:
      *
-     * static std::shared_ptr<PartitionSelectorInterface> create(const Metadata&);
+     * static std::unique_ptr<PartitionSelectorInterface> create(const Metadata&);
      */
 };
 
@@ -84,7 +84,7 @@ class PartitionSelector {
 
     public:
 
-    PartitionSelector(const std::shared_ptr<PartitionSelectorInterface>& impl)
+    PartitionSelector(const std::unique_ptr<PartitionSelectorInterface>& impl)
     : self(impl) {}
 
     /**
@@ -178,7 +178,7 @@ class PartitionSelector {
 
     private:
 
-    std::shared_ptr<PartitionSelectorInterface> self;
+    std::unique_ptr<PartitionSelectorInterface> self;
 };
 
 using PartitionSelectorFactory = Factory<PartitionSelectorInterface, const Metadata&>;

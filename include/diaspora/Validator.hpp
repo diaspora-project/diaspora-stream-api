@@ -24,7 +24,7 @@ namespace diaspora {
  * validating instances of the Metadata class.
  *
  * A ValidatorInterface must also provide functions to convert
- * itself into a Metadata object an back, so that its internal
+ * itself into a Metadata object and back, so that its internal
  * configuration can be stored.
  */
 class ValidatorInterface {
@@ -58,10 +58,10 @@ class ValidatorInterface {
 
     /**
      * @note A ValidatorInterface class must also provide a static Create
-     * function with the following prototype, instanciating a shared_ptr of
+     * function with the following prototype, instantiating a shared_ptr of
      * the class from the provided Metadata:
      *
-     * static std::shared_ptr<ValidatorInterface> create(const Metadata&);
+     * static std::shared_ptr<ValidatorInterface> create(const diaspora::Metadata&);
      */
 };
 

@@ -68,7 +68,7 @@ class SerializerInterface {
 
     /**
      * @note A SerializerInterface class must also provide a static create
-     * function with the following prototype, instanciating a shared_ptr of
+     * function with the following prototype, instanciating a unique_ptr of
      * the class from the provided Metadata:
      *
      * static std::unique_ptr<SerializerInterface> create(const Metadata&);
@@ -82,7 +82,7 @@ class Serializer {
 
     public:
 
-    Serializer(std::shared_ptr<SerializerInterface> impl)
+    Serializer(std::unique_ptr<SerializerInterface> impl)
     : self(std::move(impl)) {}
 
     /**
@@ -181,7 +181,7 @@ class Serializer {
 
     private:
 
-    std::shared_ptr<SerializerInterface> self;
+    std::unique_ptr<SerializerInterface> self;
 
 };
 

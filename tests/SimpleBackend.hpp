@@ -324,6 +324,7 @@ class SimpleTopicHandle final : public diaspora::TopicHandleInterface,
     const diaspora::Serializer                 m_serializer;
     const std::shared_ptr<SimpleDriver>     m_driver;
 
+    mutable std::mutex                      m_partition_mtx;
     Partition                               m_partition;
 
     public:
@@ -412,6 +413,7 @@ inline diaspora::Future<std::optional<diaspora::EventID>> SimpleProducer::push(
                 // partition selection
                 auto index = topic->m_partition_selector.selectPartitionFor(metadata, partition);
                 if(index != 0) throw diaspora::Exception{"Invalid index returned by PartitionSelector"};
+                std::lock_guard<std::mutex> lock{topic->m_partition_mtx};
                 auto& metadata_vector = topic->m_partition.metadata;
                 auto& data_vector = topic->m_partition.data;
                 metadata_vector.push_back(std::move(metadata_buffer));
@@ -545,6 +547,7 @@ inline std::shared_ptr<diaspora::ConsumerInterface>
 void SimpleConsumer::unsubscribe() {}
 
 diaspora::Future<std::optional<diaspora::Event>> SimpleConsumer::pull() {
+    std::lock_guard<std::mutex> lock{m_topic->m_partition_mtx};
     if(m_next_offset == m_topic->m_partition.metadata.size()) {
         return diaspora::Future<std::optional<diaspora::Event>>{
             [](int) {

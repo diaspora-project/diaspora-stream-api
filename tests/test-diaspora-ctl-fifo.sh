@@ -373,6 +373,157 @@ test_fifo_daemon_consumer() {
     print_result "FIFO daemon consumer functionality" $result
 }
 
+# Test: FIFO daemon concurrent producer/consumer
+# This test verifies that both producer and consumer FIFOs can operate simultaneously.
+# Note: The files driver batches events, so we use batch_size=1 for immediate writes.
+test_fifo_concurrent_producer_consumer() {
+    echo ""
+    echo "Test: FIFO daemon concurrent producer/consumer"
+    echo "-----------------------------------------------"
+
+    local root_path="${TEST_DATA_DIR}/fifo-concurrent"
+    mkdir -p "$root_path"
+
+    local control_file="${TEST_DATA_DIR}/fifo-control-concurrent"
+    local producer_fifo="${TEST_DATA_DIR}/producer-fifo-concurrent"
+    local consumer_fifo="${TEST_DATA_DIR}/consumer-fifo-concurrent"
+    local daemon_log="${TEST_DATA_DIR}/daemon-output-concurrent.log"
+    local consumer_output="${TEST_DATA_DIR}/concurrent-consumer-output.txt"
+    local num_messages=5
+
+    # Create a topic first
+    "$DIASPORA_CTL" topic create \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --name "concurrent-topic" \
+        > /dev/null 2>&1
+
+    # Start the daemon in the background
+    "$DIASPORA_CTL" fifo \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --control-file "$control_file" \
+        --logging error \
+        > "$daemon_log" 2>&1 &
+
+    local daemon_pid=$!
+    local result=0
+
+    # Give the daemon time to start
+    sleep 1
+
+    # Check if daemon is running
+    if ! kill -0 "$daemon_pid" 2>/dev/null; then
+        print_error "Daemon failed to start or crashed immediately"
+        print_info "Daemon output:"
+        if [ -f "$daemon_log" ]; then
+            cat "$daemon_log" | while IFS= read -r line; do
+                print_info "  $line"
+            done
+        else
+            print_info "  No log file created"
+        fi
+        result=1
+    else
+        # Step 1: Create consumer FIFO and start reader
+        if ! mkfifo "$consumer_fifo" 2>/dev/null; then
+            print_error "Failed to create consumer FIFO at $consumer_fifo"
+            result=1
+        fi
+
+        if [ $result -eq 0 ]; then
+            # Start consumer reader in background BEFORE registering with daemon
+            timeout 30s cat "$consumer_fifo" > "$consumer_output" 2>/dev/null &
+            local consumer_cat_pid=$!
+
+            # Give cat time to open the FIFO for reading
+            sleep 0.5
+
+            # Register producer with batch_size=1 for immediate writes
+            # This is necessary because the files driver batches events
+            print_info "Registering producer with batch_size=1"
+            echo "$producer_fifo -> concurrent-topic (batch_size=1)" > "$control_file" 2>/dev/null || true
+            sleep 1
+
+            # Verify producer FIFO was created
+            if [ ! -p "$producer_fifo" ]; then
+                print_error "Producer FIFO not created at $producer_fifo"
+                result=1
+            fi
+        fi
+
+        if [ $result -eq 0 ]; then
+            # Produce messages (one at a time, as FIFO writes can block)
+            print_info "Producing $num_messages messages"
+            for i in $(seq 1 $num_messages); do
+                if ! echo "concurrent_message_$i" > "$producer_fifo" 2>/dev/null; then
+                    print_error "Failed to write message $i"
+                    result=1
+                    break
+                fi
+            done
+            sleep 2
+
+            # Register consumer with daemon
+            print_info "Registering consumer"
+            echo "$consumer_fifo <- concurrent-topic" > "$control_file" 2>/dev/null || true
+
+            # Wait for messages to be consumed
+            sleep 3
+
+            # Stop the consumer cat process
+            kill $consumer_cat_pid 2>/dev/null || true
+            wait $consumer_cat_pid 2>/dev/null || true
+
+            # Verify messages were received
+            if [ -f "$consumer_output" ]; then
+                local received=$(wc -l < "$consumer_output" 2>/dev/null || echo 0)
+                received=$(echo "$received" | tr -d ' ')
+
+                if [ "$received" -ge "$num_messages" ]; then
+                    print_info "Received $received messages"
+
+                    # Verify message content
+                    if grep -q "concurrent_message_1" "$consumer_output" 2>/dev/null; then
+                        print_info "Message content verified"
+                    else
+                        print_error "'concurrent_message_1' not found"
+                        print_info "Consumer output: $(cat "$consumer_output" 2>&1)"
+                        result=1
+                    fi
+                else
+                    print_error "Expected at least $num_messages messages, got $received"
+                    print_info "Consumer output: $(cat "$consumer_output" 2>&1)"
+                    result=1
+                fi
+            else
+                print_error "Consumer output file not created"
+                result=1
+            fi
+        fi
+
+        # Stop the daemon
+        kill -TERM "$daemon_pid" 2>/dev/null || true
+
+        # Wait for daemon to exit
+        local timeout=5
+        while [ $timeout -gt 0 ] && kill -0 "$daemon_pid" 2>/dev/null; do
+            sleep 1
+            timeout=$((timeout - 1))
+        done
+
+        # Force kill if needed
+        if kill -0 "$daemon_pid" 2>/dev/null; then
+            kill -9 "$daemon_pid" 2>/dev/null || true
+        fi
+    fi
+
+    # Cleanup
+    rm -f "$control_file" "$producer_fifo" "$consumer_fifo" "$consumer_output" "$daemon_log" 2>/dev/null || true
+
+    print_result "FIFO daemon concurrent producer/consumer" $result
+}
+
 # Main test execution
 main() {
     echo "================================================"
@@ -385,6 +536,7 @@ main() {
     test_fifo_daemon
     test_fifo_daemon_options
     test_fifo_daemon_consumer
+    test_fifo_concurrent_producer_consumer
 
     cleanup
     print_summary

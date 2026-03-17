@@ -54,10 +54,13 @@ test_forward_basic() {
         echo "$producer_fifo -> source-topic (batch_size=1)" > "$fifo_control" 2>/dev/null || true
         sleep 1
 
-        # Write test messages
-        for i in 1 2 3; do
-            echo "forward_test_$i" > "$producer_fifo" 2>/dev/null || true
-        done
+        # Write test messages (keep FIFO open for all writes to avoid POLLHUP)
+        {
+            for i in 1 2 3; do
+                echo "forward_test_$i"
+                sleep 0.2
+            done
+        } > "$producer_fifo" 2>/dev/null || true
         sleep 2
 
         # Stop fifo daemon
@@ -132,7 +135,7 @@ EOF
                 sleep 0.5
 
                 echo "$consumer_fifo <- dest-topic" > "${TEST_DATA_DIR}/forward-basic-fifo-control2" 2>/dev/null || true
-                sleep 3
+                sleep 5
 
                 kill $cat_pid 2>/dev/null || true
                 wait $cat_pid 2>/dev/null || true

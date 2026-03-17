@@ -25,6 +25,7 @@ foreach (test-source ${diaspora-test-sources})
     add_test (NAME Diaspora${name} COMMAND ./Diaspora${name})
     set_property (TEST Diaspora${name} PROPERTY
                   ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}:$ENV{LD_LIBRARY_PATH}")
+    set_property (TEST Diaspora${name} PROPERTY TIMEOUT 120)
     install (TARGETS Diaspora${name}
              DESTINATION bin)
 endforeach ()
@@ -60,6 +61,7 @@ if (ENABLE_PYTHON)
         endif ()
         set_property (TEST ${PYTHON_TEST_NAME} PROPERTY ENVIRONMENT
                       PYTHONPATH=${CMAKE_SOURCE_DIR}/python/:${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH})
+        set_property (TEST ${PYTHON_TEST_NAME} PROPERTY TIMEOUT 120)
     endforeach ()
 
 endif ()
@@ -77,6 +79,7 @@ set_property (TEST DiasporaFilesDriverTestSuite PROPERTY
               ENVIRONMENT
               "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/src:$ENV{LD_LIBRARY_PATH}"
               "PYTHONPATH=${CMAKE_SOURCE_DIR}/python/:${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH}")
+set_property (TEST DiasporaFilesDriverTestSuite PROPERTY TIMEOUT 120)
 
 add_test (NAME DiasporaFilesDriverBenchmark COMMAND
           ${CMAKE_CURRENT_BINARY_DIR}/files-driver-run-benchmark.sh)
@@ -84,6 +87,7 @@ set_property (TEST DiasporaFilesDriverBenchmark PROPERTY
               ENVIRONMENT
               "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/src:$ENV{LD_LIBRARY_PATH}"
               "PYTHONPATH=${CMAKE_SOURCE_DIR}/python/:${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH}")
+set_property (TEST DiasporaFilesDriverBenchmark PROPERTY TIMEOUT 120)
 
 add_test (NAME DiasporaCtlTest COMMAND
           ${CMAKE_CURRENT_BINARY_DIR}/test-diaspora-ctl.sh)
@@ -91,6 +95,7 @@ set_property (TEST DiasporaCtlTest PROPERTY
               ENVIRONMENT
               "PATH=$ENV{PATH}:${CMAKE_BINARY_DIR}/bin"
               "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/src:$ENV{LD_LIBRARY_PATH}")
+set_property (TEST DiasporaCtlTest PROPERTY TIMEOUT 120)
 
 add_test (NAME DiasporaCtlFifoTest COMMAND
           ${CMAKE_CURRENT_BINARY_DIR}/test-diaspora-ctl-fifo.sh)
@@ -98,6 +103,7 @@ set_property (TEST DiasporaCtlFifoTest PROPERTY
               ENVIRONMENT
               "PATH=$ENV{PATH}:${CMAKE_BINARY_DIR}/bin"
               "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/src:$ENV{LD_LIBRARY_PATH}")
+set_property (TEST DiasporaCtlFifoTest PROPERTY TIMEOUT 120)
 
 add_test (NAME DiasporaCtlForwardTest COMMAND
           ${CMAKE_CURRENT_BINARY_DIR}/test-diaspora-ctl-forward.sh)
@@ -105,3 +111,4 @@ set_property (TEST DiasporaCtlForwardTest PROPERTY
               ENVIRONMENT
               "PATH=$ENV{PATH}:${CMAKE_BINARY_DIR}/bin"
               "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/src:$ENV{LD_LIBRARY_PATH}")
+set_property (TEST DiasporaCtlForwardTest PROPERTY TIMEOUT 120)

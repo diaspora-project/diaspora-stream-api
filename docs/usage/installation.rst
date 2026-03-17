@@ -9,7 +9,7 @@ The *diaspora-spack-packages* repository needs to be added to spack as follows.
 .. code-block:: bash
 
    git clone https://github.com/diaspora-project/diaspora-spack-packages.git
-   spack repo add diaspora-spack-packages
+   spack repo add diaspora-spack-packages/spack_repo/diaspora
 
 We recommend that you update your clone of *diaspora-spack-packages* from time to time
 to get the latest versions of all the dependencies.

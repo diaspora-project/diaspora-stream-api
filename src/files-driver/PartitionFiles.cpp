@@ -718,15 +718,30 @@ PartitionFiles::IndexEntry PartitionFiles::getIndexEntry(uint64_t event_id) {
 }
 
 void PartitionFiles::refreshEventCount() {
-    struct stat index_st;
+    std::lock_guard<std::mutex> lock(m_write_mutex);
+
+    struct stat index_st, metadata_st, data_st;
     if (fstat(m_index_fd, &index_st) == -1) {
         throw diaspora::Exception{
             "Failed to stat index file: " + std::string(strerror(errno))
         };
     }
+    if (fstat(m_metadata_fd, &metadata_st) == -1) {
+        throw diaspora::Exception{
+            "Failed to stat metadata file: " + std::string(strerror(errno))
+        };
+    }
+    if (fstat(m_data_fd, &data_st) == -1) {
+        throw diaspora::Exception{
+            "Failed to stat data file: " + std::string(strerror(errno))
+        };
+    }
+
     m_num_events = index_st.st_size / 32;
     m_index_offset = static_cast<uint64_t>(index_st.st_size);
     m_cached_index_size = static_cast<uint64_t>(index_st.st_size);
+    m_cached_metadata_size = static_cast<uint64_t>(metadata_st.st_size);
+    m_cached_data_size = static_cast<uint64_t>(data_st.st_size);
 }
 
 }

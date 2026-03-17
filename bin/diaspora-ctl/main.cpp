@@ -5,6 +5,7 @@
  */
 #include "topic_commands.hpp"
 #include "fifo_commands.hpp"
+#include "forward_commands.hpp"
 #include <spdlog/spdlog.h>
 #include <iostream>
 
@@ -14,10 +15,12 @@ void print_usage() {
     std::cout << "  topic create    Create a new topic\n";
     std::cout << "  topic list      List existing topics\n";
     std::cout << "  fifo            Run FIFO daemon\n";
+    std::cout << "  forward         Run forwarding daemon\n";
     std::cout << "\nFor help on a specific command, use:\n";
     std::cout << "  diaspora-ctl topic create --help\n";
     std::cout << "  diaspora-ctl topic list --help\n";
     std::cout << "  diaspora-ctl fifo --help\n";
+    std::cout << "  diaspora-ctl forward --help\n";
 }
 
 int main(int argc, char** argv) {
@@ -54,6 +57,9 @@ int main(int argc, char** argv) {
     } else if (command == "fifo") {
         // Remove the first argument (command)
         return diaspora_ctl::fifo_daemon(argc - 1, argv + 1);
+    } else if (command == "forward") {
+        // Remove the first argument (command)
+        return diaspora_ctl::forward_daemon(argc - 1, argv + 1);
     } else if (command == "--help" || command == "-h") {
         print_usage();
         return 0;

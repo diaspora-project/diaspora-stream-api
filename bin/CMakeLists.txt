@@ -6,6 +6,7 @@ add_executable (diaspora-ctl
     diaspora-ctl/common.cpp
     diaspora-ctl/topic_commands.cpp
     diaspora-ctl/fifo_commands.cpp
+    diaspora-ctl/forward_commands.cpp
 )
 
 # Link against the diaspora-stream-api library and dependencies
@@ -13,6 +14,8 @@ add_executable (diaspora-ctl
 target_link_libraries (diaspora-ctl
     diaspora-stream-api
     spdlog::spdlog_header_only
+    toml11::toml11
+    ${CMAKE_DL_LIBS}
 )
 
 # Include directories

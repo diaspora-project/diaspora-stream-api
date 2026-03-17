@@ -1,0 +1,9 @@
+# START BASIC CONFIG
+[drivers.local]
+type = "files"
+root_path = "/tmp/my-data"
+
+[[forward]]
+from = "local/source-topic"
+to   = "local/dest-topic"
+# END BASIC CONFIG

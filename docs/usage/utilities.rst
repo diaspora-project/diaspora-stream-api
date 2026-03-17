@@ -123,3 +123,17 @@ Options may again be provided in parenthesis, with currently supported options a
 * :code:`batch_size` : an integer value, representing the batch size the producer must use
   (default is 128).
 
+Forwarding events between topics
+---------------------------------
+
+The :code:`diaspora-ctl forward` command runs a daemon that reads events from source topics
+and forwards them to destination topics, potentially across different drivers. This is useful
+for cross-driver event replication (e.g., files to Kafka).
+
+.. code-block:: bash
+
+   diaspora-ctl forward --config <config.toml> --logging <level>
+
+The forwarding daemon is configured via a TOML file specifying drivers and forwarding policies.
+For full documentation and example configurations, see :doc:`forwarding`.
+

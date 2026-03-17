@@ -1,0 +1,15 @@
+# START PLUGIN CONFIG
+[drivers.local]
+type = "files"
+root_path = "/data/local"
+
+[drivers.remote]
+type = "kafka"
+bootstrap = "kafka:9092"
+
+[[forward]]
+from = "local/detector-events"
+to   = "remote/detector-events"
+data_selector = "libmyplugin.so:my_selector"
+data_allocator = "libmyplugin.so:my_allocator"
+# END PLUGIN CONFIG

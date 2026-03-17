@@ -15,7 +15,7 @@
 #include <diaspora/DataAllocator.hpp>
 #include <tclap/CmdLine.h>
 #include <spdlog/spdlog.h>
-#include <toml.hpp>
+#include <yaml-cpp/yaml.h>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
@@ -23,7 +23,6 @@
 #include <atomic>
 #include <csignal>
 #include <unordered_map>
-#include <fstream>
 #include <dlfcn.h>
 
 namespace diaspora_ctl {
@@ -74,39 +73,31 @@ static std::pair<std::string, std::string> parse_topic_ref(const std::string& re
     return {ref.substr(0, pos), ref.substr(pos + 1)};
 }
 
-static nlohmann::json toml_value_to_json(const toml::value& v) {
-    switch (v.type()) {
-        case toml::value_t::boolean:
-            return v.as_boolean();
-        case toml::value_t::integer:
-            return v.as_integer();
-        case toml::value_t::floating:
-            return v.as_floating();
-        case toml::value_t::string:
-            return v.as_string();
-        case toml::value_t::array: {
+static nlohmann::json yaml_node_to_json(const YAML::Node& node) {
+    switch (node.Type()) {
+        case YAML::NodeType::Null:
+            return nullptr;
+        case YAML::NodeType::Scalar: {
+            // Try bool, int, double, fall back to string
+            try { return node.as<bool>(); } catch (...) {}
+            try { return node.as<int64_t>(); } catch (...) {}
+            try { return node.as<double>(); } catch (...) {}
+            return node.as<std::string>();
+        }
+        case YAML::NodeType::Sequence: {
             auto arr = nlohmann::json::array();
-            for (const auto& elem : v.as_array()) {
-                arr.push_back(toml_value_to_json(elem));
+            for (const auto& elem : node) {
+                arr.push_back(yaml_node_to_json(elem));
             }
             return arr;
         }
-        case toml::value_t::table: {
+        case YAML::NodeType::Map: {
             auto obj = nlohmann::json::object();
-            for (const auto& [key, val] : v.as_table()) {
-                obj[key] = toml_value_to_json(val);
+            for (const auto& kv : node) {
+                obj[kv.first.as<std::string>()] = yaml_node_to_json(kv.second);
             }
             return obj;
         }
-        case toml::value_t::local_date:
-        case toml::value_t::local_time:
-        case toml::value_t::local_datetime:
-        case toml::value_t::offset_datetime:
-            {
-                std::ostringstream oss;
-                oss << v;
-                return oss.str();
-            }
         default:
             return nullptr;
     }
@@ -117,60 +108,61 @@ struct ParsedConfig {
     std::vector<ForwardPolicy> policies;
 };
 
-static ParsedConfig parse_toml_config(const std::string& path) {
+static ParsedConfig parse_yaml_config(const std::string& path) {
     ParsedConfig config;
 
-    toml::value root;
+    YAML::Node root;
     try {
-        root = toml::parse(path);
+        root = YAML::LoadFile(path);
     } catch (const std::exception& e) {
-        throw std::runtime_error("Failed to parse TOML config: " + std::string(e.what()));
+        throw std::runtime_error("Failed to parse YAML config: " + std::string(e.what()));
     }
 
-    // Parse [drivers.*]
-    if (!root.contains("drivers")) {
-        throw std::runtime_error("Config missing [drivers] section");
+    // Parse drivers:
+    if (!root["drivers"]) {
+        throw std::runtime_error("Config missing 'drivers' section");
     }
-    const auto& drivers_table = root.at("drivers").as_table();
-    for (const auto& [name, drv_val] : drivers_table) {
-        const auto& drv = drv_val.as_table();
+    const auto& drivers_node = root["drivers"];
+    for (const auto& kv : drivers_node) {
+        auto name = kv.first.as<std::string>();
+        const auto& drv = kv.second;
         DriverConfig dc;
         dc.name = name;
-        if (drv.find("type") == drv.end()) {
+        if (!drv["type"]) {
             throw std::runtime_error(
                 "Driver '" + name + "' missing required 'type' field");
         }
-        dc.type = drv.at("type").as_string();
-        dc.metadata = nlohmann::json::object();
-        for (const auto& [k, v] : drv) {
-            if (k == "type") continue;
-            dc.metadata[k] = toml_value_to_json(v);
+        dc.type = drv["type"].as<std::string>();
+        if (drv["options"]) {
+            dc.metadata = yaml_node_to_json(drv["options"]);
+        } else {
+            dc.metadata = nlohmann::json::object();
         }
         config.drivers[name] = std::move(dc);
     }
 
-    // Parse [[forward]]
-    if (!root.contains("forward")) {
-        throw std::runtime_error("Config missing [[forward]] entries");
+    // Parse forward:
+    if (!root["forward"]) {
+        throw std::runtime_error("Config missing 'forward' entries");
     }
-    const auto& forwards = root.at("forward").as_array();
+    const auto& forwards = root["forward"];
     for (const auto& fwd : forwards) {
         ForwardPolicy fp;
-        if (!fwd.contains("from") || !fwd.contains("to")) {
+        if (!fwd["from"] || !fwd["to"]) {
             throw std::runtime_error(
-                "[[forward]] entry missing 'from' or 'to' field");
+                "forward entry missing 'from' or 'to' field");
         }
-        auto [src_drv, src_topic] = parse_topic_ref(fwd.at("from").as_string());
-        auto [dst_drv, dst_topic] = parse_topic_ref(fwd.at("to").as_string());
+        auto [src_drv, src_topic] = parse_topic_ref(fwd["from"].as<std::string>());
+        auto [dst_drv, dst_topic] = parse_topic_ref(fwd["to"].as<std::string>());
         fp.source_driver = std::move(src_drv);
         fp.source_topic = std::move(src_topic);
         fp.dest_driver = std::move(dst_drv);
         fp.dest_topic = std::move(dst_topic);
-        if (fwd.contains("data_selector")) {
-            fp.data_selector_spec = fwd.at("data_selector").as_string();
+        if (fwd["data_selector"]) {
+            fp.data_selector_spec = fwd["data_selector"].as<std::string>();
         }
-        if (fwd.contains("data_allocator")) {
-            fp.data_allocator_spec = fwd.at("data_allocator").as_string();
+        if (fwd["data_allocator"]) {
+            fp.data_allocator_spec = fwd["data_allocator"].as<std::string>();
         }
         config.policies.push_back(std::move(fp));
     }
@@ -288,7 +280,7 @@ int forward_daemon(int argc, char** argv) {
         TCLAP::ValueArg<std::string> configArg(
             "",
             "config",
-            "Path to TOML configuration file",
+            "Path to YAML configuration file",
             true,
             "",
             "filename",
@@ -313,8 +305,8 @@ int forward_daemon(int argc, char** argv) {
         spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
         spdlog::set_level(spdlog::level::from_str(loggingArg.getValue()));
 
-        // Parse TOML config
-        auto config = parse_toml_config(configArg.getValue());
+        // Parse YAML config
+        auto config = parse_yaml_config(configArg.getValue());
 
         spdlog::info("Loaded {} driver(s) and {} forwarding policy(ies)",
                      config.drivers.size(), config.policies.size());

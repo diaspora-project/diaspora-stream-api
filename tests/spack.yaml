@@ -10,6 +10,7 @@ spack:
   - mpich
   - spdlog
   - mochi-thallium
+  - yaml-cpp
 #  repos:
 #    mochi:
 #      git: https://github.com/mochi-hpc/mochi-spack-packages.git

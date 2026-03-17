@@ -14,7 +14,7 @@ add_executable (diaspora-ctl
 target_link_libraries (diaspora-ctl
     diaspora-stream-api
     spdlog::spdlog_header_only
-    toml11::toml11
+    yaml-cpp::yaml-cpp
     ${CMAKE_DL_LIBS}
 )
 

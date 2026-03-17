@@ -86,16 +86,7 @@ if (NOT DEFINED SKBUILD_PROJECT_NAME)
     find_package (nlohmann_json_schema_validator REQUIRED)
     find_package (TCLAP REQUIRED)
     find_package (spdlog REQUIRED)
-    find_package (toml11 QUIET)
-    if (NOT toml11_FOUND)
-        include (FetchContent)
-        FetchContent_Declare (
-            toml11
-            GIT_REPOSITORY https://github.com/ToruNiina/toml11.git
-            GIT_TAG        v4.2.0
-        )
-        FetchContent_MakeAvailable (toml11)
-    endif ()
+    find_package (yaml-cpp REQUIRED)
 else ()
     # Download nlohmann_json and nlohmann_json_schema_validator from github
     include (FetchContent)
@@ -133,13 +124,14 @@ else ()
         GIT_TAG        v1.14.1
     )
     FetchContent_MakeAvailable (spdlog)
-    # Download toml11 from github
+    # Download yaml-cpp from github
     FetchContent_Declare (
-        toml11
-        GIT_REPOSITORY https://github.com/ToruNiina/toml11.git
-        GIT_TAG        v4.2.0
+        yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG        0.8.0
     )
-    FetchContent_MakeAvailable (toml11)
+    set (YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable (yaml-cpp)
 endif ()
 
 if (ENABLE_PYTHON)

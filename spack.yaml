@@ -8,6 +8,7 @@ spack:
   - tclap
   - mpi
   - spdlog
+  - yaml-cpp
   concretizer:
     unify: true
     reuse: true

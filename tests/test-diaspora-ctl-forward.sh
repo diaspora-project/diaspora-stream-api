@@ -14,7 +14,7 @@ test_forward_basic() {
     local root_path="${TEST_DATA_DIR}/forward-basic"
     mkdir -p "$root_path"
 
-    local config_file="${TEST_DATA_DIR}/forward-basic.toml"
+    local config_file="${TEST_DATA_DIR}/forward-basic.yaml"
     local daemon_log="${TEST_DATA_DIR}/forward-basic-daemon.log"
     local result=0
 
@@ -65,15 +65,17 @@ test_forward_basic() {
         wait "$fifo_pid" 2>/dev/null || true
     fi
 
-    # Write TOML config for forwarding
+    # Write YAML config for forwarding
     cat > "$config_file" <<EOF
-[drivers.local]
-type = "files"
-root_path = "${root_path}"
+drivers:
+  local:
+    type: files
+    options:
+      root_path: "${root_path}"
 
-[[forward]]
-from = "local/source-topic"
-to   = "local/dest-topic"
+forward:
+  - from: local/source-topic
+    to:   local/dest-topic
 EOF
 
     if [ $result -eq 0 ]; then
@@ -186,7 +188,7 @@ test_forward_multi_policy() {
     local root_path="${TEST_DATA_DIR}/forward-multi"
     mkdir -p "$root_path"
 
-    local config_file="${TEST_DATA_DIR}/forward-multi.toml"
+    local config_file="${TEST_DATA_DIR}/forward-multi.yaml"
     local daemon_log="${TEST_DATA_DIR}/forward-multi-daemon.log"
     local result=0
 
@@ -233,19 +235,19 @@ test_forward_multi_policy() {
         wait "$fifo_pid" 2>/dev/null || true
     fi
 
-    # Write TOML config
+    # Write YAML config
     cat > "$config_file" <<EOF
-[drivers.local]
-type = "files"
-root_path = "${root_path}"
+drivers:
+  local:
+    type: files
+    options:
+      root_path: "${root_path}"
 
-[[forward]]
-from = "local/src-a"
-to   = "local/dst-a"
-
-[[forward]]
-from = "local/src-b"
-to   = "local/dst-b"
+forward:
+  - from: local/src-a
+    to:   local/dst-a
+  - from: local/src-b
+    to:   local/dst-b
 EOF
 
     if [ $result -eq 0 ]; then
@@ -353,7 +355,7 @@ test_forward_graceful_shutdown() {
     local root_path="${TEST_DATA_DIR}/forward-shutdown"
     mkdir -p "$root_path"
 
-    local config_file="${TEST_DATA_DIR}/forward-shutdown.toml"
+    local config_file="${TEST_DATA_DIR}/forward-shutdown.yaml"
     local daemon_log="${TEST_DATA_DIR}/forward-shutdown-daemon.log"
     local result=0
 
@@ -372,13 +374,15 @@ test_forward_graceful_shutdown() {
 
     # Write config
     cat > "$config_file" <<EOF
-[drivers.local]
-type = "files"
-root_path = "${root_path}"
+drivers:
+  local:
+    type: files
+    options:
+      root_path: "${root_path}"
 
-[[forward]]
-from = "local/shutdown-src"
-to   = "local/shutdown-dst"
+forward:
+  - from: local/shutdown-src
+    to:   local/shutdown-dst
 EOF
 
     # Start forward daemon

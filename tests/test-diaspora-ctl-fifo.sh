@@ -453,15 +453,18 @@ test_fifo_concurrent_producer_consumer() {
         fi
 
         if [ $result -eq 0 ]; then
-            # Produce messages (one at a time, as FIFO writes can block)
+            # Produce messages (keep FIFO open for all writes to avoid POLLHUP)
             print_info "Producing $num_messages messages"
-            for i in $(seq 1 $num_messages); do
-                if ! echo "concurrent_message_$i" > "$producer_fifo" 2>/dev/null; then
-                    print_error "Failed to write message $i"
-                    result=1
-                    break
-                fi
-            done
+            {
+                for i in $(seq 1 $num_messages); do
+                    echo "concurrent_message_$i"
+                    sleep 0.2
+                done
+            } > "$producer_fifo" 2>/dev/null
+            if [ $? -ne 0 ]; then
+                print_error "Failed to write messages"
+                result=1
+            fi
             sleep 2
 
             # Register consumer with daemon

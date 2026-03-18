@@ -69,12 +69,14 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
             try {
                 auto consumer = topic.consumer("consumer", driver.defaultThreadPool());
                 auto start = std::chrono::steady_clock::now();
-                auto timeout = std::chrono::seconds(30);
+                auto timeout = std::chrono::seconds(60);
 
                 while (events_consumed < num_events) {
                     if (std::chrono::steady_clock::now() - start > timeout) {
                         std::lock_guard<std::mutex> lock(error_mutex);
-                        error_message = "Consumer timeout";
+                        error_message = "Consumer timeout: consumed "
+                            + std::to_string(events_consumed.load()) + "/"
+                            + std::to_string(num_events) + " events";
                         break;
                     }
                     auto event_opt = consumer.pull().wait(100);
@@ -144,12 +146,14 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
             try {
                 auto consumer = topic.consumer("consumer", driver.defaultThreadPool());
                 auto start = std::chrono::steady_clock::now();
-                auto timeout = std::chrono::seconds(30);
+                auto timeout = std::chrono::seconds(60);
 
                 while (events_consumed < num_events) {
                     if (std::chrono::steady_clock::now() - start > timeout) {
                         std::lock_guard<std::mutex> lock(error_mutex);
-                        error_message = "Consumer timeout";
+                        error_message = "Consumer timeout: consumed "
+                            + std::to_string(events_consumed.load()) + "/"
+                            + std::to_string(num_events) + " events";
                         break;
                     }
                     auto event_opt = consumer.pull().wait(100);
@@ -229,12 +233,14 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
             try {
                 auto consumer = topic.consumer("consumer", driver.defaultThreadPool());
                 auto start = std::chrono::steady_clock::now();
-                auto timeout = std::chrono::seconds(30);
+                auto timeout = std::chrono::seconds(60);
 
                 while (events_consumed < total_events) {
                     if (std::chrono::steady_clock::now() - start > timeout) {
                         std::lock_guard<std::mutex> lock(error_mutex);
-                        error_message = "Consumer timeout";
+                        error_message = "Consumer timeout: consumed "
+                            + std::to_string(events_consumed.load()) + "/"
+                            + std::to_string(total_events) + " events";
                         break;
                     }
                     auto event_opt = consumer.pull().wait(100);

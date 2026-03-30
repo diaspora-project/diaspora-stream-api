@@ -838,9 +838,15 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
                std::shared_ptr<diaspora::Future<std::optional<diaspora::Flushed>>>>(m, "FutureFlushed")
         .def("wait", [](diaspora::Future<std::optional<diaspora::Flushed>>& future, int timeout_ms) {
                 std::optional<diaspora::Flushed> result;
+                std::exception_ptr eptr;
                 Py_BEGIN_ALLOW_THREADS
-                result = future.wait(timeout_ms);
+                try {
+                    result = future.wait(timeout_ms);
+                } catch (...) {
+                    eptr = std::current_exception();
+                }
                 Py_END_ALLOW_THREADS
+                if (eptr) std::rethrow_exception(eptr);
                 return result.has_value() ? true : false;
         }, "Wait for the future to complete, returning true if it has completed, false if it timed out.",
         py::kw_only(),
@@ -855,9 +861,15 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
                std::shared_ptr<diaspora::Future<std::optional<std::uint64_t>>>>(m, "FutureUint")
         .def("wait", [](diaspora::Future<std::optional<std::uint64_t>>& future, int timeout_ms) {
                 std::optional<std::uint64_t> result;
+                std::exception_ptr eptr;
                 Py_BEGIN_ALLOW_THREADS
-                result = future.wait(timeout_ms);
+                try {
+                    result = future.wait(timeout_ms);
+                } catch (...) {
+                    eptr = std::current_exception();
+                }
                 Py_END_ALLOW_THREADS
+                if (eptr) std::rethrow_exception(eptr);
                 return result;
         }, "Wait for the future to complete, returning its value (int) when it does.",
         py::kw_only(),
@@ -872,9 +884,15 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
                std::shared_ptr<diaspora::Future<std::optional<diaspora::Event>>>>(m, "FutureEvent")
         .def("wait", [](diaspora::Future<std::optional<diaspora::Event>>& future, int timeout_ms) {
                 std::optional<diaspora::Event> result;
+                std::exception_ptr eptr;
             Py_BEGIN_ALLOW_THREADS
-            result = future.wait(timeout_ms);
+            try {
+                result = future.wait(timeout_ms);
+            } catch (...) {
+                eptr = std::current_exception();
+            }
             Py_END_ALLOW_THREADS
+            if (eptr) std::rethrow_exception(eptr);
             return result.has_value() ? diaspora::PythonBindingHelper::GetSelf(*result) : nullptr;
         }, "Wait for the future to complete, returning its value (Event) when it does.",
         py::kw_only(),

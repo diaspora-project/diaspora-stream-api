@@ -401,6 +401,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
                     [allocator=std::move(allocator)]
                     (const diaspora::Metadata& metadata,
                      const diaspora::DataDescriptor& descriptor) -> diaspora::DataView {
+                        py::gil_scoped_acquire gil;
                         auto segments = allocator(metadata.json(), descriptor);
                         std::vector<diaspora::DataView::Segment> cpp_segments;
                         cpp_segments.reserve(segments.size());
@@ -420,6 +421,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
                     [selector=std::move(selector)]
                     (const diaspora::Metadata& metadata,
                      const diaspora::DataDescriptor& descriptor) -> diaspora::DataDescriptor {
+                        py::gil_scoped_acquire gil;
                         std::optional<diaspora::DataDescriptor> result = selector(metadata.json(), descriptor);
                         if(result) return result.value();
                         else return diaspora::DataDescriptor();
@@ -706,17 +708,36 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
             "thread_pool"_a=std::shared_ptr<diaspora::ThreadPoolInterface>{}
             )
         .def("__iter__",
-             [](std::shared_ptr<diaspora::ConsumerInterface> consumer) {
-                return py::make_iterator(consumer->begin(), consumer->end());
-              }, R"(
-                Create an iterator to iterate over the events.
+             [](const py::object& self) -> py::object { return self; },
+             "Return self as an iterator.")
+        .def("__next__",
+             [](diaspora::ConsumerInterface& consumer) -> py::object {
+                std::optional<diaspora::Event> result;
+                std::exception_ptr eptr;
+                Py_BEGIN_ALLOW_THREADS
+                try {
+                    result = consumer.pull().wait(5000);
+                } catch(...) {
+                    eptr = std::current_exception();
+                }
+                Py_END_ALLOW_THREADS
+                if(eptr) std::rethrow_exception(eptr);
+                if(!result || result.value().id() == diaspora::NoMoreEvents) {
+                    throw py::stop_iteration();
+                }
+                return py::cast(diaspora::PythonBindingHelper::GetSelf(result.value()));
+             }, R"(
+                Return the next event from the topic.
+
+                Blocks until an event is available, a NoMoreEvents signal is
+                received, or a 5-second timeout elapses (StopIteration is raised
+                in all terminal cases).
 
                 Returns
                 -------
 
-                A Python iterator.
-            )",
-            py::keep_alive<0, 1>())
+                The next Event.
+            )")
     ;
 
     py::class_<diaspora::DataDescriptor>(m, "DataDescriptor")

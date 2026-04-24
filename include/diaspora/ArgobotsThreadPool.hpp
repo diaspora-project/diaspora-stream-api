@@ -323,9 +323,7 @@ class ArgobotsThreadPool : public diaspora::ThreadPoolInterface {
     public:
 
     ArgobotsThreadPool(diaspora::ThreadCount tc) {
-        if(tc.count == 0) {
-            m_pool = thallium::xstream::self().get_main_pools(1)[0];
-        } else {
+        if(tc.count > 0) {
             pool_prio_wait_def_create(&m_pool_def);
             ABT_pool_config pool_config = ABT_POOL_CONFIG_NULL;
             ABT_pool pool = ABT_POOL_NULL;
@@ -354,6 +352,15 @@ class ArgobotsThreadPool : public diaspora::ThreadPoolInterface {
 
     void pushWork(std::function<void()> func,
                   uint64_t priority = std::numeric_limits<uint64_t>::max()) override {
+        if(threadCount().count == 0) {
+            try {
+                thallium::xstream::self().get_main_pools(1)[0].make_thread(
+                    std::move(func), thallium::anonymous{});
+            } catch(const thallium::exception&) {
+                func();
+            }
+            return;
+        }
         if(!m_pool_def) { // not custom priority pool, ignore priority
             m_pool.make_thread(std::move(func), thallium::anonymous{});
             thallium::thread::yield();

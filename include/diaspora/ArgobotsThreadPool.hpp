@@ -353,11 +353,15 @@ class ArgobotsThreadPool : public diaspora::ThreadPoolInterface {
     void pushWork(std::function<void()> func,
                   uint64_t priority = std::numeric_limits<uint64_t>::max()) override {
         if(threadCount().count == 0) {
-            try {
-                thallium::xstream::self().get_main_pools(1)[0].make_thread(
-                    std::move(func), thallium::anonymous{});
-            } catch(const thallium::exception&) {
-                func();
+            if(m_pool.native_handle() != ABT_POOL_NULL) {
+                m_pool.make_thread(std::move(func), thallium::anonymous{});
+            } else {
+                try {
+                    thallium::xstream::self().get_main_pools(1)[0].make_thread(
+                        std::move(func), thallium::anonymous{});
+                } catch(const thallium::exception&) {
+                    func();
+                }
             }
             return;
         }

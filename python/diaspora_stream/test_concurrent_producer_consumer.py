@@ -66,8 +66,14 @@ class TestConcurrentProducerConsumer(unittest.TestCase):
                         errors.put("Consumer timeout")
                         break
 
-                    event = consumer.pull().wait(timeout_ms=100)
-                    if event and event.event_id is not None:
+                    future = consumer.pull()
+                    event = None
+                    while event is None:
+                        if time.time() - start_time > timeout_seconds:
+                            errors.put("Consumer timeout")
+                            return
+                        event = future.wait(timeout_ms=100)
+                    if event.event_id is not None:
                         with counter_lock:
                             events_consumed["count"] += 1
                         event.acknowledge()
@@ -130,8 +136,14 @@ class TestConcurrentProducerConsumer(unittest.TestCase):
                         errors.put("Consumer timeout")
                         break
 
-                    event = consumer.pull().wait(timeout_ms=100)
-                    if event and event.event_id is not None:
+                    future = consumer.pull()
+                    event = None
+                    while event is None:
+                        if time.time() - start_time > timeout_seconds:
+                            errors.put("Consumer timeout")
+                            return
+                        event = future.wait(timeout_ms=100)
+                    if event.event_id is not None:
                         with counter_lock:
                             events_consumed["count"] += 1
                         event.acknowledge()
@@ -199,8 +211,14 @@ class TestConcurrentProducerConsumer(unittest.TestCase):
                         errors.put("Consumer timeout")
                         break
 
-                    event = consumer.pull().wait(timeout_ms=100)
-                    if event and event.event_id is not None:
+                    future = consumer.pull()
+                    event = None
+                    while event is None:
+                        if time.time() - start_time > timeout_seconds:
+                            errors.put("Consumer timeout")
+                            return
+                        event = future.wait(timeout_ms=100)
+                    if event.event_id is not None:
                         with counter_lock:
                             events_consumed["count"] += 1
                         event.acknowledge()

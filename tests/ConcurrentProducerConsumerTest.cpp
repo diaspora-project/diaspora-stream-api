@@ -74,9 +74,10 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                 while (events_consumed < num_events) {
                     if (std::chrono::steady_clock::now() - start > timeout) {
                         std::lock_guard<std::mutex> lock(error_mutex);
-                        error_message = "Consumer timeout: consumed "
-                            + std::to_string(events_consumed.load()) + "/"
-                            + std::to_string(num_events) + " events";
+                        if (error_message.empty())
+                            error_message = "Consumer timeout: consumed "
+                                + std::to_string(events_consumed.load()) + "/"
+                                + std::to_string(num_events) + " events";
                         break;
                     }
                     auto event_opt = consumer.pull().wait(100);
@@ -87,7 +88,8 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                 }
             } catch (const std::exception& ex) {
                 std::lock_guard<std::mutex> lock(error_mutex);
-                error_message = std::string("Consumer error: ") + ex.what();
+                if (error_message.empty())
+                    error_message = std::string("Consumer error: ") + ex.what();
             }
         });
 
@@ -151,9 +153,10 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                 while (events_consumed < num_events) {
                     if (std::chrono::steady_clock::now() - start > timeout) {
                         std::lock_guard<std::mutex> lock(error_mutex);
-                        error_message = "Consumer timeout: consumed "
-                            + std::to_string(events_consumed.load()) + "/"
-                            + std::to_string(num_events) + " events";
+                        if (error_message.empty())
+                            error_message = "Consumer timeout: consumed "
+                                + std::to_string(events_consumed.load()) + "/"
+                                + std::to_string(num_events) + " events";
                         break;
                     }
                     auto event_opt = consumer.pull().wait(100);
@@ -166,7 +169,8 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                 }
             } catch (const std::exception& ex) {
                 std::lock_guard<std::mutex> lock(error_mutex);
-                error_message = std::string("Consumer error: ") + ex.what();
+                if (error_message.empty())
+                    error_message = std::string("Consumer error: ") + ex.what();
             }
         });
 
@@ -238,9 +242,10 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                 while (events_consumed < total_events) {
                     if (std::chrono::steady_clock::now() - start > timeout) {
                         std::lock_guard<std::mutex> lock(error_mutex);
-                        error_message = "Consumer timeout: consumed "
-                            + std::to_string(events_consumed.load()) + "/"
-                            + std::to_string(total_events) + " events";
+                        if (error_message.empty())
+                            error_message = "Consumer timeout: consumed "
+                                + std::to_string(events_consumed.load()) + "/"
+                                + std::to_string(total_events) + " events";
                         break;
                     }
                     auto event_opt = consumer.pull().wait(100);
@@ -251,7 +256,8 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                 }
             } catch (const std::exception& ex) {
                 std::lock_guard<std::mutex> lock(error_mutex);
-                error_message = std::string("Consumer error: ") + ex.what();
+                if (error_message.empty())
+                    error_message = std::string("Consumer error: ") + ex.what();
             }
         });
 

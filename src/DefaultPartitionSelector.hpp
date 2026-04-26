@@ -10,6 +10,7 @@
 #include "diaspora/PartitionSelector.hpp"
 #include "diaspora/Json.hpp"
 #include "JsonUtil.hpp"
+#include <atomic>
 
 namespace diaspora {
 
@@ -29,10 +30,7 @@ class DefaultPartitionSelector : public PartitionSelectorInterface {
             size_t req = requested.value();
             return req % m_targets.size();
         }
-        auto ret = m_index;
-        m_index += 1;
-        m_index %= m_targets.size();
-        return ret;
+        return m_index.fetch_add(1) % m_targets.size();
     }
 
     Metadata metadata() const override {
@@ -44,7 +42,7 @@ class DefaultPartitionSelector : public PartitionSelectorInterface {
         return std::make_unique<DefaultPartitionSelector>();
     }
 
-    size_t                     m_index = 0;
+    std::atomic<size_t>        m_index{0};
     std::vector<PartitionInfo> m_targets;
 };
 

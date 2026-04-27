@@ -28,7 +28,6 @@ target_link_libraries (diaspora-stream-api
     nlohmann_json::nlohmann_json
     nlohmann_json_schema_validator::validator
     PRIVATE
-    spdlog::spdlog
     coverage_config
     warnings_config)
 target_include_directories (diaspora-stream-api PUBLIC $<INSTALL_INTERFACE:include>)

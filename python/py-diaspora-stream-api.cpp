@@ -877,7 +877,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
                 return result.has_value() ? true : false;
         }, "Wait for the future to complete, returning true if it has completed, false if it timed out.",
         py::kw_only(),
-        "timeout_ms"_a)
+        "timeout_ms"_a=-1)
         .def_property_readonly(
             "completed",
             &diaspora::Future<std::optional<diaspora::Flushed>>::completed,
@@ -900,7 +900,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
                 return result;
         }, "Wait for the future to complete, returning its value (int) when it does.",
         py::kw_only(),
-        "timeout_ms"_a)
+        "timeout_ms"_a=-1)
         .def_property_readonly(
             "completed",
             &diaspora::Future<std::optional<std::uint64_t>>::completed,
@@ -923,7 +923,7 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
             return result.has_value() ? diaspora::PythonBindingHelper::GetSelf(*result) : nullptr;
         }, "Wait for the future to complete, returning its value (Event) when it does.",
         py::kw_only(),
-        "timeout_ms"_a)
+        "timeout_ms"_a=-1)
         .def("completed", &diaspora::Future<std::optional<diaspora::Event>>::completed,
              "Checks whether the future has completed.")
     ;

@@ -1,6 +1,7 @@
 #include "FutureState.hpp"
 #include "Producer.hpp"
 #include "TopicHandle.hpp"
+#include <spdlog/spdlog.h>
 
 namespace files_driver {
 
@@ -20,7 +21,11 @@ PfsProducer::PfsProducer(
 , m_partition_batches(m_topic->m_partitions.size())
 , m_batch_mutexes(m_topic->m_partitions.size())
 , m_partition_pending(m_topic->m_partitions.size())
-{}
+{
+    if (m_batch_size == diaspora::BatchSize::Adaptive())
+        spdlog::warn("[files-driver] Producer \"{}\" created with BatchSize::Adaptive(),"
+                     " which is unsupported; treating as batch_size=1.", m_name);
+}
 
 PfsProducer::~PfsProducer() {
     try {
@@ -116,7 +121,8 @@ diaspora::Future<std::optional<diaspora::EventID>> PfsProducer::push(
                 );
                 m_partition_pending[partition_index].push_back({event_id, state});
 
-                if (m_partition_batches[partition_index].size() >= m_batch_size.value) {
+                bool is_adaptive = (m_batch_size == diaspora::BatchSize::Adaptive());
+                if (is_adaptive || m_partition_batches[partition_index].size() >= m_batch_size.value) {
                     auto pending = std::move(m_partition_pending[partition_index]);
                     m_partition_pending[partition_index].clear();
                     partition_files.writeBatch(std::move(m_partition_batches[partition_index]));

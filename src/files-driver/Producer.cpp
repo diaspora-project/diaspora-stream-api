@@ -19,16 +19,19 @@ PfsProducer::PfsProducer(
 , m_topic(std::move(topic))
 , m_partition_batches(m_topic->m_partitions.size())
 , m_batch_mutexes(m_topic->m_partitions.size())
+, m_partition_pending(m_topic->m_partitions.size())
 {}
 
 PfsProducer::~PfsProducer() {
     try {
-        // Flush all pending batches
         for (size_t i = 0; i < m_partition_batches.size(); ++i) {
             std::lock_guard<std::mutex> lock(m_batch_mutexes[i]);
             if (!m_partition_batches[i].empty()) {
+                auto pending = std::move(m_partition_pending[i]);
+                m_partition_pending[i].clear();
                 auto& partition = m_topic->getPartition(i);
                 partition.writeBatch(std::move(m_partition_batches[i]));
+                for (auto& [eid, s] : pending) s->set(eid);
             }
         }
     } catch (...) {
@@ -45,19 +48,26 @@ diaspora::Future<std::optional<diaspora::Flushed>> PfsProducer::flush() {
 
     m_thread_pool->pushWork([this, topic=m_topic, state]() {
         try {
-            // Flush all pending batches first
+            // Write all pending batches and resolve their push futures.
+            std::vector<std::vector<PendingPush>> all_pending(m_partition_batches.size());
             for (size_t i = 0; i < m_partition_batches.size(); ++i) {
                 std::lock_guard<std::mutex> lock(m_batch_mutexes[i]);
                 if (!m_partition_batches[i].empty()) {
+                    all_pending[i] = std::move(m_partition_pending[i]);
+                    m_partition_pending[i].clear();
                     topic->getPartition(i).writeBatch(std::move(m_partition_batches[i]));
                     m_partition_batches[i].clear();
                 }
             }
 
-            // Then fsync all partitions
+            // Then fsync all partitions.
             for (size_t i = 0; i < topic->m_partitions.size(); ++i) {
                 topic->getPartition(i).flush();
             }
+
+            // Resolve push futures now that data is on disk.
+            for (auto& partition_pending : all_pending)
+                for (auto& [eid, s] : partition_pending) s->set(eid);
 
             state->set(diaspora::Flushed{});
         } catch(const diaspora::Exception& ex) {
@@ -97,21 +107,24 @@ diaspora::Future<std::optional<diaspora::EventID>> PfsProducer::push(
                 auto& partition_files = topic->getPartition(partition_index);
                 event_id = partition_files.numEvents() + m_partition_batches[partition_index].size();
 
-                // Add to batch (WriteBatch serializes metadata and stores DataView directly)
+                // Add to batch. The future is stored as pending and resolved only
+                // when the batch is written to disk (batch full here, or via flush()).
                 m_partition_batches[partition_index].addEvent(
                     metadata,
                     topic->serializer(),
                     data
                 );
+                m_partition_pending[partition_index].push_back({event_id, state});
 
-                // Flush if batch is full
                 if (m_partition_batches[partition_index].size() >= m_batch_size.value) {
+                    auto pending = std::move(m_partition_pending[partition_index]);
+                    m_partition_pending[partition_index].clear();
                     partition_files.writeBatch(std::move(m_partition_batches[partition_index]));
                     m_partition_batches[partition_index].clear();
+                    for (auto& [eid, s] : pending) s->set(eid);
                 }
             }
-
-            state->set(event_id);
+            // Push future is resolved above (batch full) or deferred until flush().
 
         } catch(const diaspora::Exception& ex) {
             state->set(ex);

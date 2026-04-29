@@ -21,7 +21,8 @@ PfsConsumer::PfsConsumer(
         std::shared_ptr<diaspora::ThreadPoolInterface> thread_pool,
         std::shared_ptr<PfsTopicHandle> topic,
         diaspora::DataAllocator data_allocator,
-        diaspora::DataSelector data_selector)
+        diaspora::DataSelector data_selector,
+        std::vector<size_t> targets)
 : m_name{std::move(name)}
 , m_batch_size(batch_size)
 , m_max_num_batches(max_num_batches)
@@ -32,6 +33,13 @@ PfsConsumer::PfsConsumer(
 , m_partition_offsets(m_topic->m_partitions.size(), 0)
 , m_prefetch_positions(m_topic->m_partitions.size(), 0)
 {
+    // If no targets specified, consume from all partitions.
+    if (targets.empty()) {
+        for (size_t i = 0; i < m_topic->m_partitions.size(); ++i)
+            m_targets.push_back(i);
+    } else {
+        m_targets = std::move(targets);
+    }
     m_poll_thread = std::thread([this]() { pollLoop(); });
 }
 
@@ -69,8 +77,9 @@ void PfsConsumer::pollLoop() {
         // Poll partitions until an event is found or stop is requested.
         bool found = false;
         while (!m_stop_polling && !found) {
-            for (size_t i = 0; i < m_topic->m_partitions.size() && !found; ++i) {
-                size_t partition_idx = (m_current_partition + i) % m_topic->m_partitions.size();
+            for (size_t i = 0; i < m_targets.size() && !found; ++i) {
+                size_t target_slot = (m_current_target + i) % m_targets.size();
+                size_t partition_idx = m_targets[target_slot];
                 auto& partition = m_topic->getPartition(partition_idx);
 
                 partition.refreshEventCount();
@@ -81,7 +90,7 @@ void PfsConsumer::pollLoop() {
                     // Advance offsets in the poll thread, before dispatching, so that
                     // the next request sees the correct position immediately.
                     m_partition_offsets[partition_idx]++;
-                    m_current_partition = (partition_idx + 1) % m_topic->m_partitions.size();
+                    m_current_target = (target_slot + 1) % m_targets.size();
 
                     if (m_partition_offsets[partition_idx] >= m_prefetch_positions[partition_idx]) {
                         size_t prefetch_start = m_partition_offsets[partition_idx];

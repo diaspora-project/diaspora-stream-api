@@ -3,9 +3,11 @@
 
 #include "TopicHandle.hpp"
 #include "WriteBatch.hpp"
+#include "FutureState.hpp"
 #include "diaspora/ThreadPool.hpp"
 #include "diaspora/Producer.hpp"
 #include <mutex>
+#include <utility>
 
 namespace files_driver {
 
@@ -22,6 +24,11 @@ class PfsProducer final : public diaspora::ProducerInterface {
     // Batch management - one batch per partition
     std::vector<WriteBatch>               m_partition_batches;
     std::vector<std::mutex>               m_batch_mutexes;
+
+    // Push futures pending disk write, resolved when their batch is flushed.
+    using PendingPush = std::pair<uint64_t,
+        std::shared_ptr<FutureState<std::optional<diaspora::EventID>>>>;
+    std::vector<std::vector<PendingPush>> m_partition_pending;
 
     public:
 

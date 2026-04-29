@@ -738,6 +738,12 @@ PYBIND11_MODULE(pydiaspora_stream_api, m) {
 
                 The next Event.
             )")
+        .def("unsubscribe", &diaspora::ConsumerInterface::unsubscribe, R"(
+            Unsubscribe this consumer from the topic, sending a removeConsumer
+            RPC to the server so that pending feedConsumer operations are
+            unblocked. Call this before deleting the consumer to allow the
+            server to shut down cleanly.
+        )")
     ;
 
     py::class_<diaspora::DataDescriptor>(m, "DataDescriptor")

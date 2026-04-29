@@ -26,8 +26,9 @@ class PfsConsumer final : public diaspora::ConsumerInterface {
     const diaspora::DataAllocator         m_data_allocator;
     const diaspora::DataSelector          m_data_selector;
 
+    std::vector<size_t>                   m_targets;
     std::vector<size_t>                   m_partition_offsets;
-    size_t                                m_current_partition = 0;
+    size_t                                m_current_target = 0;
 
     // Prefetching state for sequential access optimization
     std::vector<size_t>                   m_prefetch_positions;
@@ -54,7 +55,8 @@ class PfsConsumer final : public diaspora::ConsumerInterface {
         std::shared_ptr<diaspora::ThreadPoolInterface> thread_pool,
         std::shared_ptr<PfsTopicHandle> topic,
         diaspora::DataAllocator data_allocator,
-        diaspora::DataSelector data_selector);
+        diaspora::DataSelector data_selector,
+        std::vector<size_t> targets);
 
     const std::string& name() const override {
         return m_name;

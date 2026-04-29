@@ -66,12 +66,11 @@ PfsTopicHandle::makeConsumer(std::string_view name,
         const std::vector<size_t>& targets,
         diaspora::Metadata options) {
     (void)options;
-    (void)targets;
     if(!thread_pool) thread_pool = m_driver->makeThreadPool(diaspora::ThreadCount{0});
     return std::make_shared<PfsConsumer>(
             std::string{name}, batch_size, max_batch, thread_pool,
             shared_from_this(), std::move(data_allocator),
-            std::move(data_selector));
+            std::move(data_selector), targets);
 }
 
 }

@@ -15,7 +15,7 @@ namespace diaspora_ctl {
 /**
  * @brief Read a JSON configuration file
  * @param filename Path to the JSON file
- * @return JSON string content, or "{}" if file is empty or doesn't exist
+ * @return JSON string content, or "{}" if filename is empty; exits on file open error
  */
 std::string read_config_file(const std::string& filename);
 

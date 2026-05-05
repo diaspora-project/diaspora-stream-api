@@ -19,7 +19,7 @@ std::string read_config_file(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         spdlog::error("Failed to open config file: {}", filename);
-        return "{}";
+        std::exit(1);
     }
 
     std::stringstream buffer;

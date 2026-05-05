@@ -13,7 +13,6 @@
 #include <diaspora/BatchParams.hpp>
 #include <tclap/CmdLine.h>
 #include <spdlog/spdlog.h>
-#include <fstream>
 #include <string>
 #include <thread>
 #include <chrono>
@@ -43,30 +42,6 @@ static void signal_handler(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
         spdlog::info("Received shutdown signal...");
         g_shutdown_requested = true;
-    }
-}
-
-/**
- * @brief Load driver configuration from a JSON file
- */
-static diaspora::Metadata load_driver_config(const std::string& config_path) {
-    try {
-        std::ifstream file(config_path);
-        if (!file.is_open()) {
-            spdlog::error("Driver config file not found: {}", config_path);
-            std::exit(1);
-        }
-
-        std::string content((std::istreambuf_iterator<char>(file)),
-                           std::istreambuf_iterator<char>());
-
-        return diaspora::Metadata{content};
-    } catch (const diaspora::Exception& e) {
-        spdlog::error("Invalid JSON in driver config file: {}", e.what());
-        std::exit(1);
-    } catch (const std::exception& e) {
-        spdlog::error("Failed to read config file: {}", e.what());
-        std::exit(1);
     }
 }
 
@@ -519,8 +494,9 @@ static bool handle_producer_data(ProducerInfo& info) {
         }
         return true;
     } else if (n == 0) {
-        // EOF - writer closed the FIFO
+        // EOF - writer closed the FIFO; flush buffered events to disk before returning
         spdlog::info("Writer closed FIFO: {}", info.fifo_path);
+        info.producer.flush().wait(-1);
         return false;
     } else {
         // Read error

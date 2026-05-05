@@ -71,6 +71,12 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                 auto start = std::chrono::steady_clock::now();
                 auto timeout = std::chrono::seconds(60);
 
+                // Keep the future alive across iterations. If wait(100) times out the
+                // Promise still holds a weak_ptr to the State: destroying the Future
+                // before it resolves drops the only shared_ptr, making setValue() a
+                // no-op and silently losing the event.
+                diaspora::Future<std::optional<diaspora::Event>> pending_future;
+
                 while (events_consumed < num_events) {
                     if (std::chrono::steady_clock::now() - start > timeout) {
                         std::lock_guard<std::mutex> lock(error_mutex);
@@ -80,10 +86,14 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                                 + std::to_string(num_events) + " events";
                         break;
                     }
-                    auto event_opt = consumer.pull().wait(100);
-                    if (event_opt && event_opt->id() != diaspora::NoMoreEvents) {
-                        events_consumed.fetch_add(1);
-                        event_opt->acknowledge();
+                    if (!pending_future) pending_future = consumer.pull();
+                    auto event_opt = pending_future.wait(100);
+                    if (event_opt) {
+                        pending_future = {};
+                        if (event_opt->id() != diaspora::NoMoreEvents) {
+                            events_consumed.fetch_add(1);
+                            event_opt->acknowledge();
+                        }
                     }
                 }
             } catch (const std::exception& ex) {
@@ -150,6 +160,8 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                 auto start = std::chrono::steady_clock::now();
                 auto timeout = std::chrono::seconds(60);
 
+                diaspora::Future<std::optional<diaspora::Event>> pending_future;
+
                 while (events_consumed < num_events) {
                     if (std::chrono::steady_clock::now() - start > timeout) {
                         std::lock_guard<std::mutex> lock(error_mutex);
@@ -159,12 +171,16 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                                 + std::to_string(num_events) + " events";
                         break;
                     }
-                    auto event_opt = consumer.pull().wait(100);
-                    if (event_opt && event_opt->id() != diaspora::NoMoreEvents) {
-                        events_consumed.fetch_add(1);
-                        event_opt->acknowledge();
-                        // Simulate slow consumer
-                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    if (!pending_future) pending_future = consumer.pull();
+                    auto event_opt = pending_future.wait(100);
+                    if (event_opt) {
+                        pending_future = {};
+                        if (event_opt->id() != diaspora::NoMoreEvents) {
+                            events_consumed.fetch_add(1);
+                            event_opt->acknowledge();
+                            // Simulate slow consumer
+                            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                        }
                     }
                 }
             } catch (const std::exception& ex) {
@@ -239,6 +255,8 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                 auto start = std::chrono::steady_clock::now();
                 auto timeout = std::chrono::seconds(60);
 
+                diaspora::Future<std::optional<diaspora::Event>> pending_future;
+
                 while (events_consumed < total_events) {
                     if (std::chrono::steady_clock::now() - start > timeout) {
                         std::lock_guard<std::mutex> lock(error_mutex);
@@ -248,10 +266,14 @@ TEST_CASE("Concurrent producer/consumer", "[concurrent]") {
                                 + std::to_string(total_events) + " events";
                         break;
                     }
-                    auto event_opt = consumer.pull().wait(100);
-                    if (event_opt && event_opt->id() != diaspora::NoMoreEvents) {
-                        events_consumed.fetch_add(1);
-                        event_opt->acknowledge();
+                    if (!pending_future) pending_future = consumer.pull();
+                    auto event_opt = pending_future.wait(100);
+                    if (event_opt) {
+                        pending_future = {};
+                        if (event_opt->id() != diaspora::NoMoreEvents) {
+                            events_consumed.fetch_add(1);
+                            event_opt->acknowledge();
+                        }
                     }
                 }
             } catch (const std::exception& ex) {

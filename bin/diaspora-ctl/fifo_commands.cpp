@@ -911,7 +911,11 @@ int fifo_daemon(int argc, char** argv) {
         // Create the driver
         auto driver = create_driver(driver_name, driver_metadata);
 
-        // Set up signal handlers for graceful shutdown
+        // Set up signal handlers for graceful shutdown.
+        // Ignore SIGPIPE so that writes to a consumer FIFO whose reader has
+        // disappeared return -1/EPIPE instead of killing the daemon; the
+        // consumer worker thread already handles that errno cleanly.
+        std::signal(SIGPIPE, SIG_IGN);
         std::signal(SIGINT, signal_handler);
         std::signal(SIGTERM, signal_handler);
 

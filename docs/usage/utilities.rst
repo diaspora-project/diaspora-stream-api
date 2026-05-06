@@ -4,6 +4,41 @@ Utilities
 The Diaspora Stream API comes with the `diaspora-ctl` executable, which can be used
 for a number of things listed in this section.
 
+Default options via environment variable
+----------------------------------------
+
+To avoid retyping the same driver options on every invocation, set the
+:code:`DIASPORA_CTL_DRIVER_OPTIONS` environment variable. Its contents are
+tokenized using shell-like quoting (single and double quotes, backslash
+escapes; **no** variable expansion or command substitution) and prepended to
+the command-line arguments before parsing. Any option provided on the actual
+command line takes precedence over the same option supplied via the
+environment variable.
+
+.. code-block:: bash
+
+   export DIASPORA_CTL_DRIVER_OPTIONS="--driver files --driver.path /tmp/my-stream"
+
+   # Equivalent to:
+   #   diaspora-ctl topic list --driver files --driver.path /tmp/my-stream
+   diaspora-ctl topic list
+
+   # CLI overrides the env-var value of --driver.path
+   diaspora-ctl topic list --driver.path /tmp/other-stream
+
+This affects the :code:`topic create`, :code:`topic list`, and :code:`fifo`
+subcommands. The :code:`forward` subcommand is configured exclusively through
+its TOML file and ignores this variable.
+
+.. note::
+
+   Defining the variable as a plain shell string and expanding it inline (e.g.
+   :code:`diaspora-ctl topic list $MY_OPTS`) is fragile across shells: in zsh,
+   unquoted parameter expansion does not perform word-splitting, so the whole
+   string is passed as a single argument. Setting
+   :code:`DIASPORA_CTL_DRIVER_OPTIONS` lets :code:`diaspora-ctl` itself do the
+   tokenization, which works identically in any shell.
+
 Manipulating topics
 -------------------
 

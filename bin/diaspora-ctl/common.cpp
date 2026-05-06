@@ -8,8 +8,65 @@
 #include <fstream>
 #include <sstream>
 #include <cctype>
+#include <cstdlib>
 
 namespace diaspora_ctl {
+
+namespace {
+
+// Split a string into tokens with shell-like quoting:
+//  - whitespace separates tokens
+//  - single quotes preserve content verbatim (no escapes)
+//  - double quotes preserve content but allow backslash escape of " and backslash itself
+//  - outside quotes, backslash escapes the next character
+// No variable expansion, command substitution or globbing is performed.
+std::vector<std::string> split_shell_like(const std::string& input) {
+    std::vector<std::string> tokens;
+    std::string current;
+    bool in_token = false;
+    enum { NONE, SINGLE, DOUBLE } quote = NONE;
+
+    for (size_t i = 0; i < input.size(); ++i) {
+        char c = input[i];
+        if (quote == SINGLE) {
+            if (c == '\'') quote = NONE;
+            else current.push_back(c);
+        } else if (quote == DOUBLE) {
+            if (c == '"') {
+                quote = NONE;
+            } else if (c == '\\' && i + 1 < input.size()
+                       && (input[i+1] == '"' || input[i+1] == '\\')) {
+                current.push_back(input[++i]);
+            } else {
+                current.push_back(c);
+            }
+        } else {
+            if (std::isspace(static_cast<unsigned char>(c))) {
+                if (in_token) {
+                    tokens.push_back(std::move(current));
+                    current.clear();
+                    in_token = false;
+                }
+            } else if (c == '\'') {
+                quote = SINGLE;
+                in_token = true;
+            } else if (c == '"') {
+                quote = DOUBLE;
+                in_token = true;
+            } else if (c == '\\' && i + 1 < input.size()) {
+                current.push_back(input[++i]);
+                in_token = true;
+            } else {
+                current.push_back(c);
+                in_token = true;
+            }
+        }
+    }
+    if (in_token) tokens.push_back(std::move(current));
+    return tokens;
+}
+
+} // anonymous namespace
 
 std::string read_config_file(const std::string& filename) {
     if (filename.empty()) {
@@ -113,8 +170,28 @@ ParsedArgs extract_metadata_args(int argc, char** argv) {
         {"--partition-selector.", 21}
     };
 
-    for (int i = 0; i < argc; ++i) {
-        std::string arg = argv[i];
+    // Pull tokens from DIASPORA_CTL_DRIVER_OPTIONS, if any. We move them into
+    // result.owned_args so the c_str pointers we hand out remain valid as long
+    // as the caller keeps the ParsedArgs alive.
+    std::vector<std::string> env_tokens;
+    if (const char* env = std::getenv("DIASPORA_CTL_DRIVER_OPTIONS")) {
+        env_tokens = split_shell_like(env);
+    }
+    result.owned_args = std::move(env_tokens);
+
+    // Build a merged token list: argv[0], env tokens, argv[1..]. Env-sourced
+    // tokens come first so explicit CLI args can override them (TCLAP picks
+    // the last occurrence; set_nested_value also overwrites).
+    struct Tok { char* ptr; };
+    std::vector<Tok> merged;
+    merged.reserve(argc + result.owned_args.size());
+    if (argc > 0) merged.push_back({argv[0]});
+    for (auto& s : result.owned_args) merged.push_back({s.data()});
+    for (int i = 1; i < argc; ++i) merged.push_back({argv[i]});
+
+    const int n = static_cast<int>(merged.size());
+    for (int i = 0; i < n; ++i) {
+        std::string arg = merged[i].ptr;
         bool matched = false;
 
         for (const auto& [prefix_with_dashes, prefix_len] : prefixes) {
@@ -125,8 +202,8 @@ ParsedArgs extract_metadata_args(int argc, char** argv) {
                 // Extract key after the prefix
                 std::string key = arg.substr(prefix_len);
 
-                if (i + 1 < argc) {
-                    std::string value = argv[i + 1];
+                if (i + 1 < n) {
+                    std::string value = merged[i + 1].ptr;
                     set_nested_value(result.metadata[prefix_name], key, parse_value(value));
                     i++; // Skip the value argument
                     matched = true;
@@ -136,7 +213,7 @@ ParsedArgs extract_metadata_args(int argc, char** argv) {
         }
 
         if (!matched) {
-            result.filtered_argv.push_back(argv[i]);
+            result.filtered_argv.push_back(merged[i].ptr);
         }
     }
 

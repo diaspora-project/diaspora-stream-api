@@ -47,10 +47,22 @@ void set_nested_value(nlohmann::json& obj, const std::string& key, const nlohman
 struct ParsedArgs {
     std::unordered_map<std::string, nlohmann::json> metadata;
     std::vector<char*> filtered_argv;
+    // Owns the storage for tokens that did not come from the original argv
+    // (e.g. tokens parsed out of the DIASPORA_CTL_DRIVER_OPTIONS environment
+    // variable). Pointers in filtered_argv may reference into these strings,
+    // so this vector must stay alive as long as filtered_argv is used.
+    std::vector<std::string> owned_args;
 };
 
 /**
  * @brief Extract metadata arguments from argv (--driver.*, --topic.*, --validator.*, --serializer.*, --partition-selector.*)
+ *
+ * If the DIASPORA_CTL_DRIVER_OPTIONS environment variable is set, its
+ * contents are tokenized (shell-like quoting: single/double quotes and
+ * backslash escapes, no shell expansion) and prepended to the argument
+ * list before processing, so users can avoid retyping driver options on
+ * every invocation. CLI arguments take precedence over env-var ones.
+ *
  * @param argc Argument count
  * @param argv Argument vector
  * @return Parsed arguments with metadata map and filtered argv

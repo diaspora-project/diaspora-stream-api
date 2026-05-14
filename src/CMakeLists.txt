@@ -27,6 +27,7 @@ target_link_libraries (diaspora-stream-api
     PUBLIC
     nlohmann_json::nlohmann_json
     nlohmann_json_schema_validator::validator
+    ${CMAKE_DL_LIBS}
     PRIVATE
     spdlog::spdlog_header_only
     coverage_config

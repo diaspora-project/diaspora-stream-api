@@ -134,6 +134,16 @@ A producer command will make the daemon create a FIFO with the specified `path`
 and a producer instance linked to the specified `topic`. Any line of text written into
 this FIFO will be passed to the producer as metadata.
 
+The FIFO is persistent: it is created once and stays in place until the daemon shuts
+down. A writer may open it, write one or more newline-delimited events, and close it,
+then reopen the same path later to send more events; there is no need to send the
+control command again. Each such open/write/close cycle flushes that cycle's events to
+storage when the writer closes. A writer may also hold the FIFO open and stream events
+continuously. In both cases the daemon reads the whole FIFO before acting on the writer
+closing, so events are never dropped, even when a single write is larger than the
+operating-system pipe buffer. Batching still governs when full batches reach storage
+(see :code:`batch_size` below); closing the FIFO flushes any remaining buffered events.
+
 Options in parenthesis may be one of the following.
 
 * :code:`format` : :code:`raw` or :code:`json` (default: :code:`raw`). If :code:`json` is

@@ -259,16 +259,17 @@ static int initialize_control_fifo(const std::string& control_file) {
     }
     spdlog::info("Created control FIFO: {}", control_file);
 
-    // Open control FIFO for reading (non-blocking initially)
-    int control_fd = open(control_file.c_str(), O_RDONLY | O_NONBLOCK);
+    // Open the control FIFO O_RDWR (non-blocking) so the daemon always holds a
+    // writer reference itself. Without this, every command writer that closes
+    // the FIFO leaves POLLHUP set on the read end, which poll() reports
+    // immediately on every iteration, spinning the event loop at 100% CPU. With
+    // a permanent writer reference POLLHUP is never raised and read() never
+    // reports EOF; commands are still delivered via POLLIN as they arrive.
+    int control_fd = open(control_file.c_str(), O_RDWR | O_NONBLOCK);
     if (control_fd == -1) {
         spdlog::error("Failed to open control FIFO: {}", std::strerror(errno));
         return -1;
     }
-
-    // Make it blocking after opening
-    int flags = fcntl(control_fd, F_GETFL);
-    fcntl(control_fd, F_SETFL, flags & ~O_NONBLOCK);
 
     return control_fd;
 }
@@ -446,62 +447,103 @@ static bool handle_consumer_command(
 }
 
 /**
- * @brief Process data from a producer FIFO
+ * @brief Result of draining a producer FIFO
  */
-static bool handle_producer_data(ProducerInfo& info) {
-    char buffer[4096];
-    ssize_t n = read(info.fd, buffer, sizeof(buffer));
+enum class ProducerReadResult {
+    KeepOpen,     // Pipe drained for now, writer still connected
+    EndOfCycle,   // Writer closed the FIFO; cycle flushed
+    Error         // Unrecoverable read error
+};
 
-    if (n > 0) {
-        info.read_buffer.append(buffer, n);
-
-        // Determine the format (default is "raw")
-        std::string format = "raw";
-        auto format_it = info.options.find("format");
-        if (format_it != info.options.end()) {
-            format = format_it->second;
+/**
+ * @brief Push a single line to the producer, applying the format option
+ */
+static void push_line(ProducerInfo& info, std::string line, bool format_is_json) {
+    if (line.empty()) return;
+    try {
+        // Format the line according to the format option
+        if (!format_is_json) {
+            line = "\"" + line + "\"";
         }
 
-        bool format_is_json = false;
-        if (format == "json") {
-            format_is_json = true;
-        } else if (format != "raw") {
-            spdlog::warn("Unknown format '{}' for FIFO '{}', using 'raw' instead",
-                         format, info.fifo_path);
-        }
+        // Push the formatted line as metadata to the producer
+        diaspora::Metadata metadata(line);
+        info.producer.push(metadata);
+        spdlog::debug("Pushed to '{}': {}", info.topic_name, line);
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to push event: {}", e.what());
+    }
+}
 
-        // Process complete lines
-        size_t pos;
-        while ((pos = info.read_buffer.find('\n')) != std::string::npos) {
-            std::string line = info.read_buffer.substr(0, pos);
-            info.read_buffer.erase(0, pos + 1);
-
-            if (!line.empty()) {
-                try {
-                    // Format the line according to the format option
-                    if (!format_is_json) {
-                        line = "\"" + line + "\"";
-                    }
-
-                    // Push the formatted line as metadata to the producer
-                    diaspora::Metadata metadata(line);
-                    info.producer.push(metadata);
-                    spdlog::debug("Pushed to '{}': {}", info.topic_name, line);
-                } catch (const std::exception& e) {
-                    spdlog::error("Failed to push event: {}", e.what());
-                }
-            }
-        }
+/**
+ * @brief Determine whether the producer's format option is "json"
+ */
+static bool producer_format_is_json(const ProducerInfo& info) {
+    auto format_it = info.options.find("format");
+    if (format_it == info.options.end() || format_it->second == "raw") {
+        return false;
+    }
+    if (format_it->second == "json") {
         return true;
-    } else if (n == 0) {
-        // EOF - writer closed the FIFO; flush buffered events to disk before returning
-        spdlog::info("Writer closed FIFO: {}", info.fifo_path);
-        info.producer.flush().wait(-1);
-        return false;
-    } else {
-        // Read error
-        spdlog::error("Read error on FIFO '{}': {}", info.fifo_path, std::strerror(errno));
-        return false;
+    }
+    spdlog::warn("Unknown format '{}' for FIFO '{}', using 'raw' instead",
+                 format_it->second, info.fifo_path);
+    return false;
+}
+
+/**
+ * @brief Push all newline-terminated lines currently in the read buffer
+ */
+static void push_complete_lines(ProducerInfo& info, bool format_is_json) {
+    size_t pos;
+    while ((pos = info.read_buffer.find('\n')) != std::string::npos) {
+        std::string line = info.read_buffer.substr(0, pos);
+        info.read_buffer.erase(0, pos + 1);
+        push_line(info, std::move(line), format_is_json);
+    }
+}
+
+/**
+ * @brief Drain all data currently available on a producer FIFO
+ *
+ * The FIFO fd is non-blocking, so we read until the pipe is empty (EAGAIN,
+ * writer still connected) or the writer has closed and the pipe is fully
+ * drained (read returns 0). Draining to true EOF before ending the cycle
+ * ensures nothing still buffered in the pipe is discarded when the writer
+ * closes, even for payloads larger than the pipe buffer.
+ */
+static ProducerReadResult handle_producer_data(ProducerInfo& info) {
+    char buffer[4096];
+    const bool format_is_json = producer_format_is_json(info);
+
+    for (;;) {
+        ssize_t n = read(info.fd, buffer, sizeof(buffer));
+
+        if (n > 0) {
+            info.read_buffer.append(buffer, n);
+            push_complete_lines(info, format_is_json);
+        } else if (n == 0) {
+            // EOF - writer closed the FIFO and the pipe is fully drained.
+            // Push any trailing data that lacked a final newline, then flush
+            // this cycle's events to disk.
+            spdlog::info("Writer closed FIFO: {}", info.fifo_path);
+            if (!info.read_buffer.empty()) {
+                push_line(info, std::move(info.read_buffer), format_is_json);
+                info.read_buffer.clear();
+            }
+            info.producer.flush().wait(-1);
+            return ProducerReadResult::EndOfCycle;
+        } else {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // Pipe empty for now; writer is still connected.
+                return ProducerReadResult::KeepOpen;
+            }
+            if (errno == EINTR) {
+                continue;
+            }
+            spdlog::error("Read error on FIFO '{}': {}", info.fifo_path, std::strerror(errno));
+            return ProducerReadResult::Error;
+        }
     }
 }
 
@@ -523,6 +565,36 @@ static void cleanup_producer(ProducerInfo& info) {
     } catch (const std::exception& e) {
         spdlog::warn("Failed to remove FIFO file '{}': {}", info.fifo_path, e.what());
     }
+}
+
+/**
+ * @brief Re-arm a producer for the next open/write/close cycle
+ *
+ * Keeps the FIFO file and the producer registered so the same path can be
+ * reused for subsequent messages. The read end is closed and reopened, which
+ * clears the POLLHUP left by the previous writer so poll() idles again until
+ * the next writer connects.
+ *
+ * @return true if the producer was re-armed, false if it must be torn down.
+ */
+static bool rearm_producer(ProducerInfo& info) {
+    // Open a fresh read end BEFORE closing the old one so the FIFO always has a
+    // reader during the handoff. This closes a race: a writer that connects
+    // while we are flushing writes into the shared pipe buffer, which would be
+    // discarded if we closed the only read fd. Because the new fd shares that
+    // buffer, such bytes survive and are picked up on the next poll, and a
+    // writer's open() never sees a reader-less FIFO.
+    int newfd = open(info.fifo_path.c_str(), O_RDONLY | O_NONBLOCK);
+    if (newfd == -1) {
+        spdlog::error("Failed to reopen FIFO '{}': {}", info.fifo_path, std::strerror(errno));
+        return false;
+    }
+
+    close(info.fd);
+    info.fd = newfd;
+    info.read_buffer.clear();
+    spdlog::debug("Re-armed producer FIFO for next writer: {}", info.fifo_path);
+    return true;
 }
 
 /**
@@ -767,32 +839,39 @@ static void run_daemon(diaspora::Driver& driver, const std::string& control_file
                 }
             }
 
-            // Track FIFOs that need to be closed
+            // Track FIFOs that need to be torn down (unrecoverable errors only)
             std::vector<std::string> fifos_to_close;
 
             // Check producer FIFOs for data
             for (size_t i = 1; i < fds.size(); ++i) {
                 const std::string& fifo_path = fifo_paths[i - 1];
-                bool should_close = false;
 
-                if (fds[i].revents & POLLIN) {
+                // POLLIN and POLLHUP are handled together: handle_producer_data
+                // drains the pipe to true EOF before reporting EndOfCycle, so a
+                // writer that closes with data still buffered is not truncated.
+                if (fds[i].revents & (POLLIN | POLLHUP)) {
                     auto& info = producers[fifo_path];
-                    if (!handle_producer_data(info)) {
-                        should_close = true;
+                    switch (handle_producer_data(info)) {
+                        case ProducerReadResult::KeepOpen:
+                            break;
+                        case ProducerReadResult::EndOfCycle:
+                            // Persistent FIFO: re-arm for the next writer instead
+                            // of removing it. Tear down only if re-arm fails.
+                            if (!rearm_producer(info)) {
+                                fifos_to_close.push_back(fifo_path);
+                            }
+                            break;
+                        case ProducerReadResult::Error:
+                            fifos_to_close.push_back(fifo_path);
+                            break;
                     }
-                }
-
-                if (fds[i].revents & (POLLERR | POLLHUP)) {
-                    spdlog::warn("POLLHUP/POLLERR on FIFO: {}", fifo_path);
-                    should_close = true;
-                }
-
-                if (should_close) {
+                } else if (fds[i].revents & POLLERR) {
+                    spdlog::warn("POLLERR on FIFO: {}", fifo_path);
                     fifos_to_close.push_back(fifo_path);
                 }
             }
 
-            // Clean up closed FIFOs
+            // Tear down producers that hit an unrecoverable error
             for (const auto& fifo_path : fifos_to_close) {
                 auto it = producers.find(fifo_path);
                 if (it != producers.end()) {

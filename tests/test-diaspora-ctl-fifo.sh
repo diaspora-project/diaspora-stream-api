@@ -5,6 +5,23 @@
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source "${SCRIPT_DIR}/test-diaspora-ctl-common.sh"
 
+# Count events stored by the files driver for a topic. Each partition keeps an
+# "index" file with one fixed-size (32-byte) entry per event, so the total event
+# count is the sum of index sizes divided by 32. This is specific to the files
+# driver used throughout this suite.
+count_topic_events() {
+    local root_path=$1
+    local topic=$2
+    local total=0
+    local idx sz
+    for idx in "$root_path/$topic"/partitions/*/index; do
+        [ -f "$idx" ] || continue
+        sz=$(stat -c%s "$idx" 2>/dev/null || echo 0)
+        total=$((total + sz / 32))
+    done
+    echo "$total"
+}
+
 # Test: FIFO daemon basic functionality
 test_fifo_daemon() {
     echo ""
@@ -527,6 +544,179 @@ test_fifo_concurrent_producer_consumer() {
     print_result "FIFO daemon concurrent producer/consumer" $result
 }
 
+# Test: a payload larger than the OS pipe buffer written in a single
+# open/write/close cycle must not be truncated when the writer closes.
+test_fifo_daemon_large_payload() {
+    echo ""
+    echo "Test: FIFO daemon large payload (no truncation on close)"
+    echo "---------------------------------------------------------"
+
+    local root_path="${TEST_DATA_DIR}/fifo-large"
+    mkdir -p "$root_path"
+
+    local control_file="${TEST_DATA_DIR}/fifo-control-large"
+    local producer_fifo="${TEST_DATA_DIR}/producer-fifo-large"
+    local payload_file="${TEST_DATA_DIR}/large-payload.txt"
+    local daemon_log="${TEST_DATA_DIR}/daemon-output-large.log"
+    local num_lines=2000   # ~90 KB, larger than the typical 64 KiB pipe buffer
+
+    "$DIASPORA_CTL" topic create \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --name "large-topic" \
+        > /dev/null 2>&1
+
+    "$DIASPORA_CTL" fifo \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --control-file "$control_file" \
+        --logging error \
+        > "$daemon_log" 2>&1 &
+
+    local daemon_pid=$!
+    local result=0
+
+    sleep 1
+    if ! kill -0 "$daemon_pid" 2>/dev/null; then
+        print_error "Daemon failed to start"
+        result=1
+    else
+        echo "$producer_fifo -> large-topic" > "$control_file" 2>/dev/null || true
+        sleep 1
+
+        if [ ! -p "$producer_fifo" ]; then
+            print_error "Producer FIFO not created at $producer_fifo"
+            result=1
+        else
+            # Build a payload larger than the pipe buffer and write it in a
+            # single open/write/close cycle.
+            local i
+            : > "$payload_file"
+            for i in $(seq 1 "$num_lines"); do
+                printf 'large-payload-line-%05d-padding-padding-padding\n' "$i" >> "$payload_file"
+            done
+            cat "$payload_file" > "$producer_fifo"
+
+            sleep 2
+            local got
+            got=$(count_topic_events "$root_path" "large-topic")
+            if [ "$got" -ne "$num_lines" ]; then
+                print_error "Expected $num_lines events, got $got (payload truncated on close)"
+                result=1
+            else
+                print_info "All $got events published; no truncation"
+            fi
+        fi
+    fi
+
+    kill -TERM "$daemon_pid" 2>/dev/null || true
+    local timeout=5
+    while [ $timeout -gt 0 ] && kill -0 "$daemon_pid" 2>/dev/null; do
+        sleep 1
+        timeout=$((timeout - 1))
+    done
+    if kill -0 "$daemon_pid" 2>/dev/null; then
+        kill -9 "$daemon_pid" 2>/dev/null || true
+        result=1
+    fi
+
+    rm -f "$control_file" "$producer_fifo" "$payload_file" "$daemon_log" 2>/dev/null || true
+
+    print_result "FIFO daemon large payload (no truncation on close)" $result
+}
+
+# Test: the producer FIFO persists across open/write/close cycles, so the same
+# path can be reused for many messages without re-sending the control command.
+test_fifo_daemon_fifo_reuse() {
+    echo ""
+    echo "Test: FIFO daemon persistent FIFO reuse"
+    echo "----------------------------------------"
+
+    local root_path="${TEST_DATA_DIR}/fifo-reuse"
+    mkdir -p "$root_path"
+
+    local control_file="${TEST_DATA_DIR}/fifo-control-reuse"
+    local producer_fifo="${TEST_DATA_DIR}/producer-fifo-reuse"
+    local daemon_log="${TEST_DATA_DIR}/daemon-output-reuse.log"
+    local num_cycles=5
+
+    "$DIASPORA_CTL" topic create \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --name "reuse-topic" \
+        > /dev/null 2>&1
+
+    "$DIASPORA_CTL" fifo \
+        --driver "files" \
+        --driver.root_path "$root_path" \
+        --control-file "$control_file" \
+        --logging error \
+        > "$daemon_log" 2>&1 &
+
+    local daemon_pid=$!
+    local result=0
+
+    sleep 1
+    if ! kill -0 "$daemon_pid" 2>/dev/null; then
+        print_error "Daemon failed to start"
+        result=1
+    else
+        # Register the producer exactly once.
+        echo "$producer_fifo -> reuse-topic" > "$control_file" 2>/dev/null || true
+        sleep 1
+
+        if [ ! -p "$producer_fifo" ]; then
+            print_error "Producer FIFO not created at $producer_fifo"
+            result=1
+        else
+            local n
+            for n in $(seq 1 "$num_cycles"); do
+                # One open/write/close cycle per message, reusing the same path
+                # with no further control command.
+                if ! echo "reuse-message-$n" > "$producer_fifo" 2>/dev/null; then
+                    print_error "Failed to write message $n to reused FIFO"
+                    result=1
+                    break
+                fi
+                sleep 0.5
+                # The FIFO must survive each cycle for the next write to succeed.
+                if [ ! -p "$producer_fifo" ]; then
+                    print_error "Producer FIFO was removed after cycle $n (not persistent)"
+                    result=1
+                    break
+                fi
+            done
+
+            if [ $result -eq 0 ]; then
+                sleep 1
+                local got
+                got=$(count_topic_events "$root_path" "reuse-topic")
+                if [ "$got" -ne "$num_cycles" ]; then
+                    print_error "Expected $num_cycles events across reused cycles, got $got"
+                    result=1
+                else
+                    print_info "All $got messages published across $num_cycles reuse cycles"
+                fi
+            fi
+        fi
+    fi
+
+    kill -TERM "$daemon_pid" 2>/dev/null || true
+    local timeout=5
+    while [ $timeout -gt 0 ] && kill -0 "$daemon_pid" 2>/dev/null; do
+        sleep 1
+        timeout=$((timeout - 1))
+    done
+    if kill -0 "$daemon_pid" 2>/dev/null; then
+        kill -9 "$daemon_pid" 2>/dev/null || true
+        result=1
+    fi
+
+    rm -f "$control_file" "$producer_fifo" "$daemon_log" 2>/dev/null || true
+
+    print_result "FIFO daemon persistent FIFO reuse" $result
+}
+
 # Main test execution
 main() {
     echo "================================================"
@@ -538,6 +728,8 @@ main() {
     # Run all FIFO tests
     test_fifo_daemon
     test_fifo_daemon_options
+    test_fifo_daemon_large_payload
+    test_fifo_daemon_fifo_reuse
     test_fifo_daemon_consumer
     test_fifo_concurrent_producer_consumer
 

@@ -632,14 +632,41 @@ static void consumer_worker_thread(ConsumerInfo* info) {
 
     spdlog::info("Consumer FIFO '{}' opened successfully for writing", info->fifo_path);
 
+    // A single outstanding pull request is kept alive across loop iterations.
+    // The files driver dequeues a pull() request as soon as it is issued and
+    // polls for an event until one arrives or the consumer shuts down; its
+    // wait() returns an empty optional on a plain timeout WITHOUT resolving the
+    // request. Issuing a fresh pull() on every timeout would therefore leave the
+    // previous request polling in the background and deliver the next event into
+    // a future nobody waits on, so the consumer would stall as soon as it caught
+    // up with the producer. Reusing the same future until it actually completes
+    // keeps exactly one request in flight.
+    // Prime the first request and mark it pending so the loop waits on this very
+    // future rather than issuing (and discarding) another one on its first pass.
+    auto pending = info->consumer.pull();
+    bool have_pending = true;
+
     while (!info->shutdown_requested) {
         try {
-            // Pull event with timeout
-            auto future = info->consumer.pull();
-            auto maybe_event = future.wait(100);  // 100ms timeout
+            if (!have_pending) {
+                pending = info->consumer.pull();
+                have_pending = true;
+            }
+
+            auto maybe_event = pending.wait(100);  // 100ms timeout
+
+            // Distinguish a genuine timeout (request still pending in the
+            // driver) from a resolved-but-empty result: only a completed future
+            // consumes the pending request.
+            if (!pending.completed()) {
+                // Timeout: keep waiting on the SAME request next iteration.
+                continue;
+            }
+            have_pending = false;
 
             if (!maybe_event.has_value()) {
-                // Timeout, continue loop
+                // Resolved with no event (e.g. consumer shutting down).
+                spdlog::debug("No more events for consumer FIFO: {}", info->fifo_path);
                 continue;
             }
 
@@ -668,26 +695,34 @@ static void consumer_worker_thread(ConsumerInfo* info) {
             }
             // else format=json: use output as-is
 
-            // Write to FIFO with newline
+            // Write to FIFO with newline. The event has already been consumed
+            // from the pending request, so a full FIFO must be retried on this
+            // same event rather than dropped.
             output += "\n";
-            ssize_t written = write(info->fd, output.c_str(), output.size());
-
-            if (written < 0) {
-                if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    // FIFO full, try again next loop
-                    spdlog::debug("Consumer FIFO '{}' is full, retrying", info->fifo_path);
-                    continue;
-                } else {
+            bool write_failed = false;
+            size_t write_offset = 0;
+            while (write_offset < output.size() && !info->shutdown_requested) {
+                ssize_t written = write(info->fd,
+                                        output.c_str() + write_offset,
+                                        output.size() - write_offset);
+                if (written < 0) {
+                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                        // FIFO full, give the reader a moment and retry.
+                        spdlog::debug("Consumer FIFO '{}' is full, retrying", info->fifo_path);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                        continue;
+                    }
                     spdlog::error("Write error on consumer FIFO '{}': {}",
                                  info->fifo_path, std::strerror(errno));
-                    break;  // Exit thread on error
+                    write_failed = true;
+                    break;
                 }
-            } else if (written < static_cast<ssize_t>(output.size())) {
-                spdlog::warn("Partial write on consumer FIFO '{}': wrote {}/{} bytes",
-                            info->fifo_path, written, output.size());
-            } else {
-                spdlog::debug("Wrote event to consumer FIFO '{}': {}", info->fifo_path, output);
+                write_offset += static_cast<size_t>(written);
             }
+            if (write_failed) {
+                break;  // Exit thread on error
+            }
+            spdlog::debug("Wrote event to consumer FIFO '{}': {}", info->fifo_path, output);
 
             // Note: Not acknowledging events per user request
 

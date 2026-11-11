@@ -151,10 +151,75 @@ Options in parenthesis may be one of the following.
   string. Note that because the daemon splits events on new lines, these JSON or strings
   cannot themselves embed new lines.
 
-* :code:`batch_size` : an integer value, representing the batch size the producer must use
+* :code:`batch_size` : an integer value, representing the batch size the producer uses
   (default is 128).
 
 Note that only metadata can be written into the topic, the data part of events is always left empty.
+
+Batching and when events become visible
++++++++++++++++++++++++++++++++++++++++
+
+The producer groups events into batches of :code:`batch_size` events. A batch reaches
+storage (and so becomes visible to consumers) only when one of two things happens:
+
+* the batch fills up (``batch_size`` events have been pushed), or
+* the writer closes the FIFO, which flushes the current, possibly partial, batch.
+
+The daemon detects a writer closing the FIFO (a *hang-up*) and flushes on every such
+event. This makes the *process model of the writer* the deciding factor for how events
+are grouped, which is easy to overlook because two shell idioms that look similar behave
+very differently.
+
+**One writer per event (a loop of redirections).** Each :code:`echo ... > fifo` opens the
+FIFO, writes one line, and closes it. The daemon sees a hang-up after every line and
+flushes, so events reach storage one by one, **regardless of** :code:`batch_size`.
+
+.. code-block:: bash
+
+   # A new writer process per iteration: each redirection opens and closes the FIFO.
+   echo 'prod.fifo -> my-topic (batch_size=128)' > control-file
+   for i in $(seq 1 10); do
+       echo "event-$i" > prod.fifo   # opens, writes one line, closes -> flush
+       sleep 1
+   done
+
+In this case, even though :code:`batch_size` is 128, a consumer sees one new event every
+second, because each closing of the FIFO flushes that single event.
+
+**One long-lived writer (the whole loop is piped).** When a single process holds the FIFO
+open and streams into it, there is no hang-up between events. The producer then fills
+batches normally: nothing is stored until the batch reaches :code:`batch_size` events (or
+the writer finally closes the FIFO).
+
+.. code-block:: bash
+
+   # A single writer holds the FIFO open for the whole loop.
+   echo 'prod.fifo -> my-topic (batch_size=128)' > control-file
+
+   emit_events() {
+       for i in $(seq 1 1000); do
+           echo "event-$i"
+           sleep 1
+       done
+   }
+   emit_events > prod.fifo   # one process, one open/close, held open for the loop
+
+Here the loop still produces one event per second, but the FIFO stays open, so no batch is
+flushed until 128 events have accumulated. With the default :code:`batch_size` of 128 and a
+one-second interval, a consumer has to wait about **128 seconds** before the first batch of
+128 events is stored and becomes available; the next batch appears 128 seconds later, and
+so on. The partial final batch is flushed only when :code:`emit_events` returns and the
+FIFO is closed.
+
+To make a long-lived writer deliver events promptly, lower the batch size. Setting
+:code:`batch_size=1` flushes after every event, so events become visible as soon as they
+are produced, at the cost of one storage flush per event.
+
+.. code-block:: bash
+
+   # Long-lived writer, but every event is flushed immediately.
+   echo 'prod.fifo -> my-topic (batch_size=1)' > control-file
+   emit_events > prod.fifo
 
 Consumer command
 """"""""""""""""
@@ -163,10 +228,49 @@ A consumer command works in a similar manner, however `the specified FIFO device
 created first and a process must have opened it in read mode`. The daemon will create a consumer
 linked to the topic and write any received metadata into the FIFO device.
 
+The required order is therefore:
+
+.. code-block:: bash
+
+   mkfifo cons.fifo                            # 1. create the FIFO
+   cat cons.fifo &                             # 2. open it in read mode (a reader must be present)
+   echo 'cons.fifo <- my-topic' > control-file # 3. register the consumer with the daemon
+
+A reader must be present shortly after the command is sent: the daemon opens the FIFO for writing
+in non-blocking mode and retries for a few seconds, then gives up if no reader has appeared, and
+the consumer does not start delivering. Opening the reader before sending the control command (as
+above) avoids this race.
+
 Options may again be provided in parenthesis, with currently supported options as follows.
 
-* :code:`batch_size` : an integer value, representing the batch size the producer must use
-  (default is 128).
+* :code:`batch_size` : an integer value, used as a read/prefetch hint for the consumer
+  (default is 128). Unlike on the producer side, this does **not** delay delivery: the daemon
+  writes each event to the FIFO as soon as it is read from storage, so the consumer sees events
+  at the rate they become available regardless of :code:`batch_size`. A larger value can
+  improve throughput when a backlog is being drained by reading events in larger chunks.
+
+Behavior and delivery guarantees
+++++++++++++++++++++++++++++++++
+
+* **The consumer streams events one per line**, in the order they were stored, writing each
+  event's metadata followed by a newline. With the default :code:`raw` format a string event is
+  unquoted before being written; with :code:`format=json` the raw JSON is written as stored.
+
+* **The consumer live-tails the topic.** It first drains whatever is already stored, then keeps
+  delivering new events as producers append them. It does not stop when it catches up with the
+  producer; it blocks, waiting for the next event, until the daemon is shut down or the reader
+  closes the FIFO. A consumer may therefore be registered before any event exists and will still
+  receive events produced afterwards.
+
+* **Delivery depends on events being visible in storage.** A consumer can only deliver events
+  that have actually reached storage, so producer batching directly affects what a consumer sees.
+  If a long-lived producer is buffering a large batch (see the producer section above), those
+  events are not yet stored and the consumer will not receive them until the batch is flushed.
+  When prompt end-to-end delivery is needed, use a producer configuration that flushes often (for
+  example :code:`batch_size=1`, or a one-writer-per-event loop).
+
+* **Back-pressure is respected.** If the reading process is slower than the stream and the FIFO
+  fills up, the daemon waits and retries rather than dropping events.
 
 Forwarding events between topics
 ---------------------------------
